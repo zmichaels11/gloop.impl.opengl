@@ -237,7 +237,7 @@ public final class ARBDriver implements Driver<
 
     @Override
     public void framebufferGetPixels(ARBFramebuffer framebuffer, long x, long y, long width, long height, long format, long type, ARBBuffer dstBuffer) {
-        final int currentFB = GL11.glGetInteger(ARBFramebufferObject.GL_FRAMEBUFFER);
+        final int currentFB = GL11.glGetInteger(ARBFramebufferObject.GL_FRAMEBUFFER_BINDING);
         final int currentBuffer = GL11.glGetInteger(GL21.GL_PIXEL_PACK_BUFFER_BINDING);
 
         ARBFramebufferObject.glBindFramebuffer(ARBFramebufferObject.GL_FRAMEBUFFER, framebuffer.framebufferId);
@@ -254,7 +254,7 @@ public final class ARBDriver implements Driver<
 
     @Override
     public void framebufferGetPixels(ARBFramebuffer framebuffer, long x, long y, long width, long height, long format, long type, ByteBuffer dstBuffer) {
-        final int currentFB = GL11.glGetInteger(ARBFramebufferObject.GL_FRAMEBUFFER);
+        final int currentFB = GL11.glGetInteger(ARBFramebufferObject.GL_FRAMEBUFFER_BINDING);
 
         ARBFramebufferObject.glBindFramebuffer(ARBFramebufferObject.GL_FRAMEBUFFER, framebuffer.framebufferId);
 
@@ -893,7 +893,7 @@ public final class ARBDriver implements Driver<
     @Override
     public void vertexArrayDrawArraysIndirect(ARBVertexArray vao, ARBBuffer cmdBuffer, long drawMode, long offset) {
         final int currentVao = GL11.glGetInteger(ARBVertexArrayObject.GL_VERTEX_ARRAY_BINDING);
-        final int currentIndirect = GL11.glGetInteger(ARBDrawIndirect.GL_DRAW_INDIRECT_BUFFER);
+        final int currentIndirect = GL11.glGetInteger(ARBDrawIndirect.GL_DRAW_INDIRECT_BUFFER_BINDING);
 
         ARBVertexArrayObject.glBindVertexArray(vao.vertexArrayId);
         GL15.glBindBuffer(ARBDrawIndirect.GL_DRAW_INDIRECT_BUFFER, cmdBuffer.bufferId);

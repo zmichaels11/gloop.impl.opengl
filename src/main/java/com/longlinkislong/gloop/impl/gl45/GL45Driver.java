@@ -230,7 +230,7 @@ public final class GL45Driver implements Driver<
 
     @Override
     public void framebufferGetPixels(GL45Framebuffer framebuffer, long x, long y, long width, long height, long format, long type, GL45Buffer dstBuffer) {
-        final int currentFB = GL11.glGetInteger(GL30.GL_FRAMEBUFFER);
+        final int currentFB = GL11.glGetInteger(GL30.GL_FRAMEBUFFER_BINDING);
         final int currentBuffer = GL11.glGetInteger(GL21.GL_PIXEL_PACK_BUFFER_BINDING);
 
         GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, framebuffer.framebufferId);
@@ -247,7 +247,7 @@ public final class GL45Driver implements Driver<
 
     @Override
     public void framebufferGetPixels(GL45Framebuffer framebuffer, long x, long y, long width, long height, long format, long type, ByteBuffer dstBuffer) {
-        final int currentFB = GL11.glGetInteger(GL30.GL_FRAMEBUFFER);
+        final int currentFB = GL11.glGetInteger(GL30.GL_FRAMEBUFFER_BINDING);
 
         GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, framebuffer.framebufferId);
 
@@ -740,7 +740,7 @@ public final class GL45Driver implements Driver<
     @Override
     public void vertexArrayDrawArraysIndirect(GL45VertexArray vao, GL45Buffer cmdBuffer, long drawMode, long offset) {
         final int currentVao = GL11.glGetInteger(GL30.GL_VERTEX_ARRAY_BINDING);
-        final int currentIndirect = GL11.glGetInteger(GL40.GL_DRAW_INDIRECT_BUFFER);
+        final int currentIndirect = GL11.glGetInteger(GL40.GL_DRAW_INDIRECT_BUFFER_BINDING);
 
         GL30.glBindVertexArray(vao.vertexArrayId);
         GL15.glBindBuffer(GL40.GL_DRAW_INDIRECT_BUFFER, cmdBuffer.bufferId);

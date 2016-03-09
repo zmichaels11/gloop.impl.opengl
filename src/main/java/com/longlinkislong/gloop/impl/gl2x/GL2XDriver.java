@@ -54,7 +54,7 @@ public final class GL2XDriver implements Driver<
 
     @Override
     public void bufferAllocate(GL2XBuffer buffer, long size, long usage) {
-        final int currentBuffer = GL11.glGetInteger(GL15.GL_ARRAY_BUFFER);
+        final int currentBuffer = GL11.glGetInteger(GL15.GL_ARRAY_BUFFER_BINDING);
 
         GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, buffer.bufferId);
         GL15.glBufferData(GL15.GL_ARRAY_BUFFER, size, (int) usage);
@@ -63,7 +63,7 @@ public final class GL2XDriver implements Driver<
 
     @Override
     public void bufferAllocateImmutable(GL2XBuffer buffer, long size, long bitflags) {
-        final int currentBuffer = GL11.glGetInteger(GL15.GL_ARRAY_BUFFER);
+        final int currentBuffer = GL11.glGetInteger(GL15.GL_ARRAY_BUFFER_BINDING);
 
         GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, buffer.bufferId);
         ARBBufferStorage.glBufferStorage(GL15.GL_ARRAY_BUFFER, (int) size, (int) bitflags);
@@ -108,7 +108,7 @@ public final class GL2XDriver implements Driver<
 
     @Override
     public void bufferGetData(GL2XBuffer buffer, long offset, ByteBuffer out) {
-        final int currentBuffer = GL11.glGetInteger(GL15.GL_ARRAY_BUFFER);
+        final int currentBuffer = GL11.glGetInteger(GL15.GL_ARRAY_BUFFER_BINDING);
 
         GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, buffer.bufferId);
         GL15.glGetBufferSubData(GL15.GL_ARRAY_BUFFER, offset, out);
@@ -137,7 +137,7 @@ public final class GL2XDriver implements Driver<
 
     @Override
     public ByteBuffer bufferMapData(GL2XBuffer buffer, long offset, long length, long accessFlags) {
-        final int currentBuffer = GL11.glGetInteger(GL15.GL_ARRAY_BUFFER);
+        final int currentBuffer = GL11.glGetInteger(GL15.GL_ARRAY_BUFFER_BINDING);
 
         GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, buffer.bufferId);
         buffer.mapBuffer = ARBMapBufferRange.glMapBufferRange(GL15.GL_ARRAY_BUFFER, offset, length, (int) accessFlags, buffer.mapBuffer);
@@ -157,7 +157,7 @@ public final class GL2XDriver implements Driver<
 
     @Override
     public void bufferUnmapData(GL2XBuffer buffer) {
-        final int currentBuffer = GL11.glGetInteger(GL15.GL_ARRAY_BUFFER);
+        final int currentBuffer = GL11.glGetInteger(GL15.GL_ARRAY_BUFFER_BINDING);
         GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, buffer.bufferId);
         GL15.glUnmapBuffer(GL15.GL_ARRAY_BUFFER);
         GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, currentBuffer);
@@ -316,7 +316,7 @@ public final class GL2XDriver implements Driver<
 
     @Override
     public void framebufferGetPixels(GL2XFramebuffer framebuffer, long x, long y, long width, long height, long format, long type, GL2XBuffer dstBuffer) {
-        final int currentFB = GL11.glGetInteger(ARBFramebufferObject.GL_FRAMEBUFFER);
+        final int currentFB = GL11.glGetInteger(ARBFramebufferObject.GL_FRAMEBUFFER_BINDING);
         final int currentBuffer = GL11.glGetInteger(GL21.GL_PIXEL_PACK_BUFFER_BINDING);
 
         ARBFramebufferObject.glBindFramebuffer(ARBFramebufferObject.GL_FRAMEBUFFER, framebuffer.framebufferId);
@@ -333,7 +333,7 @@ public final class GL2XDriver implements Driver<
 
     @Override
     public void framebufferGetPixels(GL2XFramebuffer framebuffer, long x, long y, long width, long height, long format, long type, ByteBuffer dstBuffer) {
-        final int currentFB = GL11.glGetInteger(ARBFramebufferObject.GL_FRAMEBUFFER);
+        final int currentFB = GL11.glGetInteger(ARBFramebufferObject.GL_FRAMEBUFFER_BINDING);
 
         ARBFramebufferObject.glBindFramebuffer(ARBFramebufferObject.GL_FRAMEBUFFER, framebuffer.framebufferId);
 
