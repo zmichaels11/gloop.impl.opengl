@@ -211,7 +211,7 @@ public final class GL4XDriver implements Driver<
                 break;
             case GL11.GL_TEXTURE_2D:
                 GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, framebuffer.framebufferId);
-                GL30.glFramebufferTexture1D(GL30.GL_FRAMEBUFFER, (int) attachmentId, GL11.GL_TEXTURE_2D, texId.textureId, (int) mipmapLevel);
+                GL30.glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, (int) attachmentId, GL11.GL_TEXTURE_2D, texId.textureId, (int) mipmapLevel);
                 GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, currentFb);
                 break;
             default:

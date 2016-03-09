@@ -13,7 +13,6 @@ import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import org.lwjgl.opengl.ARBSparseTexture;
 import org.lwjgl.opengl.EXTTextureFilterAnisotropic;
-import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12;
 import org.lwjgl.opengl.GL14;

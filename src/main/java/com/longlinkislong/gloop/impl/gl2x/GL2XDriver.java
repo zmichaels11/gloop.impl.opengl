@@ -32,7 +32,6 @@ import org.lwjgl.opengl.GL14;
 import org.lwjgl.opengl.GL15;
 import org.lwjgl.opengl.GL20;
 import org.lwjgl.opengl.GL21;
-import org.lwjgl.opengl.GLCapabilities;
 
 /**
  *
@@ -224,7 +223,7 @@ public final class GL2XDriver implements Driver<
                 break;
             case GL11.GL_TEXTURE_2D:
                 ARBFramebufferObject.glBindFramebuffer(ARBFramebufferObject.GL_FRAMEBUFFER, framebuffer.framebufferId);
-                ARBFramebufferObject.glFramebufferTexture1D(ARBFramebufferObject.GL_FRAMEBUFFER, (int) attachmentId, GL11.GL_TEXTURE_2D, texId.textureId, (int) mipmapLevel);
+                ARBFramebufferObject.glFramebufferTexture2D(ARBFramebufferObject.GL_FRAMEBUFFER, (int) attachmentId, GL11.GL_TEXTURE_2D, texId.textureId, (int) mipmapLevel);
                 ARBFramebufferObject.glBindFramebuffer(ARBFramebufferObject.GL_FRAMEBUFFER, currentFb);
                 break;
             default:
