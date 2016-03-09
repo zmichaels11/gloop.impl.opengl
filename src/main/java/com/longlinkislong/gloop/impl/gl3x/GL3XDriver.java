@@ -40,7 +40,7 @@ import org.lwjgl.opengl.GLCapabilities;
  *
  * @author zmichaels
  */
-public final class GL3XDriver implements Driver<
+final class GL3XDriver implements Driver<
         GL3XBuffer, GL3XFramebuffer, GL3XTexture, GL3XShader, GL3XProgram, GL3XSampler, GL3XVertexArray, GL3XDrawQuery> {
 
     @Override

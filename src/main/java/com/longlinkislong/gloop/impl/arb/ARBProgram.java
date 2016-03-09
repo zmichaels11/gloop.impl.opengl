@@ -11,7 +11,7 @@ import com.longlinkislong.gloop.spi.Program;
  *
  * @author zmichaels
  */
-public final class ARBProgram implements Program {
+final class ARBProgram implements Program {
     int programId = -1;
     
     @Override

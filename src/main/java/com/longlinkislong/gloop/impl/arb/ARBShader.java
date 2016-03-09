@@ -11,7 +11,7 @@ import com.longlinkislong.gloop.spi.Shader;
  *
  * @author zmichaels
  */
-public final class ARBShader implements Shader {
+final class ARBShader implements Shader {
     int shaderId = -1;
     
     @Override

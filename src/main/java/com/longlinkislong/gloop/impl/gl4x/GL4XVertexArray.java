@@ -11,7 +11,7 @@ import com.longlinkislong.gloop.spi.VertexArray;
  *
  * @author zmichaels
  */
-public final class GL4XVertexArray implements VertexArray {
+final class GL4XVertexArray implements VertexArray {
     int vertexArrayId = -1;
     
     @Override

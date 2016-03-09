@@ -11,7 +11,7 @@ import com.longlinkislong.gloop.spi.Framebuffer;
  *
  * @author zmichaels
  */
-public class GL45Framebuffer implements Framebuffer{
+class GL45Framebuffer implements Framebuffer{
     int framebufferId = -1;
     
     @Override

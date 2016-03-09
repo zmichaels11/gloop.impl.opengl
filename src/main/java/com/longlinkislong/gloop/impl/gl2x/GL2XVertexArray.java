@@ -12,7 +12,7 @@ import java.util.List;
  *
  * @author zmichaels
  */
-public final class GL2XVertexArray implements VertexArray {
+final class GL2XVertexArray implements VertexArray {
 
     GL2XBuffer element = null;
     int vertexArrayId = -1;

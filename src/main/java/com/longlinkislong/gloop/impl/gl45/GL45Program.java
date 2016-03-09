@@ -11,7 +11,7 @@ import com.longlinkislong.gloop.spi.Program;
  *
  * @author zmichaels
  */
-public final class GL45Program implements Program {        
+final class GL45Program implements Program {        
     int programId = -1;
     
     @Override

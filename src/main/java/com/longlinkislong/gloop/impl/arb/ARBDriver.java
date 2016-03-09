@@ -41,7 +41,7 @@ import org.lwjgl.opengl.GLCapabilities;
  *
  * @author zmichaels
  */
-public final class ARBDriver implements Driver<
+final class ARBDriver implements Driver<
         ARBBuffer, ARBFramebuffer, ARBTexture, ARBShader, ARBProgram, ARBSampler, ARBVertexArray, ARBDrawQuery> {
 
     private static final boolean ALLOW_ARB_DRIVER = Boolean.getBoolean("com.longlinkislong.gloop.allow_arb_driver");

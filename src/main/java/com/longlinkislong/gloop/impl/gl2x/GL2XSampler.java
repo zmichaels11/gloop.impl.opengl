@@ -11,7 +11,7 @@ import com.longlinkislong.gloop.spi.Sampler;
  *
  * @author zmichaels
  */
-public final class GL2XSampler implements Sampler {
+final class GL2XSampler implements Sampler {
 
     int samplerId = -1;
 

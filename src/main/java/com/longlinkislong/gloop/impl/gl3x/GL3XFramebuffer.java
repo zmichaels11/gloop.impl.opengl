@@ -11,7 +11,7 @@ import com.longlinkislong.gloop.spi.Framebuffer;
  *
  * @author zmichaels
  */
-public final class GL3XFramebuffer implements Framebuffer {
+final class GL3XFramebuffer implements Framebuffer {
 
     int framebufferId = -1;
 

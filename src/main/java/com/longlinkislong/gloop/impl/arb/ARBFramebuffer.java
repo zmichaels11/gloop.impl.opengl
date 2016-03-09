@@ -11,7 +11,7 @@ import com.longlinkislong.gloop.spi.Framebuffer;
  *
  * @author zmichaels
  */
-public final class ARBFramebuffer implements Framebuffer {
+final class ARBFramebuffer implements Framebuffer {
     int framebufferId = -1;
     
     @Override

@@ -11,7 +11,7 @@ import com.longlinkislong.gloop.spi.Sampler;
  *
  * @author zmichaels
  */
-public final class ARBSampler implements Sampler {
+final class ARBSampler implements Sampler {
 
     int samplerId = -1;
 

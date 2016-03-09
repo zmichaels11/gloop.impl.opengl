@@ -11,7 +11,7 @@ import com.longlinkislong.gloop.spi.Shader;
  *
  * @author zmichaels
  */
-public final class GL45Shader implements Shader {
+final class GL45Shader implements Shader {
     int shaderId;
     
     @Override

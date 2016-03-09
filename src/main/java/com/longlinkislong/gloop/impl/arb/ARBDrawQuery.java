@@ -11,7 +11,7 @@ import com.longlinkislong.gloop.spi.DrawQuery;
  *
  * @author zmichaels
  */
-public final class ARBDrawQuery implements DrawQuery {
+final class ARBDrawQuery implements DrawQuery {
 
     int drawQueryId = -1;
 

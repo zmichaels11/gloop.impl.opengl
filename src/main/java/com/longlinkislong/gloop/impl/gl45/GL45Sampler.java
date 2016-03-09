@@ -11,7 +11,7 @@ import com.longlinkislong.gloop.spi.Sampler;
  *
  * @author zmichaels
  */
-public final class GL45Sampler implements Sampler {
+final class GL45Sampler implements Sampler {
     int samplerId = -1;
     
     @Override

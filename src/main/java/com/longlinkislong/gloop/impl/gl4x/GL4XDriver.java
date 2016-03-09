@@ -38,7 +38,7 @@ import org.lwjgl.opengl.GL40;
  *
  * @author zmichaels
  */
-public final class GL4XDriver implements Driver<
+final class GL4XDriver implements Driver<
         GL4XBuffer, GL4XFramebuffer, GL4XTexture, GL4XShader, GL4XProgram, GL4XSampler, GL4XVertexArray, GL4XDrawQuery> {
 
     @Override

@@ -12,7 +12,7 @@ import java.nio.ByteBuffer;
  *
  * @author zmichaels
  */
-public final class ARBBuffer implements Buffer {
+final class ARBBuffer implements Buffer {
     int bufferId = -1;
     ByteBuffer mapBuffer;
     

@@ -11,7 +11,7 @@ import com.longlinkislong.gloop.spi.Texture;
  *
  * @author zmichaels
  */
-public final class GL3XTexture implements Texture {
+final class GL3XTexture implements Texture {
     int textureId = -1;
     int target = -1;
     int internalFormat = -1;

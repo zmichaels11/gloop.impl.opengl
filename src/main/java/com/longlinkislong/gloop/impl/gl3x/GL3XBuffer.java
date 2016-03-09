@@ -12,7 +12,7 @@ import java.nio.ByteBuffer;
  *
  * @author zmichaels
  */
-public final class GL3XBuffer implements Buffer {
+final class GL3XBuffer implements Buffer {
     int bufferId = -1;
     ByteBuffer mapBuffer;
     

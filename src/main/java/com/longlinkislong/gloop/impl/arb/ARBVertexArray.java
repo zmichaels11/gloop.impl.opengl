@@ -11,7 +11,7 @@ import com.longlinkislong.gloop.spi.VertexArray;
  *
  * @author zmichaels
  */
-public final class ARBVertexArray implements VertexArray {
+final class ARBVertexArray implements VertexArray {
     int vertexArrayId = -1;
     
     @Override

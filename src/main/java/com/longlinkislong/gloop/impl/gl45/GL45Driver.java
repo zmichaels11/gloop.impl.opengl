@@ -32,7 +32,7 @@ import org.lwjgl.opengl.GL45;
  *
  * @author zmichaels
  */
-public final class GL45Driver implements Driver<
+final class GL45Driver implements Driver<
         GL45Buffer, GL45Framebuffer, GL45Texture, GL45Shader, GL45Program, GL45Sampler, GL45VertexArray, GL45DrawQuery> {
 
     @Override

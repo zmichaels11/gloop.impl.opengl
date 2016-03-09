@@ -11,7 +11,7 @@ import com.longlinkislong.gloop.spi.Texture;
  *
  * @author zmichaels
  */
-public class GL45Texture implements Texture{
+class GL45Texture implements Texture{
     int textureId = -1;
     int target = -1;
     int internalFormat = -1;

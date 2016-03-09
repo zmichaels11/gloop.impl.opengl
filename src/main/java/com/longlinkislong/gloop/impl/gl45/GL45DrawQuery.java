@@ -11,7 +11,7 @@ import com.longlinkislong.gloop.spi.DrawQuery;
  *
  * @author zmichaels
  */
-public final class GL45DrawQuery implements DrawQuery {
+final class GL45DrawQuery implements DrawQuery {
     int drawQueryId = -1;
     
     @Override

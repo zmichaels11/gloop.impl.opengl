@@ -37,7 +37,7 @@ import org.lwjgl.opengl.GL21;
  *
  * @author zmichaels
  */
-public final class GL2XDriver implements Driver<
+final class GL2XDriver implements Driver<
         GL2XBuffer, GL2XFramebuffer, GL2XTexture, GL2XShader, GL2XProgram, GL2XSampler, GL2XVertexArray, GL2XDrawQuery> {
 
     @Override
