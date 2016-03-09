@@ -1,0 +1,27 @@
+plugins {
+    id 'com.jfrog.artifactory' version '3.1.1'
+}
+
+apply plugin: 'java'
+apply plugin: 'maven-publish'
+apply from: 'artifactory-template.gradle'
+
+sourceCompatibility = '1.8'
+[compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
+
+repositories {
+    mavenCentral()
+    maven { url 'https://oss.sonatype.org/content/repositories/snapshots' }
+    maven { url 'http://jartifacts.longlinkislong.com/libs-snapshot' }
+    maven { url 'http://jartifacts.longlinkislong.com/libs-release' }
+}
+
+def getProjectVersion(projId) {
+    return "${versionUrl}?name=${projId}".toURL().text.trim()
+}
+
+dependencies {
+    compile 'org.slf4j:slf4j-api:1.7.+'
+    compile "org.lwjgl:lwjgl:3.0.0-SNAPSHOT"
+    compile "com.longlinkislong:gloop-spi:${getProjectVersion('gloop-spi')}"
+}
