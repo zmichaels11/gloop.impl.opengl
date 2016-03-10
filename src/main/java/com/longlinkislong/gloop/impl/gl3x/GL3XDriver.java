@@ -49,27 +49,27 @@ final class GL3XDriver implements Driver<
     }
 
     @Override
-    public void blendingEnable(long rgbEq, long aEq, long rgbFuncSrc, long rgbFuncDst, long aFuncSrc, long aFuncDst) {
+    public void blendingEnable(int rgbEq, int aEq, int rgbFuncSrc, int rgbFuncDst, int aFuncSrc, int aFuncDst) {
         GL11.glEnable(GL11.GL_BLEND);
-        GL14.glBlendFuncSeparate((int) rgbFuncSrc, (int) rgbFuncDst, (int) aFuncSrc, (int) aFuncDst);
-        GL20.glBlendEquationSeparate((int) rgbEq, (int) aEq);
+        GL14.glBlendFuncSeparate(rgbFuncSrc, rgbFuncDst, aFuncSrc, aFuncDst);
+        GL20.glBlendEquationSeparate(rgbEq, aEq);
     }
 
     @Override
-    public void bufferAllocate(GL3XBuffer buffer, long size, long usage) {
+    public void bufferAllocate(GL3XBuffer buffer, long size, int usage) {
         final int currentBuffer = GL11.glGetInteger(GL15.GL_ARRAY_BUFFER);
 
         GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, buffer.bufferId);
-        GL15.glBufferData(GL15.GL_ARRAY_BUFFER, size, (int) usage);
+        GL15.glBufferData(GL15.GL_ARRAY_BUFFER, size, usage);
         GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, currentBuffer);
     }
 
     @Override
-    public void bufferAllocateImmutable(GL3XBuffer buffer, long size, long bitflags) {
+    public void bufferAllocateImmutable(GL3XBuffer buffer, long size, int bitflags) {
         final int currentBuffer = GL11.glGetInteger(GL15.GL_ARRAY_BUFFER);
 
         GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, buffer.bufferId);
-        ARBBufferStorage.glBufferStorage(GL15.GL_ARRAY_BUFFER, (int) size, (int) bitflags);
+        ARBBufferStorage.glBufferStorage(GL15.GL_ARRAY_BUFFER, size, bitflags);
         GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, currentBuffer);
     }
 
@@ -86,11 +86,11 @@ final class GL3XDriver implements Driver<
         } else {
             final ByteBuffer src = this.bufferMapData(srcBuffer, srcOffset, size, GL30.GL_MAP_READ_BIT);
             final ByteBuffer dst = this.bufferMapData(dstBuffer, dstOffset, size, GL30.GL_MAP_WRITE_BIT);
-            
-            for(int i = 0; i < size; i++) {
+
+            for (int i = 0; i < size; i++) {
                 dst.put(i, src.get(i));
             }
-            
+
             this.bufferUnmapData(dstBuffer);
             this.bufferUnmapData(srcBuffer);
         }
@@ -119,7 +119,7 @@ final class GL3XDriver implements Driver<
     }
 
     @Override
-    public long bufferGetParameter(GL3XBuffer buffer, long paramId) {
+    public int bufferGetParameterI(GL3XBuffer buffer, int paramId) {
         final int currentAB = GL11.glGetInteger(GL15.GL_ARRAY_BUFFER_BINDING);
 
         GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, buffer.bufferId);
@@ -139,21 +139,21 @@ final class GL3XDriver implements Driver<
     }
 
     @Override
-    public ByteBuffer bufferMapData(GL3XBuffer buffer, long offset, long length, long accessFlags) {
+    public ByteBuffer bufferMapData(GL3XBuffer buffer, long offset, long length, int accessFlags) {
         final int currentBuffer = GL11.glGetInteger(GL15.GL_ARRAY_BUFFER);
 
         GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, buffer.bufferId);
-        buffer.mapBuffer = GL30.glMapBufferRange(GL15.GL_ARRAY_BUFFER, offset, length, (int) accessFlags, buffer.mapBuffer);
+        buffer.mapBuffer = GL30.glMapBufferRange(GL15.GL_ARRAY_BUFFER, offset, length, accessFlags, buffer.mapBuffer);
         GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, currentBuffer);
         return buffer.mapBuffer;
     }
 
     @Override
-    public void bufferSetData(GL3XBuffer buffer, ByteBuffer data, long usage) {
+    public void bufferSetData(GL3XBuffer buffer, ByteBuffer data, int usage) {
         final int currentBuffer = GL11.glGetInteger(GL15.GL_ARRAY_BUFFER_BINDING);
 
         GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, buffer.bufferId);
-        GL15.glBufferData(GL15.GL_ARRAY_BUFFER, data, (int) usage);
+        GL15.glBufferData(GL15.GL_ARRAY_BUFFER, data, usage);
         GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, currentBuffer);
     }
 
@@ -166,10 +166,10 @@ final class GL3XDriver implements Driver<
     }
 
     @Override
-    public void clear(long bitfield, double red, double green, double blue, double alpha, double depth) {
-        GL11.glClearColor((float) red, (float) green, (float) blue, (float) alpha);
+    public void clear(int bitfield, float red, float green, float blue, float alpha, double depth) {
+        GL11.glClearColor(red, green, blue, alpha);
         GL11.glClearDepth(depth);
-        GL11.glClear((int) bitfield);
+        GL11.glClear(bitfield);
     }
 
     @Override
@@ -178,13 +178,13 @@ final class GL3XDriver implements Driver<
     }
 
     @Override
-    public void depthTestEnable(long depthTest) {
+    public void depthTestEnable(int depthTest) {
         GL11.glEnable(GL11.GL_DEPTH_TEST);
-        GL11.glDepthFunc((int) depthTest);
+        GL11.glDepthFunc(depthTest);
     }
 
     @Override
-    public void drawQueryBeginConditionalRender(GL3XDrawQuery query, long mode) {
+    public void drawQueryBeginConditionalRender(GL3XDrawQuery query, int mode) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
@@ -199,12 +199,12 @@ final class GL3XDriver implements Driver<
     }
 
     @Override
-    public void drawQueryDisable(long condition) {
+    public void drawQueryDisable(int condition) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
     @Override
-    public void drawQueryEnable(long condition, GL3XDrawQuery query) {
+    public void drawQueryEnable(int condition, GL3XDrawQuery query) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
@@ -214,18 +214,18 @@ final class GL3XDriver implements Driver<
     }
 
     @Override
-    public void framebufferAddAttachment(GL3XFramebuffer framebuffer, long attachmentId, GL3XTexture texId, long mipmapLevel) {
+    public void framebufferAddAttachment(GL3XFramebuffer framebuffer, int attachmentId, GL3XTexture texId, int mipmapLevel) {
         final int currentFb = GL11.glGetInteger(GL30.GL_FRAMEBUFFER_BINDING);
 
         switch (texId.target) {
             case GL11.GL_TEXTURE_1D:
                 GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, framebuffer.framebufferId);
-                GL30.glFramebufferTexture1D(GL30.GL_FRAMEBUFFER, (int) attachmentId, GL11.GL_TEXTURE_1D, texId.textureId, (int) mipmapLevel);
+                GL30.glFramebufferTexture1D(GL30.GL_FRAMEBUFFER, attachmentId, GL11.GL_TEXTURE_1D, texId.textureId, mipmapLevel);
                 GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, currentFb);
                 break;
             case GL11.GL_TEXTURE_2D:
                 GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, framebuffer.framebufferId);
-                GL30.glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, (int) attachmentId, GL11.GL_TEXTURE_2D, texId.textureId, (int) mipmapLevel);
+                GL30.glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, attachmentId, GL11.GL_TEXTURE_2D, texId.textureId, mipmapLevel);
                 GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, currentFb);
                 break;
             default:
@@ -234,18 +234,18 @@ final class GL3XDriver implements Driver<
     }
 
     @Override
-    public void framebufferAddDepthAttachment(GL3XFramebuffer framebuffer, GL3XTexture texId, long mipmapLevel) {
+    public void framebufferAddDepthAttachment(GL3XFramebuffer framebuffer, GL3XTexture texId, int mipmapLevel) {
         final int currentFb = GL11.glGetInteger(GL30.GL_FRAMEBUFFER_BINDING);
 
         switch (texId.target) {
             case GL11.GL_TEXTURE_1D:
                 GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, framebuffer.framebufferId);
-                GL30.glFramebufferTexture1D(GL30.GL_FRAMEBUFFER, GL30.GL_DEPTH_ATTACHMENT, GL11.GL_TEXTURE_1D, texId.textureId, (int) mipmapLevel);
+                GL30.glFramebufferTexture1D(GL30.GL_FRAMEBUFFER, GL30.GL_DEPTH_ATTACHMENT, GL11.GL_TEXTURE_1D, texId.textureId, mipmapLevel);
                 GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, currentFb);
                 break;
             case GL11.GL_TEXTURE_2D:
                 GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, framebuffer.framebufferId);
-                GL30.glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_DEPTH_ATTACHMENT, GL11.GL_TEXTURE_2D, texId.textureId, (int) mipmapLevel);
+                GL30.glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_DEPTH_ATTACHMENT, GL11.GL_TEXTURE_2D, texId.textureId, mipmapLevel);
                 GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, currentFb);
                 break;
             default:
@@ -254,18 +254,18 @@ final class GL3XDriver implements Driver<
     }
 
     @Override
-    public void framebufferAddDepthStencilAttachment(GL3XFramebuffer framebuffer, GL3XTexture texId, long mipmapLevel) {
+    public void framebufferAddDepthStencilAttachment(GL3XFramebuffer framebuffer, GL3XTexture texId, int mipmapLevel) {
         final int currentFb = GL11.glGetInteger(GL30.GL_FRAMEBUFFER_BINDING);
 
         switch (texId.target) {
             case GL11.GL_TEXTURE_1D:
                 GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, framebuffer.framebufferId);
-                GL30.glFramebufferTexture1D(GL30.GL_FRAMEBUFFER, GL30.GL_DEPTH_STENCIL_ATTACHMENT, GL11.GL_TEXTURE_1D, texId.textureId, (int) mipmapLevel);
+                GL30.glFramebufferTexture1D(GL30.GL_FRAMEBUFFER, GL30.GL_DEPTH_STENCIL_ATTACHMENT, GL11.GL_TEXTURE_1D, texId.textureId, mipmapLevel);
                 GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, currentFb);
                 break;
             case GL11.GL_TEXTURE_2D:
                 GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, framebuffer.framebufferId);
-                GL30.glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_DEPTH_STENCIL_ATTACHMENT, GL11.GL_TEXTURE_2D, texId.textureId, (int) mipmapLevel);
+                GL30.glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_DEPTH_STENCIL_ATTACHMENT, GL11.GL_TEXTURE_2D, texId.textureId, mipmapLevel);
                 GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, currentFb);
                 break;
             default:
@@ -283,14 +283,14 @@ final class GL3XDriver implements Driver<
     }
 
     @Override
-    public void framebufferBlit(GL3XFramebuffer srcFb, long srcX0, long srcY0, long srcX1, long srcY1, GL3XFramebuffer dstFb, long dstX0, long dstY0, long dstX1, long dstY1, long bitfield, long filter) {
+    public void framebufferBlit(GL3XFramebuffer srcFb, int srcX0, int srcY0, int srcX1, int srcY1, GL3XFramebuffer dstFb, int dstX0, int dstY0, int dstX1, int dstY1, int bitfield, int filter) {
         final int currentReadFb = GL11.glGetInteger(GL30.GL_READ_FRAMEBUFFER_BINDING);
         final int currentDrawFb = GL11.glGetInteger(GL30.GL_DRAW_FRAMEBUFFER_BINDING);
 
         GL30.glBindFramebuffer(GL30.GL_READ_FRAMEBUFFER, srcFb.framebufferId);
         GL30.glBindFramebuffer(GL30.GL_DRAW_FRAMEBUFFER, dstFb.framebufferId);
 
-        GL30.glBlitFramebuffer((int) srcX0, (int) srcY0, (int) srcX1, (int) srcY1, (int) dstX0, (int) dstY0, (int) dstX1, (int) dstY1, (int) bitfield, (int) filter);
+        GL30.glBlitFramebuffer(srcX0, srcY0, srcX1, srcY1, dstX0, dstY0, dstX1, dstY1, bitfield, filter);
 
         GL30.glBindFramebuffer(GL30.GL_DRAW_FRAMEBUFFER, currentDrawFb);
         GL30.glBindFramebuffer(GL30.GL_READ_FRAMEBUFFER, currentReadFb);
@@ -317,7 +317,7 @@ final class GL3XDriver implements Driver<
     }
 
     @Override
-    public void framebufferGetPixels(GL3XFramebuffer framebuffer, long x, long y, long width, long height, long format, long type, GL3XBuffer dstBuffer) {
+    public void framebufferGetPixels(GL3XFramebuffer framebuffer, int x, int y, int width, int height, int format, int type, GL3XBuffer dstBuffer) {
         final int currentFB = GL11.glGetInteger(GL30.GL_FRAMEBUFFER);
         final int currentBuffer = GL11.glGetInteger(GL21.GL_PIXEL_PACK_BUFFER_BINDING);
 
@@ -325,8 +325,8 @@ final class GL3XDriver implements Driver<
 
         GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, dstBuffer.bufferId);
         GL11.glReadPixels(
-                (int) x, (int) y, (int) width, (int) height,
-                (int) format, (int) type,
+                x, y, width, height,
+                format, type,
                 0L);
         GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, currentBuffer);
 
@@ -334,14 +334,14 @@ final class GL3XDriver implements Driver<
     }
 
     @Override
-    public void framebufferGetPixels(GL3XFramebuffer framebuffer, long x, long y, long width, long height, long format, long type, ByteBuffer dstBuffer) {
+    public void framebufferGetPixels(GL3XFramebuffer framebuffer, int x, int y, int width, int height, int format, int type, ByteBuffer dstBuffer) {
         final int currentFB = GL11.glGetInteger(GL30.GL_FRAMEBUFFER);
 
         GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, framebuffer.framebufferId);
 
         GL11.glReadPixels(
-                (int) x, (int) y, (int) width, (int) height,
-                (int) format, (int) type,
+                x, y, width, height,
+                format, type,
                 dstBuffer);
 
         GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, currentFB);
@@ -359,27 +359,27 @@ final class GL3XDriver implements Driver<
     }
 
     @Override
-    public void maskApply(boolean red, boolean green, boolean blue, boolean alpha, boolean depth, long stencil) {
+    public void maskApply(boolean red, boolean green, boolean blue, boolean alpha, boolean depth, int stencil) {
         GL11.glColorMask(red, green, blue, alpha);
         GL11.glDepthMask(depth);
-        GL11.glStencilMask((int) stencil);
+        GL11.glStencilMask(stencil);
     }
 
     @Override
-    public void polygonSetParameters(double pointSize, double lineWidth, long frontFace, long cullFace, long polygonMode, double offsetFactor, double offsetUnits) {
-        GL11.glPointSize((float) pointSize);
-        GL11.glLineWidth((float) lineWidth);
-        GL11.glFrontFace((int) frontFace);
+    public void polygonSetParameters(float pointSize, float lineWidth, int frontFace, int cullFace, int polygonMode, float offsetFactor, float offsetUnits) {
+        GL11.glPointSize(pointSize);
+        GL11.glLineWidth(lineWidth);
+        GL11.glFrontFace(frontFace);
 
         if (cullFace == 0) {
             GL11.glDisable(GL11.GL_CULL_FACE);
         } else {
             GL11.glEnable(GL11.GL_CULL_FACE);
-            GL11.glCullFace((int) cullFace);
+            GL11.glCullFace(cullFace);
         }
 
-        GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, (int) polygonMode);
-        GL11.glPolygonOffset((float) offsetFactor, (float) offsetUnits);
+        GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, polygonMode);
+        GL11.glPolygonOffset(offsetFactor, offsetUnits);
     }
 
     @Override
@@ -396,12 +396,12 @@ final class GL3XDriver implements Driver<
     }
 
     @Override
-    public void programDispatchCompute(GL3XProgram program, long numX, long numY, long numZ) {
+    public void programDispatchCompute(GL3XProgram program, int numX, int numY, int numZ) {
         throw new UnsupportedOperationException("Compute shaders are not supported!");
     }
 
     @Override
-    public long programGetUniformLocation(GL3XProgram program, String name) {
+    public int programGetUniformLocation(GL3XProgram program, String name) {
         final int currentProgram = GL11.glGetInteger(GL20.GL_CURRENT_PROGRAM);
 
         GL20.glUseProgram(program.programId);
@@ -424,13 +424,13 @@ final class GL3XDriver implements Driver<
     }
 
     @Override
-    public void programSetAttribLocation(GL3XProgram program, long index, String name) {
-        GL20.glBindAttribLocation(program.programId, (int) index, name);
+    public void programSetAttribLocation(GL3XProgram program, int index, String name) {
+        GL20.glBindAttribLocation(program.programId, index, name);
     }
 
     @Override
-    public void programSetFeedbackBuffer(GL3XProgram program, long varyingLoc, GL3XBuffer buffer) {
-        GL30.glBindBufferBase(GL30.GL_TRANSFORM_FEEDBACK_BUFFER, (int) varyingLoc, buffer.bufferId);
+    public void programSetFeedbackBuffer(GL3XProgram program, int varyingLoc, GL3XBuffer buffer) {
+        GL30.glBindBufferBase(GL30.GL_TRANSFORM_FEEDBACK_BUFFER, varyingLoc, buffer.bufferId);
     }
 
     @Override
@@ -439,20 +439,20 @@ final class GL3XDriver implements Driver<
     }
 
     @Override
-    public void programSetStorage(GL3XProgram program, String storageName, GL3XBuffer buffer, long bindingPoint) {
+    public void programSetStorage(GL3XProgram program, String storageName, GL3XBuffer buffer, int bindingPoint) {
         throw new UnsupportedOperationException("Shader storage is not supported!");
     }
 
     @Override
-    public void programSetUniformBlock(GL3XProgram program, String uniformName, GL3XBuffer buffer, long bindingPoint) {
+    public void programSetUniformBlock(GL3XProgram program, String uniformName, GL3XBuffer buffer, int bindingPoint) {
         final int uBlock = ARBUniformBufferObject.glGetUniformBlockIndex(program.programId, uniformName);
 
-        GL30.glBindBufferBase(ARBUniformBufferObject.GL_UNIFORM_BUFFER, (int) bindingPoint, buffer.bufferId);
-        ARBUniformBufferObject.glUniformBlockBinding(program.programId, uBlock, (int) bindingPoint);
+        GL30.glBindBufferBase(ARBUniformBufferObject.GL_UNIFORM_BUFFER, bindingPoint, buffer.bufferId);
+        ARBUniformBufferObject.glUniformBlockBinding(program.programId, uBlock, bindingPoint);
     }
 
     @Override
-    public void programSetUniformD(GL3XProgram program, long uLoc, double[] value) {
+    public void programSetUniformD(GL3XProgram program, int uLoc, double[] value) {
         final GLCapabilities cap = GL.getCapabilities();
 
         if (!(cap.GL_ARB_gpu_shader_fp64 && cap.GL_ARB_gpu_shader_int64)) {
@@ -462,16 +462,16 @@ final class GL3XDriver implements Driver<
         if (cap.GL_ARB_separate_shader_objects) {
             switch (value.length) {
                 case 1:
-                    ARBSeparateShaderObjects.glProgramUniform1d(program.programId, (int) uLoc, value[0]);
+                    ARBSeparateShaderObjects.glProgramUniform1d(program.programId, uLoc, value[0]);
                     break;
                 case 2:
-                    ARBSeparateShaderObjects.glProgramUniform2d(program.programId, (int) uLoc, value[0], value[1]);
+                    ARBSeparateShaderObjects.glProgramUniform2d(program.programId, uLoc, value[0], value[1]);
                     break;
                 case 3:
-                    ARBSeparateShaderObjects.glProgramUniform3d(program.programId, (int) uLoc, value[0], value[1], value[2]);
+                    ARBSeparateShaderObjects.glProgramUniform3d(program.programId, uLoc, value[0], value[1], value[2]);
                     break;
                 case 4:
-                    ARBSeparateShaderObjects.glProgramUniform4d(program.programId, (int) uLoc, value[0], value[1], value[2], value[3]);
+                    ARBSeparateShaderObjects.glProgramUniform4d(program.programId, uLoc, value[0], value[1], value[2], value[3]);
                     break;
                 default:
                     throw new UnsupportedOperationException("Unsupported vector size: " + value.length);
@@ -482,22 +482,22 @@ final class GL3XDriver implements Driver<
             switch (value.length) {
                 case 1:
                     GL20.glUseProgram(program.programId);
-                    ARBGPUShaderFP64.glUniform1d((int) uLoc, value[0]);
+                    ARBGPUShaderFP64.glUniform1d(uLoc, value[0]);
                     GL20.glUseProgram(currentProgram);
                     break;
                 case 2:
                     GL20.glUseProgram(program.programId);
-                    ARBGPUShaderFP64.glUniform2d((int) uLoc, value[0], value[1]);
+                    ARBGPUShaderFP64.glUniform2d(uLoc, value[0], value[1]);
                     GL20.glUseProgram(currentProgram);
                     break;
                 case 3:
                     GL20.glUseProgram(program.programId);
-                    ARBGPUShaderFP64.glUniform3d((int) uLoc, value[0], value[1], value[2]);
+                    ARBGPUShaderFP64.glUniform3d(uLoc, value[0], value[1], value[2]);
                     GL20.glUseProgram(currentProgram);
                     break;
                 case 4:
                     GL20.glUseProgram(program.programId);
-                    ARBGPUShaderFP64.glUniform4d((int) uLoc, value[0], value[1], value[2], value[3]);
+                    ARBGPUShaderFP64.glUniform4d(uLoc, value[0], value[1], value[2], value[3]);
                     GL20.glUseProgram(currentProgram);
                     break;
             }
@@ -505,20 +505,20 @@ final class GL3XDriver implements Driver<
     }
 
     @Override
-    public void programSetUniformF(GL3XProgram program, long uLoc, float[] value) {
+    public void programSetUniformF(GL3XProgram program, int uLoc, float[] value) {
         if (GL.getCapabilities().GL_ARB_separate_shader_objects) {
             switch (value.length) {
                 case 1:
-                    ARBSeparateShaderObjects.glProgramUniform1f(program.programId, (int) uLoc, value[0]);
+                    ARBSeparateShaderObjects.glProgramUniform1f(program.programId, uLoc, value[0]);
                     break;
                 case 2:
-                    ARBSeparateShaderObjects.glProgramUniform2f(program.programId, (int) uLoc, value[0], value[1]);
+                    ARBSeparateShaderObjects.glProgramUniform2f(program.programId, uLoc, value[0], value[1]);
                     break;
                 case 3:
-                    ARBSeparateShaderObjects.glProgramUniform3f(program.programId, (int) uLoc, value[0], value[1], value[2]);
+                    ARBSeparateShaderObjects.glProgramUniform3f(program.programId, uLoc, value[0], value[1], value[2]);
                     break;
                 case 4:
-                    ARBSeparateShaderObjects.glProgramUniform4f(program.programId, (int) uLoc, value[0], value[1], value[2], value[3]);
+                    ARBSeparateShaderObjects.glProgramUniform4f(program.programId, uLoc, value[0], value[1], value[2], value[3]);
                     break;
             }
         } else {
@@ -527,22 +527,22 @@ final class GL3XDriver implements Driver<
             switch (value.length) {
                 case 1:
                     GL20.glUseProgram(program.programId);
-                    GL20.glUniform1f((int) uLoc, value[0]);
+                    GL20.glUniform1f(uLoc, value[0]);
                     GL20.glUseProgram(currentProgram);
                     break;
                 case 2:
                     GL20.glUseProgram(program.programId);
-                    GL20.glUniform2f((int) uLoc, value[0], value[1]);
+                    GL20.glUniform2f(uLoc, value[0], value[1]);
                     GL20.glUseProgram(currentProgram);
                     break;
                 case 3:
                     GL20.glUseProgram(program.programId);
-                    GL20.glUniform3f((int) uLoc, value[0], value[1], value[2]);
+                    GL20.glUniform3f(uLoc, value[0], value[1], value[2]);
                     GL20.glUseProgram(currentProgram);
                     break;
                 case 4:
                     GL20.glUseProgram(program.programId);
-                    GL20.glUniform4f((int) uLoc, value[0], value[1], value[2], value[3]);
+                    GL20.glUniform4f(uLoc, value[0], value[1], value[2], value[3]);
                     GL20.glUseProgram(currentProgram);
                     break;
                 default:
@@ -552,20 +552,20 @@ final class GL3XDriver implements Driver<
     }
 
     @Override
-    public void programSetUniformI(GL3XProgram program, long uLoc, int[] value) {
+    public void programSetUniformI(GL3XProgram program, int uLoc, int[] value) {
         if (GL.getCapabilities().GL_ARB_separate_shader_objects) {
             switch (value.length) {
                 case 1:
-                    ARBSeparateShaderObjects.glProgramUniform1i(program.programId, (int) uLoc, value[0]);
+                    ARBSeparateShaderObjects.glProgramUniform1i(program.programId, uLoc, value[0]);
                     break;
                 case 2:
-                    ARBSeparateShaderObjects.glProgramUniform2i(program.programId, (int) uLoc, value[0], value[1]);
+                    ARBSeparateShaderObjects.glProgramUniform2i(program.programId, uLoc, value[0], value[1]);
                     break;
                 case 3:
-                    ARBSeparateShaderObjects.glProgramUniform3i(program.programId, (int) uLoc, value[0], value[1], value[2]);
+                    ARBSeparateShaderObjects.glProgramUniform3i(program.programId, uLoc, value[0], value[1], value[2]);
                     break;
                 case 4:
-                    ARBSeparateShaderObjects.glProgramUniform4i(program.programId, (int) uLoc, value[0], value[1], value[2], value[3]);
+                    ARBSeparateShaderObjects.glProgramUniform4i(program.programId, uLoc, value[0], value[1], value[2], value[3]);
                     break;
                 default:
                     throw new UnsupportedOperationException("Unsupported uniform vector size: " + value.length);
@@ -576,22 +576,22 @@ final class GL3XDriver implements Driver<
             switch (value.length) {
                 case 1:
                     GL20.glUseProgram(program.programId);
-                    GL20.glUniform1i((int) uLoc, value[0]);
+                    GL20.glUniform1i(uLoc, value[0]);
                     GL20.glUseProgram(currentProgram);
                     break;
                 case 2:
                     GL20.glUseProgram(program.programId);
-                    GL20.glUniform2i((int) uLoc, value[0], value[1]);
+                    GL20.glUniform2i(uLoc, value[0], value[1]);
                     GL20.glUseProgram(currentProgram);
                     break;
                 case 3:
                     GL20.glUseProgram(program.programId);
-                    GL20.glUniform3i((int) uLoc, value[0], value[1], value[2]);
+                    GL20.glUniform3i(uLoc, value[0], value[1], value[2]);
                     GL20.glUseProgram(currentProgram);
                     break;
                 case 4:
                     GL20.glUseProgram(program.programId);
-                    GL20.glUniform4i((int) uLoc, value[0], value[1], value[2], value[3]);
+                    GL20.glUniform4i(uLoc, value[0], value[1], value[2], value[3]);
                     GL20.glUseProgram(currentProgram);
                     break;
                 default:
@@ -601,7 +601,7 @@ final class GL3XDriver implements Driver<
     }
 
     @Override
-    public void programSetUniformMatD(GL3XProgram program, long uLoc, DoubleBuffer mat) {
+    public void programSetUniformMatD(GL3XProgram program, int uLoc, DoubleBuffer mat) {
         final GLCapabilities cap = GL.getCapabilities();
 
         if (!(cap.GL_ARB_gpu_shader_fp64 && cap.GL_ARB_gpu_shader_int64)) {
@@ -611,13 +611,13 @@ final class GL3XDriver implements Driver<
         if (cap.GL_ARB_separate_shader_objects) {
             switch (mat.limit()) {
                 case 4:
-                    ARBSeparateShaderObjects.glProgramUniformMatrix2dv(program.programId, (int) uLoc, false, mat);
+                    ARBSeparateShaderObjects.glProgramUniformMatrix2dv(program.programId, uLoc, false, mat);
                     break;
                 case 9:
-                    ARBSeparateShaderObjects.glProgramUniformMatrix3dv(program.programId, (int) uLoc, false, mat);
+                    ARBSeparateShaderObjects.glProgramUniformMatrix3dv(program.programId, uLoc, false, mat);
                     break;
                 case 16:
-                    ARBSeparateShaderObjects.glProgramUniformMatrix4dv(program.programId, (int) uLoc, false, mat);
+                    ARBSeparateShaderObjects.glProgramUniformMatrix4dv(program.programId, uLoc, false, mat);
                     break;
                 default:
                     throw new UnsupportedOperationException("Unsupported matrix size: " + mat.limit());
@@ -628,17 +628,17 @@ final class GL3XDriver implements Driver<
             switch (mat.limit()) {
                 case 4:
                     GL20.glUseProgram(program.programId);
-                    ARBGPUShaderFP64.glUniformMatrix2dv((int) uLoc, false, mat);
+                    ARBGPUShaderFP64.glUniformMatrix2dv(uLoc, false, mat);
                     GL20.glUseProgram(currentProgram);
                     break;
                 case 9:
                     GL20.glUseProgram(program.programId);
-                    ARBGPUShaderFP64.glUniformMatrix3dv((int) uLoc, false, mat);
+                    ARBGPUShaderFP64.glUniformMatrix3dv(uLoc, false, mat);
                     GL20.glUseProgram(currentProgram);
                     break;
                 case 16:
                     GL20.glUseProgram(program.programId);
-                    ARBGPUShaderFP64.glUniformMatrix4dv((int) uLoc, false, mat);
+                    ARBGPUShaderFP64.glUniformMatrix4dv(uLoc, false, mat);
                     GL20.glUseProgram(currentProgram);
                     break;
                 default:
@@ -648,17 +648,17 @@ final class GL3XDriver implements Driver<
     }
 
     @Override
-    public void programSetUniformMatF(GL3XProgram program, long uLoc, FloatBuffer mat) {
+    public void programSetUniformMatF(GL3XProgram program, int uLoc, FloatBuffer mat) {
         if (GL.getCapabilities().GL_ARB_separate_shader_objects) {
             switch (mat.limit()) {
                 case 4:
-                    ARBSeparateShaderObjects.glProgramUniformMatrix2fv(program.programId, (int) uLoc, false, mat);
+                    ARBSeparateShaderObjects.glProgramUniformMatrix2fv(program.programId, uLoc, false, mat);
                     break;
                 case 9:
-                    ARBSeparateShaderObjects.glProgramUniformMatrix3fv(program.programId, (int) uLoc, false, mat);
+                    ARBSeparateShaderObjects.glProgramUniformMatrix3fv(program.programId, uLoc, false, mat);
                     break;
                 case 16:
-                    ARBSeparateShaderObjects.glProgramUniformMatrix4fv(program.programId, (int) uLoc, false, mat);
+                    ARBSeparateShaderObjects.glProgramUniformMatrix4fv(program.programId, uLoc, false, mat);
                     break;
                 default:
                     throw new UnsupportedOperationException("Unsupported matrix size: " + mat.limit());
@@ -669,17 +669,17 @@ final class GL3XDriver implements Driver<
             switch (mat.limit()) {
                 case 4:
                     GL20.glUseProgram(program.programId);
-                    GL20.glUniformMatrix2fv((int) uLoc, false, mat);
+                    GL20.glUniformMatrix2fv(uLoc, false, mat);
                     GL20.glUseProgram(currentProgram);
                     break;
                 case 9:
                     GL20.glUseProgram(program.programId);
-                    GL20.glUniformMatrix3fv((int) uLoc, false, mat);
+                    GL20.glUniformMatrix3fv(uLoc, false, mat);
                     GL20.glUseProgram(currentProgram);
                     break;
                 case 16:
                     GL20.glUseProgram(program.programId);
-                    GL20.glUniformMatrix4fv((int) uLoc, false, mat);
+                    GL20.glUniformMatrix4fv(uLoc, false, mat);
                     GL20.glUseProgram(currentProgram);
                     break;
                 default:
@@ -694,8 +694,8 @@ final class GL3XDriver implements Driver<
     }
 
     @Override
-    public void samplerBind(long unit, GL3XSampler sampler) {
-        ARBSamplerObjects.glBindSampler((int) unit, sampler.samplerId);
+    public void samplerBind(int unit, GL3XSampler sampler) {
+        ARBSamplerObjects.glBindSampler(unit, sampler.samplerId);
     }
 
     @Override
@@ -712,13 +712,13 @@ final class GL3XDriver implements Driver<
     }
 
     @Override
-    public void samplerSetParameter(GL3XSampler sampler, long param, long value) {
-        ARBSamplerObjects.glSamplerParameteri(sampler.samplerId, (int) param, (int) value);
+    public void samplerSetParameter(GL3XSampler sampler, int param, int value) {
+        ARBSamplerObjects.glSamplerParameteri(sampler.samplerId, param, value);
     }
 
     @Override
-    public void samplerSetParameter(GL3XSampler sampler, long param, double value) {
-        ARBSamplerObjects.glSamplerParameterf(sampler.samplerId, (int) param, (float) value);
+    public void samplerSetParameter(GL3XSampler sampler, int param, float value) {
+        ARBSamplerObjects.glSamplerParameterf(sampler.samplerId, param, value);
     }
 
     @Override
@@ -727,16 +727,16 @@ final class GL3XDriver implements Driver<
     }
 
     @Override
-    public void scissorTestEnable(long left, long bottom, long width, long height) {
+    public void scissorTestEnable(int left, int bottom, int width, int height) {
         GL11.glEnable(GL11.GL_SCISSOR_TEST);
-        GL11.glScissor((int) left, (int) bottom, (int) width, (int) height);
+        GL11.glScissor(left, bottom, width, height);
     }
 
     @Override
-    public GL3XShader shaderCompile(long type, String source) {
+    public GL3XShader shaderCompile(int type, String source) {
         final GL3XShader shader = new GL3XShader();
 
-        shader.shaderId = GL20.glCreateShader((int) type);
+        shader.shaderId = GL20.glCreateShader(type);
         GL20.glShaderSource(shader.shaderId, source);
         GL20.glCompileShader(shader.shaderId);
         return shader;
@@ -754,12 +754,12 @@ final class GL3XDriver implements Driver<
     }
 
     @Override
-    public long shaderGetParameter(GL3XShader shader, long pName) {
-        return GL20.glGetShaderi(shader.shaderId, (int) pName);
+    public int shaderGetParameterI(GL3XShader shader, int pName) {
+        return GL20.glGetShaderi(shader.shaderId, pName);
     }
 
     @Override
-    public GL3XTexture textureAllocate(long mipmaps, long internalFormat, long width, long height, long depth) {
+    public GL3XTexture textureAllocate(int mipmaps, int internalFormat, int width, int height, int depth) {
         final int target;
 
         if (width < 1 || height < 1 || depth < 1) {
@@ -778,7 +778,7 @@ final class GL3XDriver implements Driver<
 
         texture.textureId = GL11.glGenTextures();
         texture.target = target;
-        texture.internalFormat = (int) internalFormat;
+        texture.internalFormat = internalFormat;
 
         int currentTexture;
         switch (target) {
@@ -786,10 +786,10 @@ final class GL3XDriver implements Driver<
                 currentTexture = GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_1D);
                 GL11.glBindTexture(GL11.GL_TEXTURE_1D, texture.textureId);
                 GL11.glTexParameteri(GL11.GL_TEXTURE_1D, GL12.GL_TEXTURE_BASE_LEVEL, 0);
-                GL11.glTexParameteri(GL11.GL_TEXTURE_1D, GL12.GL_TEXTURE_MAX_LEVEL, (int) mipmaps);
+                GL11.glTexParameteri(GL11.GL_TEXTURE_1D, GL12.GL_TEXTURE_MAX_LEVEL, mipmaps);
 
                 for (int i = 0; i < mipmaps; i++) {
-                    GL11.glTexImage1D(GL11.GL_TEXTURE_1D, i, (int) internalFormat, (int) width, 0, guessFormat((int) internalFormat), GL11.GL_UNSIGNED_BYTE, 0);
+                    GL11.glTexImage1D(GL11.GL_TEXTURE_1D, i, internalFormat, width, 0, guessFormat(internalFormat), GL11.GL_UNSIGNED_BYTE, 0);
                     width = Math.max(1, (width / 2));
                 }
                 GL11.glBindTexture(GL11.GL_TEXTURE_1D, currentTexture);
@@ -798,10 +798,10 @@ final class GL3XDriver implements Driver<
                 currentTexture = GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_2D);
                 GL11.glBindTexture(GL11.GL_TEXTURE_2D, texture.textureId);
                 GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL12.GL_TEXTURE_BASE_LEVEL, 0);
-                GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL12.GL_TEXTURE_MAX_LEVEL, (int) mipmaps);
+                GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL12.GL_TEXTURE_MAX_LEVEL, mipmaps);
 
                 for (int i = 0; i < mipmaps; i++) {
-                    GL11.glTexImage2D(GL11.GL_TEXTURE_2D, i, (int) internalFormat, (int) width, (int) height, 0, guessFormat((int) internalFormat), GL11.GL_UNSIGNED_BYTE, 0);
+                    GL11.glTexImage2D(GL11.GL_TEXTURE_2D, i, internalFormat, width, height, 0, guessFormat(internalFormat), GL11.GL_UNSIGNED_BYTE, 0);
                     width = Math.max(1, (width / 2));
                     height = Math.max(1, (height / 2));
                 }
@@ -812,10 +812,10 @@ final class GL3XDriver implements Driver<
                 currentTexture = GL11.glGetInteger(GL12.GL_TEXTURE_BINDING_3D);
                 GL11.glBindTexture(GL12.GL_TEXTURE_3D, texture.textureId);
                 GL11.glTexParameteri(GL12.GL_TEXTURE_3D, GL12.GL_TEXTURE_BASE_LEVEL, 0);
-                GL11.glTexParameteri(GL12.GL_TEXTURE_3D, GL12.GL_TEXTURE_MAX_LEVEL, (int) mipmaps);
+                GL11.glTexParameteri(GL12.GL_TEXTURE_3D, GL12.GL_TEXTURE_MAX_LEVEL, mipmaps);
 
                 for (int i = 0; i < mipmaps; i++) {
-                    GL12.glTexImage3D(GL12.GL_TEXTURE_3D, i, (int) internalFormat, (int) width, (int) height, (int) depth, 0, guessFormat((int) internalFormat), GL11.GL_UNSIGNED_BYTE, 0);
+                    GL12.glTexImage3D(GL12.GL_TEXTURE_3D, i, internalFormat, width, height, depth, 0, guessFormat(internalFormat), GL11.GL_UNSIGNED_BYTE, 0);
                     width = Math.max(1, (width / 2));
                     height = Math.max(1, (height / 2));
                     depth = Math.max(1, (depth / 2));
@@ -829,26 +829,26 @@ final class GL3XDriver implements Driver<
     }
 
     @Override
-    public void textureAllocatePage(GL3XTexture texture, long level, long xOffset, long yOffset, long zOffset, long width, long height, long depth) {
+    public void textureAllocatePage(GL3XTexture texture, int level, int xOffset, int yOffset, int zOffset, int width, int height, int depth) {
         ARBSparseTexture.glTexPageCommitmentARB(
-                texture.textureId, (int) level,
-                (int) xOffset, (int) yOffset, (int) zOffset,
-                (int) width, (int) height, (int) depth,
+                texture.textureId, level,
+                xOffset, yOffset, zOffset,
+                width, height, depth,
                 true);
     }
 
     @Override
-    public void textureBind(GL3XTexture texture, long unit) {
-        GL13.glActiveTexture(GL13.GL_TEXTURE0 + (int) unit);
+    public void textureBind(GL3XTexture texture, int unit) {
+        GL13.glActiveTexture(GL13.GL_TEXTURE0 + unit);
         GL11.glBindTexture(texture.target, texture.textureId);
     }
 
     @Override
-    public void textureDeallocatePage(GL3XTexture texture, long level, long xOffset, long yOffset, long zOffset, long width, long height, long depth) {
+    public void textureDeallocatePage(GL3XTexture texture, int level, int xOffset, int yOffset, int zOffset, int width, int height, int depth) {
         ARBSparseTexture.glTexPageCommitmentARB(
-                texture.textureId, (int) level,
-                (int) xOffset, (int) yOffset, (int) zOffset,
-                (int) width, (int) height, (int) depth,
+                texture.textureId, level,
+                xOffset, yOffset, zOffset,
+                width, height, depth,
                 false);
     }
 
@@ -884,7 +884,7 @@ final class GL3XDriver implements Driver<
     }
 
     @Override
-    public void textureGetData(GL3XTexture texture, long level, long format, long type, ByteBuffer out) {
+    public void textureGetData(GL3XTexture texture, int level, int format, int type, ByteBuffer out) {
         final int binding;
 
         switch (texture.target) {
@@ -904,63 +904,67 @@ final class GL3XDriver implements Driver<
         final int currentTexture = GL11.glGetInteger(binding);
 
         GL11.glBindTexture(texture.target, texture.textureId);
-        GL11.glGetTexImage(texture.target, (int) level, (int) format, (int) type, out);
+        GL11.glGetTexImage(texture.target, level, format, type, out);
         GL11.glBindTexture(texture.target, currentTexture);
     }
 
     @Override
-    public double textureGetMaxAnisotropy() {
-        return GL11.glGetFloat(EXTTextureFilterAnisotropic.GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT);
+    public float textureGetMaxAnisotropy() {
+        if (GL.getCapabilities().GL_EXT_texture_filter_anisotropic) {
+            return GL11.glGetFloat(EXTTextureFilterAnisotropic.GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT);
+        } else {
+            return 1F;
+        }
     }
 
     @Override
-    public long textureGetMaxBoundTextures() {
+    public int textureGetMaxBoundTextures() {
         return GL11.glGetInteger(GL20.GL_MAX_TEXTURE_IMAGE_UNITS);
     }
 
     @Override
-    public long textureGetMaxSize() {
+    public int textureGetMaxSize() {
         return GL11.glGetInteger(GL11.GL_MAX_TEXTURE_SIZE);
     }
 
     @Override
-    public long textureGetPageDepth(GL3XTexture texture) {
+    public int textureGetPageDepth(GL3XTexture texture) {
         return ARBInternalformatQuery.glGetInternalformati(texture.target, texture.internalFormat, ARBSparseTexture.GL_VIRTUAL_PAGE_SIZE_Z_ARB);
     }
 
     @Override
-    public long textureGetPageHeight(GL3XTexture texture) {
+    public int textureGetPageHeight(GL3XTexture texture) {
         return ARBInternalformatQuery.glGetInternalformati(texture.target, texture.internalFormat, ARBSparseTexture.GL_VIRTUAL_PAGE_SIZE_Y_ARB);
     }
 
     @Override
-    public long textureGetPageWidth(GL3XTexture texture) {
+    public int textureGetPageWidth(GL3XTexture texture) {
         return ARBInternalformatQuery.glGetInternalformati(texture.target, texture.internalFormat, ARBSparseTexture.GL_VIRTUAL_PAGE_SIZE_X_ARB);
     }
 
     @Override
-    public long textureGetPreferredFormat(long internalFormat) {
+    public int textureGetPreferredFormat(int internalFormat) {
         return GL11.GL_RGBA;
     }
 
     @Override
-    public void textureInvalidateData(GL3XTexture texture, long level) {
-        ARBInvalidateSubdata.glInvalidateTexImage(texture.target, (int) level);
+    public void textureInvalidateData(GL3XTexture texture, int level) {
+        ARBInvalidateSubdata.glInvalidateTexImage(texture.target, level);
     }
 
     @Override
-    public void textureInvalidateRange(GL3XTexture texture, long level, long xOffset, long yOffset, long zOffset, long width, long height, long depth) {
-        ARBInvalidateSubdata.glInvalidateTexSubImage(texture.textureId, (int) level, (int) xOffset, (int) yOffset, (int) zOffset, (int) width, (int) height, (int) depth);
+    public void textureInvalidateRange(GL3XTexture texture, int level, int xOffset, int yOffset, int zOffset, int width, int height, int depth) {
+        ARBInvalidateSubdata.glInvalidateTexSubImage(texture.textureId, level, xOffset, yOffset, zOffset, width, height, depth);
     }
 
     @Override
-    public void textureSetData(GL3XTexture texture, long level, long xOffset, long yOffset, long zOffset, long width, long height, long depth, long format, long type, ByteBuffer data) {
+    public void textureSetData(GL3XTexture texture, int level, int xOffset, int yOffset, int zOffset, int width, int height, int depth, int format, int type, ByteBuffer data) {
         switch (texture.target) {
             case GL11.GL_TEXTURE_1D: {
                 final int currentTexture = GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_1D);
 
                 GL11.glBindTexture(GL11.GL_TEXTURE_1D, texture.textureId);
-                GL11.glTexSubImage1D(GL11.GL_TEXTURE_1D, (int) level, (int) xOffset, (int) width, (int) format, (int) type, data);
+                GL11.glTexSubImage1D(GL11.GL_TEXTURE_1D, level, xOffset, width, format, type, data);
                 GL11.glBindTexture(GL11.GL_TEXTURE_1D, currentTexture);
             }
             break;
@@ -968,7 +972,7 @@ final class GL3XDriver implements Driver<
                 final int currentTexture = GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_2D);
 
                 GL11.glBindTexture(GL11.GL_TEXTURE_2D, texture.textureId);
-                GL11.glTexSubImage2D(GL11.GL_TEXTURE_2D, (int) level, (int) xOffset, (int) yOffset, (int) width, (int) height, (int) format, (int) type, data);
+                GL11.glTexSubImage2D(GL11.GL_TEXTURE_2D, level, xOffset, yOffset, width, height, format, type, data);
                 GL11.glBindTexture(GL11.GL_TEXTURE_2D, currentTexture);
             }
             break;
@@ -976,7 +980,7 @@ final class GL3XDriver implements Driver<
                 final int currentTexture = GL11.glGetInteger(GL12.GL_TEXTURE_BINDING_3D);
 
                 GL11.glBindTexture(GL12.GL_TEXTURE_3D, texture.textureId);
-                GL12.glTexSubImage3D(GL12.GL_TEXTURE_3D, (int) level, (int) xOffset, (int) yOffset, (int) zOffset, (int) width, (int) height, (int) depth, (int) format, (int) type, data);
+                GL12.glTexSubImage3D(GL12.GL_TEXTURE_3D, level, xOffset, yOffset, zOffset, width, height, depth, format, type, data);
                 GL11.glBindTexture(GL12.GL_TEXTURE_3D, currentTexture);
             }
             break;
@@ -985,7 +989,7 @@ final class GL3XDriver implements Driver<
     }
 
     @Override
-    public void textureSetParameter(GL3XTexture texture, long param, long value) {
+    public void textureSetParameter(GL3XTexture texture, int param, int value) {
         final int currentTexture;
 
         switch (texture.target) {
@@ -1003,12 +1007,12 @@ final class GL3XDriver implements Driver<
         }
 
         GL11.glBindTexture(texture.target, texture.textureId);
-        GL11.glTexParameteri(texture.target, (int) param, (int) value);
+        GL11.glTexParameteri(texture.target, param, value);
         GL11.glBindTexture(texture.target, currentTexture);
     }
 
     @Override
-    public void textureSetParameter(GL3XTexture texture, long param, double value) {
+    public void textureSetParameter(GL3XTexture texture, int param, float value) {
         final int currentTexture;
 
         switch (texture.target) {
@@ -1026,27 +1030,27 @@ final class GL3XDriver implements Driver<
         }
 
         GL11.glBindTexture(texture.target, texture.textureId);
-        GL11.glTexParameterf(texture.target, (int) param, (float) value);
+        GL11.glTexParameterf(texture.target, param, value);
         GL11.glBindTexture(texture.target, currentTexture);
     }
 
     @Override
-    public void vertexArrayAttachBuffer(GL3XVertexArray vao, long index, GL3XBuffer buffer, long size, long type, long stride, long offset, long divisor) {
+    public void vertexArrayAttachBuffer(GL3XVertexArray vao, int index, GL3XBuffer buffer, int size, int type, int stride, long offset, int divisor) {
         final int currentVao = GL11.glGetInteger(GL30.GL_VERTEX_ARRAY_BINDING);
 
         GL30.glBindVertexArray(vao.vertexArrayId);
 
         GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, buffer.bufferId);
-        GL20.glEnableVertexAttribArray((int) index);
+        GL20.glEnableVertexAttribArray(index);
 
         if (type == GL11.GL_DOUBLE) {
-            ARBVertexAttrib64Bit.glVertexAttribLPointer((int) index, (int) size, (int) type, (int) stride, offset);
+            ARBVertexAttrib64Bit.glVertexAttribLPointer(index, size, type, stride, offset);
         } else {
-            GL20.glVertexAttribPointer((int) index, (int) size, (int) type, false, (int) stride, offset);
+            GL20.glVertexAttribPointer(index, size, type, false, stride, offset);
         }
 
         if (divisor > 0) {
-            GL33.glVertexAttribDivisor((int) index, (int) divisor);
+            GL33.glVertexAttribDivisor(index, divisor);
         }
 
         GL30.glBindVertexArray(currentVao);
@@ -1075,88 +1079,88 @@ final class GL3XDriver implements Driver<
     }
 
     @Override
-    public void vertexArrayDrawArrays(GL3XVertexArray vao, long drawMode, long start, long count) {
+    public void vertexArrayDrawArrays(GL3XVertexArray vao, int drawMode, int start, int count) {
         final int currentVao = GL11.glGetInteger(GL30.GL_VERTEX_ARRAY_BINDING);
         GL30.glBindVertexArray(vao.vertexArrayId);
-        GL11.glDrawArrays((int) drawMode, (int) start, (int) count);
+        GL11.glDrawArrays(drawMode, start, count);
         GL30.glBindVertexArray(currentVao);
     }
 
     @Override
-    public void vertexArrayDrawArraysIndirect(GL3XVertexArray vao, GL3XBuffer cmdBuffer, long drawMode, long offset) {
+    public void vertexArrayDrawArraysIndirect(GL3XVertexArray vao, GL3XBuffer cmdBuffer, int drawMode, long offset) {
         final int currentVao = GL11.glGetInteger(GL30.GL_VERTEX_ARRAY_BINDING);
         final int currentIndirect = GL11.glGetInteger(ARBDrawIndirect.GL_DRAW_INDIRECT_BUFFER);
 
         GL30.glBindVertexArray(vao.vertexArrayId);
         GL15.glBindBuffer(ARBDrawIndirect.GL_DRAW_INDIRECT_BUFFER, cmdBuffer.bufferId);
-        ARBDrawIndirect.glDrawArraysIndirect((int) drawMode, offset);
+        ARBDrawIndirect.glDrawArraysIndirect(drawMode, offset);
         GL15.glBindBuffer(ARBDrawIndirect.GL_DRAW_INDIRECT_BUFFER, currentIndirect);
         GL30.glBindVertexArray(currentVao);
     }
 
     @Override
-    public void vertexArrayDrawArraysInstanced(GL3XVertexArray vao, long drawMode, long first, long count, long instanceCount) {
+    public void vertexArrayDrawArraysInstanced(GL3XVertexArray vao, int drawMode, int first, int count, int instanceCount) {
         final int currentVao = GL11.glGetInteger(GL30.GL_VERTEX_ARRAY_BINDING);
 
         GL30.glBindVertexArray(vao.vertexArrayId);
-        GL31.glDrawArraysInstanced((int) drawMode, (int) first, (int) count, (int) instanceCount);
+        GL31.glDrawArraysInstanced(drawMode, first, count, instanceCount);
         GL30.glBindVertexArray(currentVao);
     }
 
     @Override
-    public void vertexArrayDrawElements(GL3XVertexArray vao, long drawMode, long count, long type, long offset) {
+    public void vertexArrayDrawElements(GL3XVertexArray vao, int drawMode, int count, int type, long offset) {
         final int currentVao = GL11.glGetInteger(GL30.GL_VERTEX_ARRAY_BINDING);
 
         GL30.glBindVertexArray(vao.vertexArrayId);
-        GL11.glDrawElements((int) drawMode, (int) count, (int) type, offset);
+        GL11.glDrawElements(drawMode, count, type, offset);
         GL30.glBindVertexArray(currentVao);
     }
 
     @Override
-    public void vertexArrayDrawElementsIndirect(GL3XVertexArray vao, GL3XBuffer cmdBuffer, long drawMode, long indexType, long offset) {
+    public void vertexArrayDrawElementsIndirect(GL3XVertexArray vao, GL3XBuffer cmdBuffer, int drawMode, int indexType, long offset) {
         final int currentVao = GL11.glGetInteger(GL30.GL_VERTEX_ARRAY_BINDING);
         final int currentIndirect = GL11.glGetInteger(ARBDrawIndirect.GL_DRAW_INDIRECT_BUFFER_BINDING);
 
         GL30.glBindVertexArray(vao.vertexArrayId);
         GL15.glBindBuffer(ARBDrawIndirect.GL_DRAW_INDIRECT_BUFFER, cmdBuffer.bufferId);
-        ARBDrawIndirect.glDrawElementsIndirect((int) drawMode, (int) indexType, offset);
+        ARBDrawIndirect.glDrawElementsIndirect(drawMode, indexType, offset);
         GL15.glBindBuffer(ARBDrawIndirect.GL_DRAW_INDIRECT_BUFFER, currentIndirect);
         GL30.glBindVertexArray(currentVao);
     }
 
     @Override
-    public void vertexArrayDrawElementsInstanced(GL3XVertexArray vao, long drawMode, long count, long type, long offset, long instanceCount) {
+    public void vertexArrayDrawElementsInstanced(GL3XVertexArray vao, int drawMode, int count, int type, long offset, int instanceCount) {
         final int currentVao = GL11.glGetInteger(GL30.GL_VERTEX_ARRAY_BINDING);
 
         GL30.glBindVertexArray(vao.vertexArrayId);
-        GL31.glDrawElementsInstanced((int) drawMode, (int) count, (int) type, offset, (int) instanceCount);
+        GL31.glDrawElementsInstanced(drawMode, count, type, offset, instanceCount);
         GL30.glBindVertexArray(currentVao);
     }
 
     @Override
-    public void vertexArrayDrawTransformFeedback(GL3XVertexArray vao, long drawMode, long start, long count) {
+    public void vertexArrayDrawTransformFeedback(GL3XVertexArray vao, int drawMode, int start, int count) {
         final int currentVao = GL11.glGetInteger(GL30.GL_VERTEX_ARRAY_BINDING);
 
         GL30.glBindVertexArray(vao.vertexArrayId);
         GL11.glEnable(GL30.GL_RASTERIZER_DISCARD);
-        GL30.glBeginTransformFeedback((int) drawMode);
-        GL11.glDrawArrays((int) drawMode, (int) start, (int) count);
+        GL30.glBeginTransformFeedback(drawMode);
+        GL11.glDrawArrays(drawMode, start, count);
         GL30.glEndTransformFeedback();
         GL11.glDisable(GL30.GL_RASTERIZER_DISCARD);
         GL30.glBindVertexArray(currentVao);
     }
 
     @Override
-    public void vertexArrayMultiDrawArrays(GL3XVertexArray vao, long drawMode, IntBuffer first, IntBuffer count) {
+    public void vertexArrayMultiDrawArrays(GL3XVertexArray vao, int drawMode, IntBuffer first, IntBuffer count) {
         final int currentVao = GL11.glGetInteger(GL30.GL_VERTEX_ARRAY_BINDING);
 
         GL30.glBindVertexArray(vao.vertexArrayId);
-        GL14.glMultiDrawArrays((int) drawMode, first, count);
+        GL14.glMultiDrawArrays(drawMode, first, count);
         GL30.glBindVertexArray(currentVao);
     }
 
     @Override
-    public void viewportApply(long x, long y, long width, long height) {
-        GL11.glViewport((int) x, (int) y, (int) width, (int) height);
+    public void viewportApply(int x, int y, int width, int height) {
+        GL11.glViewport(x, y, width, height);
     }
 }

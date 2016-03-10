@@ -52,20 +52,20 @@ final class ARBDriver implements Driver<
     }
 
     @Override
-    public void blendingEnable(long rgbEq, long aEq, long rgbFuncSrc, long rgbFuncDst, long aFuncSrc, long aFuncDst) {
+    public void blendingEnable(int rgbEq, int aEq, int rgbFuncSrc, int rgbFuncDst, int aFuncSrc, int aFuncDst) {
         GL11.glEnable(GL11.GL_BLEND);
-        GL14.glBlendFuncSeparate((int) rgbFuncSrc, (int) rgbFuncDst, (int) aFuncSrc, (int) aFuncDst);
-        GL20.glBlendEquationSeparate((int) rgbEq, (int) aEq);
+        GL14.glBlendFuncSeparate(rgbFuncSrc, rgbFuncDst, aFuncSrc, aFuncDst);
+        GL20.glBlendEquationSeparate(rgbEq, aEq);
     }
 
     @Override
-    public void bufferAllocate(ARBBuffer buffer, long size, long usage) {
-        ARBDirectStateAccess.glNamedBufferData(buffer.bufferId, (int) size, (int) usage);
+    public void bufferAllocate(ARBBuffer buffer, long size, int usage) {
+        ARBDirectStateAccess.glNamedBufferData(buffer.bufferId, size, usage);
     }
 
     @Override
-    public void bufferAllocateImmutable(ARBBuffer buffer, long size, long bitflags) {
-        ARBDirectStateAccess.glNamedBufferStorage(buffer.bufferId, (int) size, (int) bitflags);
+    public void bufferAllocateImmutable(ARBBuffer buffer, long size, int bitflags) {
+        ARBDirectStateAccess.glNamedBufferStorage(buffer.bufferId, size, bitflags);
     }
 
     @Override
@@ -88,12 +88,12 @@ final class ARBDriver implements Driver<
 
     @Override
     public void bufferGetData(ARBBuffer buffer, long offset, ByteBuffer out) {
-        ARBDirectStateAccess.glGetNamedBufferSubData(buffer.bufferId, (int) offset, out);
+        ARBDirectStateAccess.glGetNamedBufferSubData(buffer.bufferId, offset, out);
     }
 
     @Override
-    public long bufferGetParameter(ARBBuffer buffer, long paramId) {
-        return ARBDirectStateAccess.glGetNamedBufferParameteri(buffer.bufferId, (int) paramId);
+    public int bufferGetParameterI(ARBBuffer buffer, int paramId) {
+        return ARBDirectStateAccess.glGetNamedBufferParameteri(buffer.bufferId, paramId);
     }
 
     @Override
@@ -107,14 +107,14 @@ final class ARBDriver implements Driver<
     }
 
     @Override
-    public ByteBuffer bufferMapData(ARBBuffer buffer, long offset, long length, long accessFlags) {
-        buffer.mapBuffer = ARBDirectStateAccess.glMapNamedBufferRange(buffer.bufferId, offset, length, (int) accessFlags, buffer.mapBuffer);
+    public ByteBuffer bufferMapData(ARBBuffer buffer, long offset, long length, int accessFlags) {
+        buffer.mapBuffer = ARBDirectStateAccess.glMapNamedBufferRange(buffer.bufferId, offset, length, accessFlags, buffer.mapBuffer);
         return buffer.mapBuffer;
     }
 
     @Override
-    public void bufferSetData(ARBBuffer buffer, ByteBuffer data, long usage) {
-        ARBDirectStateAccess.glNamedBufferData(buffer.bufferId, data, (int) usage);
+    public void bufferSetData(ARBBuffer buffer, ByteBuffer data, int usage) {
+        ARBDirectStateAccess.glNamedBufferData(buffer.bufferId, data, usage);
     }
 
     @Override
@@ -123,10 +123,10 @@ final class ARBDriver implements Driver<
     }
 
     @Override
-    public void clear(long bitfield, double red, double green, double blue, double alpha, double depth) {
-        GL11.glClearColor((float) red, (float) green, (float) blue, (float) alpha);
+    public void clear(int bitfield, float red, float green, float blue, float alpha, double depth) {
+        GL11.glClearColor(red, green, blue, alpha);
         GL11.glClearDepth(depth);
-        GL11.glClear((int) bitfield);
+        GL11.glClear(bitfield);
     }
 
     @Override
@@ -135,13 +135,13 @@ final class ARBDriver implements Driver<
     }
 
     @Override
-    public void depthTestEnable(long depthTest) {
+    public void depthTestEnable(int depthTest) {
         GL11.glEnable(GL11.GL_DEPTH_TEST);
-        GL11.glDepthFunc((int) depthTest);
+        GL11.glDepthFunc(depthTest);
     }
 
     @Override
-    public void drawQueryBeginConditionalRender(ARBDrawQuery query, long mode) {
+    public void drawQueryBeginConditionalRender(ARBDrawQuery query, int mode) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
@@ -156,12 +156,12 @@ final class ARBDriver implements Driver<
     }
 
     @Override
-    public void drawQueryDisable(long condition) {
+    public void drawQueryDisable(int condition) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
     @Override
-    public void drawQueryEnable(long condition, ARBDrawQuery query) {
+    public void drawQueryEnable(int condition, ARBDrawQuery query) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
@@ -171,30 +171,30 @@ final class ARBDriver implements Driver<
     }
 
     @Override
-    public void framebufferAddAttachment(ARBFramebuffer framebuffer, long attachmentId, ARBTexture texture, long mipmapLevel) {
+    public void framebufferAddAttachment(ARBFramebuffer framebuffer, int attachmentId, ARBTexture texture, int mipmapLevel) {
         ARBDirectStateAccess.glNamedFramebufferTexture(
                 framebuffer.framebufferId,
-                (int) attachmentId,
+                attachmentId,
                 texture.textureId,
-                (int) mipmapLevel);
+                mipmapLevel);
     }
 
     @Override
-    public void framebufferAddDepthAttachment(ARBFramebuffer framebuffer, ARBTexture texture, long mipmapLevel) {
+    public void framebufferAddDepthAttachment(ARBFramebuffer framebuffer, ARBTexture texture, int mipmapLevel) {
         ARBDirectStateAccess.glNamedFramebufferTexture(
                 framebuffer.framebufferId,
                 ARBFramebufferObject.GL_DEPTH_ATTACHMENT,
                 texture.textureId,
-                (int) mipmapLevel);
+                mipmapLevel);
     }
 
     @Override
-    public void framebufferAddDepthStencilAttachment(ARBFramebuffer framebuffer, ARBTexture texture, long mipmapLevel) {
+    public void framebufferAddDepthStencilAttachment(ARBFramebuffer framebuffer, ARBTexture texture, int mipmapLevel) {
         ARBDirectStateAccess.glNamedFramebufferTexture(
                 framebuffer.framebufferId,
                 ARBFramebufferObject.GL_DEPTH_STENCIL_ATTACHMENT,
                 texture.textureId,
-                (int) mipmapLevel);
+                mipmapLevel);
     }
 
     @Override
@@ -207,12 +207,16 @@ final class ARBDriver implements Driver<
     }
 
     @Override
-    public void framebufferBlit(ARBFramebuffer srcFb, long srcX0, long srcY0, long srcX1, long srcY1, ARBFramebuffer dstFb, long dstX0, long dstY0, long dstX1, long dstY1, long bitfield, long filter) {
+    public void framebufferBlit(
+            ARBFramebuffer srcFb, int srcX0, int srcY0, int srcX1, int srcY1,
+            ARBFramebuffer dstFb, int dstX0, int dstY0, int dstX1, int dstY1,
+            int bitfield, int filter) {
+
         ARBDirectStateAccess.glBlitNamedFramebuffer(srcFb.framebufferId,
                 dstFb.framebufferId,
-                (int) srcX0, (int) srcY0, (int) srcX1, (int) srcY1,
-                (int) dstX0, (int) dstY0, (int) dstX1, (int) dstY1,
-                (int) bitfield, (int) filter);
+                srcX0, srcY0, srcX1, srcY1,
+                dstX0, dstY0, dstX1, dstY1,
+                bitfield, filter);
     }
 
     @Override
@@ -236,7 +240,11 @@ final class ARBDriver implements Driver<
     }
 
     @Override
-    public void framebufferGetPixels(ARBFramebuffer framebuffer, long x, long y, long width, long height, long format, long type, ARBBuffer dstBuffer) {
+    public void framebufferGetPixels(
+            ARBFramebuffer framebuffer,
+            int x, int y, int width, int height,
+            int format, int type, ARBBuffer dstBuffer) {
+
         final int currentFB = GL11.glGetInteger(ARBFramebufferObject.GL_FRAMEBUFFER_BINDING);
         final int currentBuffer = GL11.glGetInteger(GL21.GL_PIXEL_PACK_BUFFER_BINDING);
 
@@ -244,8 +252,8 @@ final class ARBDriver implements Driver<
 
         GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, dstBuffer.bufferId);
         GL11.glReadPixels(
-                (int) x, (int) y, (int) width, (int) height,
-                (int) format, (int) type,
+                x, y, width, height,
+                format, type,
                 0L);
         GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, currentBuffer);
 
@@ -253,14 +261,18 @@ final class ARBDriver implements Driver<
     }
 
     @Override
-    public void framebufferGetPixels(ARBFramebuffer framebuffer, long x, long y, long width, long height, long format, long type, ByteBuffer dstBuffer) {
+    public void framebufferGetPixels(
+            ARBFramebuffer framebuffer,
+            int x, int y, int width, int height,
+            int format, int type, ByteBuffer dstBuffer) {
+
         final int currentFB = GL11.glGetInteger(ARBFramebufferObject.GL_FRAMEBUFFER_BINDING);
 
         ARBFramebufferObject.glBindFramebuffer(ARBFramebufferObject.GL_FRAMEBUFFER, framebuffer.framebufferId);
 
         GL11.glReadPixels(
-                (int) x, (int) y, (int) width, (int) height,
-                (int) format, (int) type,
+                x, y, width, height,
+                format, type,
                 dstBuffer);
 
         ARBFramebufferObject.glBindFramebuffer(ARBFramebufferObject.GL_FRAMEBUFFER, currentFB);
@@ -272,27 +284,31 @@ final class ARBDriver implements Driver<
     }
 
     @Override
-    public void maskApply(boolean red, boolean green, boolean blue, boolean alpha, boolean depth, long stencil) {
+    public void maskApply(boolean red, boolean green, boolean blue, boolean alpha, boolean depth, int stencil) {
         GL11.glColorMask(red, green, blue, alpha);
         GL11.glDepthMask(depth);
-        GL11.glStencilMask((int) stencil);
+        GL11.glStencilMask(stencil);
     }
 
     @Override
-    public void polygonSetParameters(double pointSize, double lineWidth, long frontFace, long cullFace, long polygonMode, double offsetFactor, double offsetUnits) {
-        GL11.glPointSize((float) pointSize);
-        GL11.glLineWidth((float) lineWidth);
-        GL11.glFrontFace((int) frontFace);
+    public void polygonSetParameters(
+            float pointSize, float lineWidth,
+            int frontFace, int cullFace, int polygonMode,
+            float offsetFactor, float offsetUnits) {
+
+        GL11.glPointSize(pointSize);
+        GL11.glLineWidth(lineWidth);
+        GL11.glFrontFace(frontFace);
 
         if (cullFace == 0) {
             GL11.glDisable(GL11.GL_CULL_FACE);
         } else {
             GL11.glEnable(GL11.GL_CULL_FACE);
-            GL11.glCullFace((int) cullFace);
+            GL11.glCullFace(cullFace);
         }
 
-        GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, (int) polygonMode);
-        GL11.glPolygonOffset((float) offsetFactor, (float) offsetUnits);
+        GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, polygonMode);
+        GL11.glPolygonOffset(offsetFactor, offsetUnits);
     }
 
     @Override
@@ -309,17 +325,17 @@ final class ARBDriver implements Driver<
     }
 
     @Override
-    public void programDispatchCompute(ARBProgram program, long numX, long numY, long numZ) {
+    public void programDispatchCompute(ARBProgram program, int numX, int numY, int numZ) {
 
         final int currentProgram = GL11.glGetInteger(GL20.GL_CURRENT_PROGRAM);
 
         GL20.glUseProgram(program.programId);
-        ARBComputeShader.glDispatchCompute((int) numX, (int) numY, (int) numZ);
+        ARBComputeShader.glDispatchCompute(numX, numY, numZ);
         GL20.glUseProgram(currentProgram);
     }
 
     @Override
-    public long programGetUniformLocation(ARBProgram program, String name) {
+    public int programGetUniformLocation(ARBProgram program, String name) {
         final int currentProgram = GL11.glGetInteger(GL20.GL_CURRENT_PROGRAM);
 
         GL20.glUseProgram(program.programId);
@@ -342,13 +358,13 @@ final class ARBDriver implements Driver<
     }
 
     @Override
-    public void programSetAttribLocation(ARBProgram program, long index, String name) {
-        GL20.glBindAttribLocation(program.programId, (int) index, name);
+    public void programSetAttribLocation(ARBProgram program, int index, String name) {
+        GL20.glBindAttribLocation(program.programId, index, name);
     }
 
     @Override
-    public void programSetFeedbackBuffer(ARBProgram program, long varyingLoc, ARBBuffer buffer) {
-        ARBUniformBufferObject.glBindBufferBase(GL30.GL_TRANSFORM_FEEDBACK_BUFFER, (int) varyingLoc, buffer.bufferId);
+    public void programSetFeedbackBuffer(ARBProgram program, int varyingLoc, ARBBuffer buffer) {
+        ARBUniformBufferObject.glBindBufferBase(GL30.GL_TRANSFORM_FEEDBACK_BUFFER, varyingLoc, buffer.bufferId);
     }
 
     @Override
@@ -357,23 +373,23 @@ final class ARBDriver implements Driver<
     }
 
     @Override
-    public void programSetStorage(ARBProgram program, String storageName, ARBBuffer buffer, long bindingPoint) {
+    public void programSetStorage(ARBProgram program, String storageName, ARBBuffer buffer, int bindingPoint) {
         final int sBlock = ARBProgramInterfaceQuery.glGetProgramResourceLocation(program.programId, ARBProgramInterfaceQuery.GL_SHADER_STORAGE_BLOCK, storageName);
 
-        GL30.glBindBufferBase(ARBShaderStorageBufferObject.GL_SHADER_STORAGE_BUFFER, (int) bindingPoint, buffer.bufferId);
-        ARBShaderStorageBufferObject.glShaderStorageBlockBinding(program.programId, sBlock, (int) bindingPoint);
+        GL30.glBindBufferBase(ARBShaderStorageBufferObject.GL_SHADER_STORAGE_BUFFER, bindingPoint, buffer.bufferId);
+        ARBShaderStorageBufferObject.glShaderStorageBlockBinding(program.programId, sBlock, bindingPoint);
     }
 
     @Override
-    public void programSetUniformBlock(ARBProgram program, String uniformName, ARBBuffer buffer, long bindingPoint) {
+    public void programSetUniformBlock(ARBProgram program, String uniformName, ARBBuffer buffer, int bindingPoint) {
         final int uBlock = ARBUniformBufferObject.glGetUniformBlockIndex(program.programId, uniformName);
 
-        ARBUniformBufferObject.glBindBufferBase(ARBUniformBufferObject.GL_UNIFORM_BUFFER, (int) bindingPoint, buffer.bufferId);
-        ARBUniformBufferObject.glUniformBlockBinding(program.programId, uBlock, (int) bindingPoint);
+        ARBUniformBufferObject.glBindBufferBase(ARBUniformBufferObject.GL_UNIFORM_BUFFER, bindingPoint, buffer.bufferId);
+        ARBUniformBufferObject.glUniformBlockBinding(program.programId, uBlock, bindingPoint);
     }
 
     @Override
-    public void programSetUniformD(ARBProgram program, long uLoc, double[] value) {
+    public void programSetUniformD(ARBProgram program, int uLoc, double[] value) {
         final GLCapabilities cap = GL.getCapabilities();
 
         if (!(cap.GL_ARB_gpu_shader_fp64 && cap.GL_ARB_gpu_shader_int64)) {
@@ -383,16 +399,16 @@ final class ARBDriver implements Driver<
         if (cap.GL_ARB_separate_shader_objects) {
             switch (value.length) {
                 case 1:
-                    ARBSeparateShaderObjects.glProgramUniform1d(program.programId, (int) uLoc, value[0]);
+                    ARBSeparateShaderObjects.glProgramUniform1d(program.programId, uLoc, value[0]);
                     break;
                 case 2:
-                    ARBSeparateShaderObjects.glProgramUniform2d(program.programId, (int) uLoc, value[0], value[1]);
+                    ARBSeparateShaderObjects.glProgramUniform2d(program.programId, uLoc, value[0], value[1]);
                     break;
                 case 3:
-                    ARBSeparateShaderObjects.glProgramUniform3d(program.programId, (int) uLoc, value[0], value[1], value[2]);
+                    ARBSeparateShaderObjects.glProgramUniform3d(program.programId, uLoc, value[0], value[1], value[2]);
                     break;
                 case 4:
-                    ARBSeparateShaderObjects.glProgramUniform4d(program.programId, (int) uLoc, value[0], value[1], value[2], value[3]);
+                    ARBSeparateShaderObjects.glProgramUniform4d(program.programId, uLoc, value[0], value[1], value[2], value[3]);
                     break;
                 default:
                     throw new UnsupportedOperationException("Unsupported uniform vector size: " + value.length);
@@ -403,22 +419,22 @@ final class ARBDriver implements Driver<
             switch (value.length) {
                 case 1:
                     GL20.glUseProgram(program.programId);
-                    ARBGPUShaderFP64.glUniform1d((int) uLoc, value[0]);
+                    ARBGPUShaderFP64.glUniform1d(uLoc, value[0]);
                     GL20.glUseProgram(currentProgram);
                     break;
                 case 2:
                     GL20.glUseProgram(program.programId);
-                    ARBGPUShaderFP64.glUniform2d((int) uLoc, value[0], value[1]);
+                    ARBGPUShaderFP64.glUniform2d(uLoc, value[0], value[1]);
                     GL20.glUseProgram(currentProgram);
                     break;
                 case 3:
                     GL20.glUseProgram(program.programId);
-                    ARBGPUShaderFP64.glUniform3d((int) uLoc, value[0], value[1], value[2]);
+                    ARBGPUShaderFP64.glUniform3d(uLoc, value[0], value[1], value[2]);
                     GL20.glUseProgram(currentProgram);
                     break;
                 case 4:
                     GL20.glUseProgram(program.programId);
-                    ARBGPUShaderFP64.glUniform4d((int) uLoc, value[0], value[1], value[2], value[3]);
+                    ARBGPUShaderFP64.glUniform4d(uLoc, value[0], value[1], value[2], value[3]);
                     GL20.glUseProgram(currentProgram);
                     break;
                 default:
@@ -428,20 +444,20 @@ final class ARBDriver implements Driver<
     }
 
     @Override
-    public void programSetUniformF(ARBProgram program, long uLoc, float[] value) {
+    public void programSetUniformF(ARBProgram program, int uLoc, float[] value) {
         if (GL.getCapabilities().GL_ARB_separate_shader_objects) {
             switch (value.length) {
                 case 1:
-                    ARBSeparateShaderObjects.glProgramUniform1f(program.programId, (int) uLoc, value[0]);
+                    ARBSeparateShaderObjects.glProgramUniform1f(program.programId, uLoc, value[0]);
                     break;
                 case 2:
-                    ARBSeparateShaderObjects.glProgramUniform2f(program.programId, (int) uLoc, value[0], value[1]);
+                    ARBSeparateShaderObjects.glProgramUniform2f(program.programId, uLoc, value[0], value[1]);
                     break;
                 case 3:
-                    ARBSeparateShaderObjects.glProgramUniform3f(program.programId, (int) uLoc, value[0], value[1], value[2]);
+                    ARBSeparateShaderObjects.glProgramUniform3f(program.programId, uLoc, value[0], value[1], value[2]);
                     break;
                 case 4:
-                    ARBSeparateShaderObjects.glProgramUniform4f(program.programId, (int) uLoc, value[0], value[1], value[2], value[3]);
+                    ARBSeparateShaderObjects.glProgramUniform4f(program.programId, uLoc, value[0], value[1], value[2], value[3]);
                     break;
                 default:
                     throw new UnsupportedOperationException("Unsupported uniform vector size: " + value.length);
@@ -452,22 +468,22 @@ final class ARBDriver implements Driver<
             switch (value.length) {
                 case 1:
                     GL20.glUseProgram(program.programId);
-                    GL20.glUniform1f((int) uLoc, value[0]);
+                    GL20.glUniform1f(uLoc, value[0]);
                     GL20.glUseProgram(currentProgram);
                     break;
                 case 2:
                     GL20.glUseProgram(program.programId);
-                    GL20.glUniform2f((int) uLoc, value[0], value[1]);
+                    GL20.glUniform2f(uLoc, value[0], value[1]);
                     GL20.glUseProgram(currentProgram);
                     break;
                 case 3:
                     GL20.glUseProgram(program.programId);
-                    GL20.glUniform3f((int) uLoc, value[0], value[1], value[2]);
+                    GL20.glUniform3f(uLoc, value[0], value[1], value[2]);
                     GL20.glUseProgram(currentProgram);
                     break;
                 case 4:
                     GL20.glUseProgram(program.programId);
-                    GL20.glUniform4f((int) uLoc, value[0], value[1], value[2], value[3]);
+                    GL20.glUniform4f(uLoc, value[0], value[1], value[2], value[3]);
                     GL20.glUseProgram(currentProgram);
                     break;
                 default:
@@ -477,20 +493,20 @@ final class ARBDriver implements Driver<
     }
 
     @Override
-    public void programSetUniformI(ARBProgram program, long uLoc, int[] value) {
+    public void programSetUniformI(ARBProgram program, int uLoc, int[] value) {
         if (GL.getCapabilities().GL_ARB_separate_shader_objects) {
             switch (value.length) {
                 case 1:
-                    ARBSeparateShaderObjects.glProgramUniform1i(program.programId, (int) uLoc, value[0]);
+                    ARBSeparateShaderObjects.glProgramUniform1i(program.programId, uLoc, value[0]);
                     break;
                 case 2:
-                    ARBSeparateShaderObjects.glProgramUniform2i(program.programId, (int) uLoc, value[0], value[1]);
+                    ARBSeparateShaderObjects.glProgramUniform2i(program.programId, uLoc, value[0], value[1]);
                     break;
                 case 3:
-                    ARBSeparateShaderObjects.glProgramUniform3i(program.programId, (int) uLoc, value[0], value[1], value[2]);
+                    ARBSeparateShaderObjects.glProgramUniform3i(program.programId, uLoc, value[0], value[1], value[2]);
                     break;
                 case 4:
-                    ARBSeparateShaderObjects.glProgramUniform4i(program.programId, (int) uLoc, value[0], value[1], value[2], value[3]);
+                    ARBSeparateShaderObjects.glProgramUniform4i(program.programId, uLoc, value[0], value[1], value[2], value[3]);
                     break;
                 default:
                     throw new UnsupportedOperationException("Unsupported uniform vector size: " + value.length);
@@ -501,22 +517,22 @@ final class ARBDriver implements Driver<
             switch (value.length) {
                 case 1:
                     GL20.glUseProgram(program.programId);
-                    GL20.glUniform1i((int) uLoc, value[0]);
+                    GL20.glUniform1i(uLoc, value[0]);
                     GL20.glUseProgram(currentProgram);
                     break;
                 case 2:
                     GL20.glUseProgram(program.programId);
-                    GL20.glUniform2i((int) uLoc, value[0], value[1]);
+                    GL20.glUniform2i(uLoc, value[0], value[1]);
                     GL20.glUseProgram(currentProgram);
                     break;
                 case 3:
                     GL20.glUseProgram(program.programId);
-                    GL20.glUniform3i((int) uLoc, value[0], value[1], value[2]);
+                    GL20.glUniform3i(uLoc, value[0], value[1], value[2]);
                     GL20.glUseProgram(currentProgram);
                     break;
                 case 4:
                     GL20.glUseProgram(program.programId);
-                    GL20.glUniform4i((int) uLoc, value[0], value[1], value[2], value[3]);
+                    GL20.glUniform4i(uLoc, value[0], value[1], value[2], value[3]);
                     GL20.glUseProgram(currentProgram);
                     break;
                 default:
@@ -526,7 +542,7 @@ final class ARBDriver implements Driver<
     }
 
     @Override
-    public void programSetUniformMatD(ARBProgram program, long uLoc, DoubleBuffer mat) {
+    public void programSetUniformMatD(ARBProgram program, int uLoc, DoubleBuffer mat) {
         final GLCapabilities cap = GL.getCapabilities();
 
         if (!(cap.GL_ARB_gpu_shader_fp64 && cap.GL_ARB_gpu_shader_int64)) {
@@ -536,13 +552,13 @@ final class ARBDriver implements Driver<
         if (cap.GL_ARB_separate_shader_objects) {
             switch (mat.limit()) {
                 case 4:
-                    ARBSeparateShaderObjects.glProgramUniformMatrix2dv(program.programId, (int) uLoc, false, mat);
+                    ARBSeparateShaderObjects.glProgramUniformMatrix2dv(program.programId, uLoc, false, mat);
                     break;
                 case 9:
-                    ARBSeparateShaderObjects.glProgramUniformMatrix3dv(program.programId, (int) uLoc, false, mat);
+                    ARBSeparateShaderObjects.glProgramUniformMatrix3dv(program.programId, uLoc, false, mat);
                     break;
                 case 16:
-                    ARBSeparateShaderObjects.glProgramUniformMatrix4dv(program.programId, (int) uLoc, false, mat);
+                    ARBSeparateShaderObjects.glProgramUniformMatrix4dv(program.programId, uLoc, false, mat);
                     break;
                 default:
                     throw new UnsupportedOperationException("Unsupported matrix size: " + mat.limit());
@@ -553,17 +569,17 @@ final class ARBDriver implements Driver<
             switch (mat.limit()) {
                 case 4:
                     GL20.glUseProgram(program.programId);
-                    ARBGPUShaderFP64.glUniformMatrix2dv((int) uLoc, false, mat);
+                    ARBGPUShaderFP64.glUniformMatrix2dv(uLoc, false, mat);
                     GL20.glUseProgram(currentProgram);
                     break;
                 case 9:
                     GL20.glUseProgram(program.programId);
-                    ARBGPUShaderFP64.glUniformMatrix3dv((int) uLoc, false, mat);
+                    ARBGPUShaderFP64.glUniformMatrix3dv(uLoc, false, mat);
                     GL20.glUseProgram(currentProgram);
                     break;
                 case 16:
                     GL20.glUseProgram(program.programId);
-                    ARBGPUShaderFP64.glUniformMatrix4dv((int) uLoc, false, mat);
+                    ARBGPUShaderFP64.glUniformMatrix4dv(uLoc, false, mat);
                     GL20.glUseProgram(currentProgram);
                     break;
                 default:
@@ -573,17 +589,17 @@ final class ARBDriver implements Driver<
     }
 
     @Override
-    public void programSetUniformMatF(ARBProgram program, long uLoc, FloatBuffer mat) {
+    public void programSetUniformMatF(ARBProgram program, int uLoc, FloatBuffer mat) {
         if (GL.getCapabilities().GL_ARB_separate_shader_objects) {
             switch (mat.limit()) {
                 case 4:
-                    ARBSeparateShaderObjects.glProgramUniformMatrix2fv(program.programId, (int) uLoc, false, mat);
+                    ARBSeparateShaderObjects.glProgramUniformMatrix2fv(program.programId, uLoc, false, mat);
                     break;
                 case 9:
-                    ARBSeparateShaderObjects.glProgramUniformMatrix3fv(program.programId, (int) uLoc, false, mat);
+                    ARBSeparateShaderObjects.glProgramUniformMatrix3fv(program.programId, uLoc, false, mat);
                     break;
                 case 16:
-                    ARBSeparateShaderObjects.glProgramUniformMatrix4fv(program.programId, (int) uLoc, false, mat);
+                    ARBSeparateShaderObjects.glProgramUniformMatrix4fv(program.programId, uLoc, false, mat);
                     break;
                 default:
                     throw new UnsupportedOperationException("Unsupported matrix size: " + mat.limit());
@@ -594,17 +610,17 @@ final class ARBDriver implements Driver<
             switch (mat.limit()) {
                 case 4:
                     GL20.glUseProgram(program.programId);
-                    GL20.glUniformMatrix2fv((int) uLoc, false, mat);
+                    GL20.glUniformMatrix2fv(uLoc, false, mat);
                     GL20.glUseProgram(currentProgram);
                     break;
                 case 9:
                     GL20.glUseProgram(program.programId);
-                    GL20.glUniformMatrix3fv((int) uLoc, false, mat);
+                    GL20.glUniformMatrix3fv(uLoc, false, mat);
                     GL20.glUseProgram(currentProgram);
                     break;
                 case 16:
                     GL20.glUseProgram(program.programId);
-                    GL20.glUniformMatrix4fv((int) uLoc, false, mat);
+                    GL20.glUniformMatrix4fv(uLoc, false, mat);
                     GL20.glUseProgram(currentProgram);
                     break;
                 default:
@@ -619,8 +635,8 @@ final class ARBDriver implements Driver<
     }
 
     @Override
-    public void samplerBind(long unit, ARBSampler sampler) {
-        ARBSamplerObjects.glBindSampler((int) unit, sampler.samplerId);
+    public void samplerBind(int unit, ARBSampler sampler) {
+        ARBSamplerObjects.glBindSampler(unit, sampler.samplerId);
     }
 
     @Override
@@ -637,13 +653,13 @@ final class ARBDriver implements Driver<
     }
 
     @Override
-    public void samplerSetParameter(ARBSampler sampler, long param, long value) {
-        ARBSamplerObjects.glSamplerParameteri(sampler.samplerId, (int) param, (int) value);
+    public void samplerSetParameter(ARBSampler sampler, int param, int value) {
+        ARBSamplerObjects.glSamplerParameteri(sampler.samplerId, param, value);
     }
 
     @Override
-    public void samplerSetParameter(ARBSampler sampler, long param, double value) {
-        ARBSamplerObjects.glSamplerParameterf(sampler.samplerId, (int) param, (float) value);
+    public void samplerSetParameter(ARBSampler sampler, int param, float value) {
+        ARBSamplerObjects.glSamplerParameterf(sampler.samplerId, param, value);
     }
 
     @Override
@@ -652,16 +668,16 @@ final class ARBDriver implements Driver<
     }
 
     @Override
-    public void scissorTestEnable(long left, long bottom, long width, long height) {
+    public void scissorTestEnable(int left, int bottom, int width, int height) {
         GL11.glEnable(GL11.GL_SCISSOR_TEST);
-        GL11.glScissor((int) left, (int) bottom, (int) width, (int) height);
+        GL11.glScissor(left, bottom, width, height);
     }
 
     @Override
-    public ARBShader shaderCompile(long type, String source) {
+    public ARBShader shaderCompile(int type, String source) {
         final ARBShader shader = new ARBShader();
 
-        shader.shaderId = GL20.glCreateShader((int) type);
+        shader.shaderId = GL20.glCreateShader(type);
         GL20.glShaderSource(shader.shaderId, source);
         GL20.glCompileShader(shader.shaderId);
 
@@ -680,12 +696,12 @@ final class ARBDriver implements Driver<
     }
 
     @Override
-    public long shaderGetParameter(ARBShader shader, long pName) {
-        return GL20.glGetShaderi(shader.shaderId, (int) pName);
+    public int shaderGetParameterI(ARBShader shader, int pName) {
+        return GL20.glGetShaderi(shader.shaderId, pName);
     }
 
     @Override
-    public ARBTexture textureAllocate(long mipmaps, long internalFormat, long width, long height, long depth) {
+    public ARBTexture textureAllocate(int mipmaps, int internalFormat, int width, int height, int depth) {
         final int target;
 
         if (width < 1 || height < 1 || depth < 1) {
@@ -704,17 +720,17 @@ final class ARBDriver implements Driver<
 
         texture.textureId = ARBDirectStateAccess.glCreateTextures(target);
         texture.target = target;
-        texture.internalFormat = (int) internalFormat;
+        texture.internalFormat = internalFormat;
 
         switch (target) {
             case GL11.GL_TEXTURE_1D:
-                ARBDirectStateAccess.glTextureStorage1D(texture.textureId, (int) mipmaps, (int) internalFormat, (int) width);
+                ARBDirectStateAccess.glTextureStorage1D(texture.textureId, mipmaps, internalFormat, width);
                 break;
             case GL11.GL_TEXTURE_2D:
-                ARBDirectStateAccess.glTextureStorage2D(texture.textureId, (int) mipmaps, (int) internalFormat, (int) width, (int) height);
+                ARBDirectStateAccess.glTextureStorage2D(texture.textureId, mipmaps, internalFormat, width, height);
                 break;
             case GL12.GL_TEXTURE_3D:
-                ARBDirectStateAccess.glTextureStorage3D(texture.textureId, (int) mipmaps, (int) internalFormat, (int) width, (int) height, (int) depth);
+                ARBDirectStateAccess.glTextureStorage3D(texture.textureId, mipmaps, internalFormat, width, height, depth);
                 break;
         }
 
@@ -722,25 +738,30 @@ final class ARBDriver implements Driver<
     }
 
     @Override
-    public void textureAllocatePage(ARBTexture texture, long level, long xOffset, long yOffset, long zOffset, long width, long height, long depth) {
+    public void textureAllocatePage(
+            ARBTexture texture, int level, int xOffset, int yOffset, int zOffset, int width, int height, int depth) {
         ARBSparseTexture.glTexPageCommitmentARB(
-                texture.textureId, (int) level,
-                (int) xOffset, (int) yOffset, (int) zOffset,
-                (int) width, (int) height, (int) depth,
+                texture.textureId, level,
+                xOffset, yOffset, zOffset,
+                width, height, depth,
                 true);
     }
 
     @Override
-    public void textureBind(ARBTexture texture, long unit) {
-        ARBDirectStateAccess.glBindTextureUnit((int) unit, texture.textureId);
+    public void textureBind(ARBTexture texture, int unit) {
+        ARBDirectStateAccess.glBindTextureUnit(unit, texture.textureId);
     }
 
     @Override
-    public void textureDeallocatePage(ARBTexture texture, long level, long xOffset, long yOffset, long zOffset, long width, long height, long depth) {
+    public void textureDeallocatePage(
+            ARBTexture texture, int level,
+            int xOffset, int yOffset, int zOffset,
+            int width, int height, int depth) {
+
         ARBSparseTexture.glTexPageCommitmentARB(
-                texture.textureId, (int) level,
-                (int) xOffset, (int) yOffset, (int) zOffset,
-                (int) width, (int) height, (int) depth,
+                texture.textureId, level,
+                xOffset, yOffset, zOffset,
+                width, height, depth,
                 false);
     }
 
@@ -756,66 +777,78 @@ final class ARBDriver implements Driver<
     }
 
     @Override
-    public void textureGetData(ARBTexture texture, long level, long format, long type, ByteBuffer out) {
-        ARBDirectStateAccess.glGetTextureImage(texture.target, (int) level, (int) format, (int) type, out);
+    public void textureGetData(ARBTexture texture, int level, int format, int type, ByteBuffer out) {
+        ARBDirectStateAccess.glGetTextureImage(texture.target, level, format, type, out);
     }
 
     @Override
-    public double textureGetMaxAnisotropy() {        
-        return GL11.glGetFloat(EXTTextureFilterAnisotropic.GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT);
+    public float textureGetMaxAnisotropy() {
+        if (GL.getCapabilities().GL_EXT_texture_filter_anisotropic) {
+            return GL11.glGetFloat(EXTTextureFilterAnisotropic.GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT);
+        } else {
+            return 1F;
+        }
     }
 
     @Override
-    public long textureGetMaxBoundTextures() {
+    public int textureGetMaxBoundTextures() {
         return GL11.glGetInteger(GL20.GL_MAX_TEXTURE_IMAGE_UNITS);
     }
 
     @Override
-    public long textureGetMaxSize() {
+    public int textureGetMaxSize() {
         return GL11.glGetInteger(GL11.GL_MAX_TEXTURE_SIZE);
     }
 
     @Override
-    public long textureGetPageDepth(ARBTexture texture) {
+    public int textureGetPageDepth(ARBTexture texture) {
         return ARBInternalformatQuery.glGetInternalformati(texture.target, texture.internalFormat, ARBSparseTexture.GL_VIRTUAL_PAGE_SIZE_Z_ARB);
     }
 
     @Override
-    public long textureGetPageHeight(ARBTexture texture) {
+    public int textureGetPageHeight(ARBTexture texture) {
         return ARBInternalformatQuery.glGetInternalformati(texture.target, texture.internalFormat, ARBSparseTexture.GL_VIRTUAL_PAGE_SIZE_Y_ARB);
     }
 
     @Override
-    public long textureGetPageWidth(ARBTexture texture) {
+    public int textureGetPageWidth(ARBTexture texture) {
         return ARBInternalformatQuery.glGetInternalformati(texture.target, texture.internalFormat, ARBSparseTexture.GL_VIRTUAL_PAGE_SIZE_X_ARB);
     }
 
     @Override
-    public long textureGetPreferredFormat(long internalFormat) {
+    public int textureGetPreferredFormat(int internalFormat) {
         return GL11.GL_RGBA;
     }
 
     @Override
-    public void textureInvalidateData(ARBTexture texture, long level) {
-        ARBInvalidateSubdata.glInvalidateTexImage(texture.textureId, (int) level);
+    public void textureInvalidateData(ARBTexture texture, int level) {
+        ARBInvalidateSubdata.glInvalidateTexImage(texture.textureId, level);
     }
 
     @Override
-    public void textureInvalidateRange(ARBTexture texture, long level, long xOffset, long yOffset, long zOffset, long width, long height, long depth) {
-        ARBInvalidateSubdata.glInvalidateTexSubImage(texture.textureId, (int) level, (int) xOffset, (int) yOffset, (int) zOffset, (int) width, (int) height, (int) depth);
+    public void textureInvalidateRange(
+            ARBTexture texture, int level,
+            int xOffset, int yOffset, int zOffset, int width, int height, int depth) {
+
+        ARBInvalidateSubdata.glInvalidateTexSubImage(texture.textureId, level, xOffset, yOffset, zOffset, width, height, depth);
     }
 
     @Override
-    public void textureSetData(ARBTexture texture, long level, long xOffset, long yOffset, long zOffset, long width, long height, long depth, long format, long type, ByteBuffer data) {
+    public void textureSetData(
+            ARBTexture texture,
+            int level, int xOffset, int yOffset, int zOffset,
+            int width, int height, int depth,
+            int format, int type, ByteBuffer data) {
+
         switch (texture.target) {
             case GL11.GL_TEXTURE_1D:
-                ARBDirectStateAccess.glTextureSubImage1D(texture.textureId, (int) level, (int) xOffset, (int) width, (int) format, (int) type, data);
+                ARBDirectStateAccess.glTextureSubImage1D(texture.textureId, level, xOffset, width, format, type, data);
                 break;
             case GL11.GL_TEXTURE_2D:
-                ARBDirectStateAccess.glTextureSubImage2D(texture.textureId, (int) level, (int) xOffset, (int) yOffset, (int) width, (int) height, (int) format, (int) type, data);
+                ARBDirectStateAccess.glTextureSubImage2D(texture.textureId, level, xOffset, yOffset, width, height, format, type, data);
                 break;
             case GL12.GL_TEXTURE_3D:
-                ARBDirectStateAccess.glTextureSubImage3D(texture.textureId, (int) level, (int) xOffset, (int) yOffset, (int) zOffset, (int) width, (int) height, (int) depth, (int) format, (int) type, data);
+                ARBDirectStateAccess.glTextureSubImage3D(texture.textureId, level, xOffset, yOffset, zOffset, width, height, depth, format, type, data);
                 break;
             default:
                 throw new UnsupportedOperationException("Unsupported texture type: " + texture.target);
@@ -823,19 +856,23 @@ final class ARBDriver implements Driver<
     }
 
     @Override
-    public void textureSetParameter(ARBTexture texture, long param, long value) {
-        ARBDirectStateAccess.glTextureParameteri(texture.textureId, (int) param, (int) value);
+    public void textureSetParameter(ARBTexture texture, int param, int value) {
+        ARBDirectStateAccess.glTextureParameteri(texture.textureId, param, value);
     }
 
     @Override
-    public void textureSetParameter(ARBTexture texture, long param, double value) {
-        ARBDirectStateAccess.glTextureParameterf(texture.textureId, (int) param, (float) value);
+    public void textureSetParameter(ARBTexture texture, int param, float value) {
+        ARBDirectStateAccess.glTextureParameterf(texture.textureId, param, value);
     }
 
     @Override
-    public void vertexArrayAttachBuffer(ARBVertexArray vao, long index, ARBBuffer buffer, long size, long type, long stride, long offset, long divisor) {
+    public void vertexArrayAttachBuffer(
+            ARBVertexArray vao, int index,
+            ARBBuffer buffer, int size, int type,
+            int stride, long offset, int divisor) {
+
         if (stride == 0) {
-            switch ((int) type) {
+            switch (type) {
                 case GL11.GL_DOUBLE:
                     stride = size * 8;
                     break;
@@ -854,13 +891,13 @@ final class ARBDriver implements Driver<
             }
         }
 
-        ARBDirectStateAccess.glEnableVertexArrayAttrib(vao.vertexArrayId, (int) index);
-        ARBDirectStateAccess.glVertexArrayAttribFormat(vao.vertexArrayId, (int) index, (int) size, (int) type, false, 0);
-        ARBDirectStateAccess.glVertexArrayVertexBuffer(vao.vertexArrayId, (int) index, buffer.bufferId, offset, (int) stride);
-        ARBDirectStateAccess.glVertexArrayAttribBinding(vao.vertexArrayId, (int) index, (int) index);
+        ARBDirectStateAccess.glEnableVertexArrayAttrib(vao.vertexArrayId, index);
+        ARBDirectStateAccess.glVertexArrayAttribFormat(vao.vertexArrayId, index, size, type, false, 0);
+        ARBDirectStateAccess.glVertexArrayVertexBuffer(vao.vertexArrayId, index, buffer.bufferId, offset, stride);
+        ARBDirectStateAccess.glVertexArrayAttribBinding(vao.vertexArrayId, index, index);
 
         if (divisor > 0) {
-            ARBDirectStateAccess.glVertexArrayBindingDivisor(vao.vertexArrayId, (int) index, (int) divisor);
+            ARBDirectStateAccess.glVertexArrayBindingDivisor(vao.vertexArrayId, index, divisor);
         }
     }
 
@@ -883,89 +920,89 @@ final class ARBDriver implements Driver<
     }
 
     @Override
-    public void vertexArrayDrawArrays(ARBVertexArray vao, long drawMode, long start, long count) {
+    public void vertexArrayDrawArrays(ARBVertexArray vao, int drawMode, int start, int count) {
         final int currentVao = GL11.glGetInteger(ARBVertexArrayObject.GL_VERTEX_ARRAY_BINDING);
         ARBVertexArrayObject.glBindVertexArray(vao.vertexArrayId);
-        GL11.glDrawArrays((int) drawMode, (int) start, (int) count);
+        GL11.glDrawArrays(drawMode, start, count);
         ARBVertexArrayObject.glBindVertexArray(currentVao);
     }
 
     @Override
-    public void vertexArrayDrawArraysIndirect(ARBVertexArray vao, ARBBuffer cmdBuffer, long drawMode, long offset) {
-        final int currentVao = GL11.glGetInteger(ARBVertexArrayObject.GL_VERTEX_ARRAY_BINDING);
-        final int currentIndirect = GL11.glGetInteger(ARBDrawIndirect.GL_DRAW_INDIRECT_BUFFER_BINDING);
-
-        ARBVertexArrayObject.glBindVertexArray(vao.vertexArrayId);
-        GL15.glBindBuffer(ARBDrawIndirect.GL_DRAW_INDIRECT_BUFFER, cmdBuffer.bufferId);
-        ARBDrawIndirect.glDrawArraysIndirect((int) drawMode, offset);
-        GL15.glBindBuffer(ARBDrawIndirect.GL_DRAW_INDIRECT_BUFFER, currentIndirect);
-        ARBVertexArrayObject.glBindVertexArray(currentVao);
-    }
-
-    @Override
-    public void vertexArrayDrawArraysInstanced(ARBVertexArray vao, long drawMode, long first, long count, long instanceCount) {
-        final int currentVao = GL11.glGetInteger(ARBVertexArrayObject.GL_VERTEX_ARRAY_BINDING);
-
-        ARBVertexArrayObject.glBindVertexArray(vao.vertexArrayId);
-        GL31.glDrawArraysInstanced((int) drawMode, (int) first, (int) count, (int) instanceCount);
-        ARBVertexArrayObject.glBindVertexArray(currentVao);
-    }
-
-    @Override
-    public void vertexArrayDrawElements(ARBVertexArray vao, long drawMode, long count, long type, long offset) {
-        final int currentVao = GL11.glGetInteger(ARBVertexArrayObject.GL_VERTEX_ARRAY_BINDING);
-
-        ARBVertexArrayObject.glBindVertexArray(vao.vertexArrayId);
-        GL11.glDrawElements((int) drawMode, (int) count, (int) type, offset);
-        ARBVertexArrayObject.glBindVertexArray(currentVao);
-    }
-
-    @Override
-    public void vertexArrayDrawElementsIndirect(ARBVertexArray vao, ARBBuffer cmdBuffer, long drawMode, long indexType, long offset) {
+    public void vertexArrayDrawArraysIndirect(ARBVertexArray vao, ARBBuffer cmdBuffer, int drawMode, long offset) {
         final int currentVao = GL11.glGetInteger(ARBVertexArrayObject.GL_VERTEX_ARRAY_BINDING);
         final int currentIndirect = GL11.glGetInteger(ARBDrawIndirect.GL_DRAW_INDIRECT_BUFFER_BINDING);
 
         ARBVertexArrayObject.glBindVertexArray(vao.vertexArrayId);
         GL15.glBindBuffer(ARBDrawIndirect.GL_DRAW_INDIRECT_BUFFER, cmdBuffer.bufferId);
-        ARBDrawIndirect.glDrawElementsIndirect((int) drawMode, (int) indexType, offset);
+        ARBDrawIndirect.glDrawArraysIndirect(drawMode, offset);
         GL15.glBindBuffer(ARBDrawIndirect.GL_DRAW_INDIRECT_BUFFER, currentIndirect);
         ARBVertexArrayObject.glBindVertexArray(currentVao);
     }
 
     @Override
-    public void vertexArrayDrawElementsInstanced(ARBVertexArray vao, long drawMode, long count, long type, long offset, long instanceCount) {
+    public void vertexArrayDrawArraysInstanced(ARBVertexArray vao, int drawMode, int first, int count, int instanceCount) {
         final int currentVao = GL11.glGetInteger(ARBVertexArrayObject.GL_VERTEX_ARRAY_BINDING);
 
         ARBVertexArrayObject.glBindVertexArray(vao.vertexArrayId);
-        GL31.glDrawElementsInstanced((int) drawMode, (int) count, (int) type, offset, (int) instanceCount);
+        GL31.glDrawArraysInstanced(drawMode, first, count, instanceCount);
         ARBVertexArrayObject.glBindVertexArray(currentVao);
     }
 
     @Override
-    public void vertexArrayDrawTransformFeedback(ARBVertexArray vao, long drawMode, long start, long count) {
+    public void vertexArrayDrawElements(ARBVertexArray vao, int drawMode, int count, int type, long offset) {
+        final int currentVao = GL11.glGetInteger(ARBVertexArrayObject.GL_VERTEX_ARRAY_BINDING);
+
+        ARBVertexArrayObject.glBindVertexArray(vao.vertexArrayId);
+        GL11.glDrawElements(drawMode, count, type, offset);
+        ARBVertexArrayObject.glBindVertexArray(currentVao);
+    }
+
+    @Override
+    public void vertexArrayDrawElementsIndirect(ARBVertexArray vao, ARBBuffer cmdBuffer, int drawMode, int indexType, long offset) {
+        final int currentVao = GL11.glGetInteger(ARBVertexArrayObject.GL_VERTEX_ARRAY_BINDING);
+        final int currentIndirect = GL11.glGetInteger(ARBDrawIndirect.GL_DRAW_INDIRECT_BUFFER_BINDING);
+
+        ARBVertexArrayObject.glBindVertexArray(vao.vertexArrayId);
+        GL15.glBindBuffer(ARBDrawIndirect.GL_DRAW_INDIRECT_BUFFER, cmdBuffer.bufferId);
+        ARBDrawIndirect.glDrawElementsIndirect(drawMode, indexType, offset);
+        GL15.glBindBuffer(ARBDrawIndirect.GL_DRAW_INDIRECT_BUFFER, currentIndirect);
+        ARBVertexArrayObject.glBindVertexArray(currentVao);
+    }
+
+    @Override
+    public void vertexArrayDrawElementsInstanced(ARBVertexArray vao, int drawMode, int count, int type, long offset, int instanceCount) {
+        final int currentVao = GL11.glGetInteger(ARBVertexArrayObject.GL_VERTEX_ARRAY_BINDING);
+
+        ARBVertexArrayObject.glBindVertexArray(vao.vertexArrayId);
+        GL31.glDrawElementsInstanced(drawMode, count, type, offset, instanceCount);
+        ARBVertexArrayObject.glBindVertexArray(currentVao);
+    }
+
+    @Override
+    public void vertexArrayDrawTransformFeedback(ARBVertexArray vao, int drawMode, int start, int count) {
         final int currentVao = GL11.glGetInteger(ARBVertexArrayObject.GL_VERTEX_ARRAY_BINDING);
 
         ARBVertexArrayObject.glBindVertexArray(vao.vertexArrayId);
         GL11.glEnable(GL30.GL_RASTERIZER_DISCARD);
-        GL30.glBeginTransformFeedback((int) drawMode);
-        GL11.glDrawArrays((int) drawMode, (int) start, (int) count);
+        GL30.glBeginTransformFeedback(drawMode);
+        GL11.glDrawArrays(drawMode, start, count);
         GL30.glEndTransformFeedback();
         GL11.glDisable(GL30.GL_RASTERIZER_DISCARD);
         ARBVertexArrayObject.glBindVertexArray(currentVao);
     }
 
     @Override
-    public void vertexArrayMultiDrawArrays(ARBVertexArray vao, long drawMode, IntBuffer first, IntBuffer count) {
+    public void vertexArrayMultiDrawArrays(ARBVertexArray vao, int drawMode, IntBuffer first, IntBuffer count) {
         final int currentVao = GL11.glGetInteger(ARBVertexArrayObject.GL_VERTEX_ARRAY_BINDING);
 
         ARBVertexArrayObject.glBindVertexArray(vao.vertexArrayId);
-        GL14.glMultiDrawArrays((int) drawMode, first, count);
+        GL14.glMultiDrawArrays(drawMode, first, count);
         ARBVertexArrayObject.glBindVertexArray(currentVao);
     }
 
     @Override
-    public void viewportApply(long x, long y, long width, long height) {
-        GL11.glViewport((int) x, (int) y, (int) width, (int) height);
+    public void viewportApply(int x, int y, int width, int height) {
+        GL11.glViewport(x, y, width, height);
     }
 
 }
