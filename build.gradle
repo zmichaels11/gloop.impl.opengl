@@ -24,4 +24,7 @@ dependencies {
     compile 'org.slf4j:slf4j-api:1.7.+'
     compile "org.lwjgl:lwjgl:3.0.0-SNAPSHOT"
     compile "com.longlinkislong:gloop-spi:${getProjectVersion('gloop-spi')}"
+    compile "org.lwjgl:lwjgl-platform:3.0.0-SNAPSHOT:natives-windows"
+    compile "org.lwjgl:lwjgl-platform:3.0.0-SNAPSHOT:natives-linux"
+    compile "org.lwjgl:lwjgl-platform:3.0.0-SNAPSHOT:natives-osx"
 }
