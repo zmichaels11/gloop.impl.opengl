@@ -7,6 +7,8 @@ package com.longlinkislong.gloop.impl.arb;
 
 import com.longlinkislong.gloop.spi.Driver;
 import com.longlinkislong.gloop.spi.DriverProvider;
+import java.util.Arrays;
+import java.util.List;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GLCapabilities;
 
@@ -18,6 +20,11 @@ public final class ARBDriverProvider implements DriverProvider {
     private static final boolean ALLOW_ARB_DRIVER = Boolean.getBoolean("com.longlinkislong.gloop.spi.allow_arb_driver")
             || Boolean.getBoolean("gloop.spi.allow_arb_driver")
             || Boolean.getBoolean("com.longlinkislong.gloop.impl.arb.arbdriver.allow_arb_driver");
+
+    @Override
+    public List<String> getDriverDescription() {
+        return Arrays.asList("opengl", "dsa");
+    }
     
     private static final class Holder {
 
@@ -28,7 +35,7 @@ public final class ARBDriverProvider implements DriverProvider {
     @Override
     public Driver getDriverInstance() {
         return Holder.INSTANCE;
-    }
+    }       
 
     @Override
     public boolean is64bitUniformsSupported() {

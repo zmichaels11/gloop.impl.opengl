@@ -7,6 +7,8 @@ package com.longlinkislong.gloop.impl.gl3x;
 
 import com.longlinkislong.gloop.spi.Driver;
 import com.longlinkislong.gloop.spi.DriverProvider;
+import java.util.Arrays;
+import java.util.List;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GLCapabilities;
 
@@ -15,6 +17,11 @@ import org.lwjgl.opengl.GLCapabilities;
  * @author zmichaels
  */
 public final class GL3XDriverProvider implements DriverProvider {
+
+    @Override
+    public List<String> getDriverDescription() {
+        return Arrays.asList("opengl");
+    }
 
     private static final class Holder {
         private static final GL3XDriver INSTANCE = new GL3XDriver();        

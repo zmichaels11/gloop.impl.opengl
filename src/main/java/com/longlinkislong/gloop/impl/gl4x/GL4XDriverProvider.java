@@ -7,6 +7,8 @@ package com.longlinkislong.gloop.impl.gl4x;
 
 import com.longlinkislong.gloop.spi.Driver;
 import com.longlinkislong.gloop.spi.DriverProvider;
+import java.util.Arrays;
+import java.util.List;
 import org.lwjgl.opengl.GL;
 
 /**
@@ -14,10 +16,17 @@ import org.lwjgl.opengl.GL;
  * @author zmichaels
  */
 public final class GL4XDriverProvider implements DriverProvider {
+
+    @Override
+    public List<String> getDriverDescription() {
+        return Arrays.asList("opengl");
+    }
+
     private static final class Holder {
+
         private static final GL4XDriver INSTANCE = new GL4XDriver();
     }
-    
+
     @SuppressWarnings("rawtypes")
     @Override
     public Driver getDriverInstance() {
@@ -97,5 +106,5 @@ public final class GL4XDriverProvider implements DriverProvider {
     @Override
     public boolean isVertexArrayObjectSupported() {
         return true;
-    }    
+    }
 }
