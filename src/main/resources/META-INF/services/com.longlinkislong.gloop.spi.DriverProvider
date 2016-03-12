@@ -1,5 +1,0 @@
-com.longlinkislong.gloop.impl.gl45.GL45DriverProvider
-com.longlinkislong.gloop.impl.arb.ARBDriverProvider
-com.longlinkislong.gloop.impl.gl4x.GL4XDriverProvider
-com.longlinkislong.gloop.impl.gl3x.GL3XDriverProvider
-com.longlinkislong.gloop.impl.gl2x.GL2XDriverProvider
