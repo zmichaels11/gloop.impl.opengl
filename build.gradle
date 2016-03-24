@@ -23,8 +23,8 @@ def getProjectVersion(projId) {
 dependencies {
     compile 'org.slf4j:slf4j-api:1.7.+'    
     compile "com.longlinkislong:gloop-spi:${getProjectVersion('gloop-spi')}"
-    compile "org.lwjgl:lwjgl:3.0.0-SNAPSHOT"
-    compile "org.lwjgl:lwjgl-platform:3.0.0-SNAPSHOT:natives-windows"
-    compile "org.lwjgl:lwjgl-platform:3.0.0-SNAPSHOT:natives-linux"
-    compile "org.lwjgl:lwjgl-platform:3.0.0-SNAPSHOT:natives-osx"
+    compile "org.lwjgl:lwjgl:3.0.0b"
+    compile "org.lwjgl:lwjgl-platform:3.0.0b:natives-windows"
+    compile "org.lwjgl:lwjgl-platform:3.0.0b:natives-linux"
+    compile "org.lwjgl:lwjgl-platform:3.0.0b:natives-osx"
 }
