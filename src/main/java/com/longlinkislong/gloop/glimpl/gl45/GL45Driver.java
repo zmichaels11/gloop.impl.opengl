@@ -5,8 +5,10 @@
  */
 package com.longlinkislong.gloop.glimpl.gl45;
 
+import com.longlinkislong.gloop.glimpl.GLState;
 import com.longlinkislong.gloop.glspi.Driver;
 import com.longlinkislong.gloop.glspi.Shader;
+import com.longlinkislong.gloop.glspi.Tweaks;
 import java.nio.ByteBuffer;
 import java.nio.DoubleBuffer;
 import java.nio.FloatBuffer;
@@ -36,6 +38,13 @@ import org.lwjgl.opengl.GL45;
 final class GL45Driver implements Driver<
         GL45Buffer, GL45Framebuffer, GL45Texture, GL45Shader, GL45Program, GL45Sampler, GL45VertexArray, GL45DrawQuery> {
 
+    private GLState state = new GLState(new Tweaks());
+    
+    @Override
+    public void applyTweaks(final Tweaks tweaks) {
+        this.state = new GLState(tweaks);
+    }
+    
     @Override
     public void blendingDisable() {
         GL11.glDisable(GL11.GL_BLEND);
@@ -230,34 +239,29 @@ final class GL45Driver implements Driver<
     }
 
     @Override
-    public void framebufferGetPixels(GL45Framebuffer framebuffer, int x, int y, int width, int height, int format, int type, GL45Buffer dstBuffer) {
-        final int currentFB = GL11.glGetInteger(GL30.GL_FRAMEBUFFER_BINDING);
-        final int currentBuffer = GL11.glGetInteger(GL21.GL_PIXEL_PACK_BUFFER_BINDING);
-
-        GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, framebuffer.framebufferId);
-
-        GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, dstBuffer.bufferId);
+    public void framebufferGetPixels(GL45Framebuffer framebuffer, int x, int y, int width, int height, int format, int type, GL45Buffer dstBuffer) {               
+        state.framebufferPush(GL30.GL_FRAMEBUFFER, framebuffer.framebufferId);
+        state.bufferPush(GL21.GL_PIXEL_PACK_BUFFER, dstBuffer.bufferId);
+        
         GL11.glReadPixels(
                 x, y, width, height,
                 format, type,
                 0L);
-        GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, currentBuffer);
-
-        GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, currentFB);
+        
+        state.bufferPop(GL21.GL_PIXEL_PACK_BUFFER);
+        state.framebufferPop(GL30.GL_FRAMEBUFFER);
     }
 
     @Override
-    public void framebufferGetPixels(GL45Framebuffer framebuffer, int x, int y, int width, int height, int format, int type, ByteBuffer dstBuffer) {
-        final int currentFB = GL11.glGetInteger(GL30.GL_FRAMEBUFFER_BINDING);
-
-        GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, framebuffer.framebufferId);
+    public void framebufferGetPixels(GL45Framebuffer framebuffer, int x, int y, int width, int height, int format, int type, ByteBuffer dstBuffer) {        
+        state.framebufferPush(GL30.GL_FRAMEBUFFER, framebuffer.framebufferId);        
 
         GL11.glReadPixels(
                 x, y, width, height,
                 format, type,
                 dstBuffer);
 
-        GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, currentFB);
+        state.framebufferPop(GL30.GL_FRAMEBUFFER);
     }
 
     @Override
@@ -304,21 +308,22 @@ final class GL45Driver implements Driver<
     }
 
     @Override
-    public void programDispatchCompute(GL45Program program, int numX, int numY, int numZ) {
-        final int currentProgram = GL11.glGetInteger(GL20.GL_CURRENT_PROGRAM);
-
-        GL20.glUseProgram(program.programId);
+    public void programDispatchCompute(GL45Program program, int numX, int numY, int numZ) {        
+        state.programPush(program.programId);        
+        
         GL43.glDispatchCompute(numX, numY, numZ);
-        GL20.glUseProgram(currentProgram);
+        
+        state.programPop();
     }
 
     @Override
-    public int programGetUniformLocation(GL45Program program, String name) {
-        final int currentProgram = GL11.glGetInteger(GL20.GL_CURRENT_PROGRAM);
-
-        GL20.glUseProgram(program.programId);
+    public int programGetUniformLocation(GL45Program program, String name) {        
+        state.programPush(program.programId);
+        
         final int res = GL20.glGetUniformLocation(program.programId, name);
-        GL20.glUseProgram(currentProgram);
+        
+        state.programPop();
+        
         return res;
     }
 
@@ -428,7 +433,7 @@ final class GL45Driver implements Driver<
 
     @Override
     public void programSetUniformMatD(GL45Program program, int uLoc, DoubleBuffer mat) {
-        switch (mat.limit()) {
+        switch (mat.remaining()) {
             case 4:
                 GL41.glProgramUniformMatrix2dv(program.programId, uLoc, false, mat);
                 break;
@@ -445,7 +450,7 @@ final class GL45Driver implements Driver<
 
     @Override
     public void programSetUniformMatF(GL45Program program, int uLoc, FloatBuffer mat) {
-        switch (mat.limit()) {
+        switch (mat.remaining()) {
             case 4:
                 GL41.glProgramUniformMatrix2fv(program.programId, uLoc, false, mat);
                 break;
@@ -736,83 +741,82 @@ final class GL45Driver implements Driver<
 
     @Override
     public void vertexArrayDrawArrays(GL45VertexArray vao, int drawMode, int start, int count) {
-        final int currentVao = GL11.glGetInteger(GL30.GL_VERTEX_ARRAY_BINDING);
-        GL30.glBindVertexArray(vao.vertexArrayId);
+        state.vertexArrayPush(vao.vertexArrayId);
+        
         GL11.glDrawArrays(drawMode, start, count);
-        GL30.glBindVertexArray(currentVao);
+        
+        state.vertexArrayPop();
     }
 
     @Override
     public void vertexArrayDrawArraysIndirect(GL45VertexArray vao, GL45Buffer cmdBuffer, int drawMode, long offset) {
-        final int currentVao = GL11.glGetInteger(GL30.GL_VERTEX_ARRAY_BINDING);
-        final int currentIndirect = GL11.glGetInteger(GL40.GL_DRAW_INDIRECT_BUFFER_BINDING);
-
-        GL30.glBindVertexArray(vao.vertexArrayId);
-        GL15.glBindBuffer(GL40.GL_DRAW_INDIRECT_BUFFER, cmdBuffer.bufferId);
+        state.vertexArrayPush(vao.vertexArrayId);
+        state.bufferPush(GL40.GL_DRAW_INDIRECT_BUFFER, cmdBuffer.bufferId);
+        
         GL40.glDrawArraysIndirect(drawMode, offset);
-        GL15.glBindBuffer(GL40.GL_DRAW_INDIRECT_BUFFER, currentIndirect);
-        GL30.glBindVertexArray(currentVao);
+        
+        state.bufferPop(GL40.GL_DRAW_INDIRECT_BUFFER);
+        state.vertexArrayPop();
     }
 
     @Override
     public void vertexArrayDrawArraysInstanced(GL45VertexArray vao, int drawMode, int first, int count, int instanceCount) {
-        final int currentVao = GL11.glGetInteger(GL30.GL_VERTEX_ARRAY_BINDING);
+        state.vertexArrayPush(vao.vertexArrayId);
 
-        GL30.glBindVertexArray(vao.vertexArrayId);
         GL31.glDrawArraysInstanced(drawMode, first, count, instanceCount);
-        GL30.glBindVertexArray(currentVao);
+        
+        state.vertexArrayPop();
     }
 
     @Override
     public void vertexArrayDrawElements(GL45VertexArray vao, int drawMode, int count, int type, long offset) {
-        final int currentVao = GL11.glGetInteger(GL30.GL_VERTEX_ARRAY_BINDING);
-
-        GL30.glBindVertexArray(vao.vertexArrayId);
+        state.vertexArrayPush(vao.vertexArrayId);
+        
         GL11.glDrawElements(drawMode, count, type, offset);
-        GL30.glBindVertexArray(currentVao);
+        
+        state.vertexArrayPop();
     }
 
     @Override
     public void vertexArrayDrawElementsIndirect(GL45VertexArray vao, GL45Buffer cmdBuffer, int drawMode, int indexType, long offset) {
-        final int currentVao = GL11.glGetInteger(GL30.GL_VERTEX_ARRAY_BINDING);
-        final int currentIndirect = GL11.glGetInteger(GL40.GL_DRAW_INDIRECT_BUFFER_BINDING);
-
-        GL30.glBindVertexArray(vao.vertexArrayId);
-        GL15.glBindBuffer(GL40.GL_DRAW_INDIRECT_BUFFER, cmdBuffer.bufferId);
+        state.vertexArrayPush(vao.vertexArrayId);
+        state.bufferPush(GL40.GL_DRAW_INDIRECT_BUFFER, cmdBuffer.bufferId);                
+        
         GL40.glDrawElementsIndirect(drawMode, indexType, offset);
-        GL15.glBindBuffer(GL40.GL_DRAW_INDIRECT_BUFFER, currentIndirect);
-        GL30.glBindVertexArray(currentVao);
+
+        state.bufferPop(GL40.GL_DRAW_INDIRECT_BUFFER);
+        state.vertexArrayPop();
     }
 
     @Override
     public void vertexArrayDrawElementsInstanced(GL45VertexArray vao, int drawMode, int count, int type, long offset, int instanceCount) {
-        final int currentVao = GL11.glGetInteger(GL30.GL_VERTEX_ARRAY_BINDING);
-
-        GL30.glBindVertexArray(vao.vertexArrayId);
+        state.vertexArrayPush(vao.vertexArrayId);
+        
         GL31.glDrawElementsInstanced(drawMode, count, type, offset, instanceCount);
-        GL30.glBindVertexArray(currentVao);
+        
+        state.vertexArrayPop();
     }
 
     @Override
     public void vertexArrayDrawTransformFeedback(GL45VertexArray vao, int drawMode, int start, int count) {
-        final int currentVao = GL11.glGetInteger(GL30.GL_VERTEX_ARRAY_BINDING);
-
-        GL30.glBindVertexArray(vao.vertexArrayId);
+        state.vertexArrayPush(vao.vertexArrayId);
+        
         GL11.glEnable(GL30.GL_RASTERIZER_DISCARD);
         GL30.glBeginTransformFeedback(drawMode);
         GL11.glDrawArrays(drawMode, start, count);
         GL30.glEndTransformFeedback();
         GL11.glDisable(GL30.GL_RASTERIZER_DISCARD);
-        GL30.glBindVertexArray(currentVao);
+        
+        state.vertexArrayPop();
     }
 
     @Override
     public void vertexArrayMultiDrawArrays(GL45VertexArray vao, int drawMode, IntBuffer first, IntBuffer count) {
-        final int currentVao = GL11.glGetInteger(GL30.GL_VERTEX_ARRAY_BINDING);
-
-        GL30.glBindVertexArray(vao.vertexArrayId);
+        state.vertexArrayPush(vao.vertexArrayId);
+        
         GL14.glMultiDrawArrays(drawMode, first, count);
-        GL30.glBindVertexArray(currentVao);
+        
+        state.vertexArrayPop();
     }
 
     @Override
