@@ -9,8 +9,6 @@ import com.longlinkislong.gloop.glspi.Tweaks;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Objects;
-import org.lwjgl.opengl.ARBFramebufferObject;
-import org.lwjgl.opengl.ARBVertexArrayObject;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12;
 import org.lwjgl.opengl.GL15;
@@ -40,16 +38,16 @@ public final class GLState {
         if(tweaks.ignoreFramebufferStateReset) {
             // ignore reset.
         } else {
-            ARBFramebufferObject.glBindFramebuffer(target, this.framebufferStack.pop());
+            GL30.glBindFramebuffer(target, this.framebufferStack.pop());
         }
     }
     
     public void framebufferPush(final int target, final int fb) {
         if(tweaks.ignoreFramebufferStateReset) {
-            ARBFramebufferObject.glBindFramebuffer(target, fb);
+            GL30.glBindFramebuffer(target, fb);
         } else {
             this.framebufferStack.push(GL11.glGetInteger(getFramebufferBinding(target)));
-            ARBFramebufferObject.glBindFramebuffer(target, fb);
+            GL30.glBindFramebuffer(target, fb);
         }
     }
     
@@ -110,16 +108,16 @@ public final class GLState {
             // ignore reset
         } else {
             final int restoreVao = this.vaoStack.pop();            
-            ARBVertexArrayObject.glBindVertexArray(restoreVao);
+            GL30.glBindVertexArray(restoreVao);
         }
     }
     
     public void vertexArrayPush(final int vao) {
         if(tweaks.ignoreVaoStateReset) {
-            ARBVertexArrayObject.glBindVertexArray(vao);
+            GL30.glBindVertexArray(vao);
         } else {
-            vaoStack.push(GL11.glGetInteger(ARBVertexArrayObject.GL_VERTEX_ARRAY_BINDING));
-            ARBVertexArrayObject.glBindVertexArray(vao);
+            vaoStack.push(GL11.glGetInteger(GL30.GL_VERTEX_ARRAY_BINDING));
+            GL30.glBindVertexArray(vao);
         }
     }
 
