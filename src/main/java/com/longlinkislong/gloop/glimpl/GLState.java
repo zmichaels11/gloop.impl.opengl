@@ -28,12 +28,12 @@ public final class GLState {
     private final Deque<Integer> vaoStack = new ArrayDeque<>();
     private final Deque<Integer> bufferStack = new ArrayDeque<>();
     private final Deque<Integer> textureStack = new ArrayDeque<>();
-    private final Deque<Integer> framebufferStack = new ArrayDeque<>();
+    private final Deque<Integer> framebufferStack = new ArrayDeque<>();    
     
     public GLState(final Tweaks tweaks) {
         this.tweaks = Objects.requireNonNull(tweaks);
-    }
-
+    }    
+    
     public void framebufferPop(final int target) {
         if(tweaks.ignoreFramebufferStateReset) {
             // ignore reset.

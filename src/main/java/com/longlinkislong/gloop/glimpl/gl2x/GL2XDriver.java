@@ -38,7 +38,7 @@ import org.lwjgl.opengl.GL21;
  * @author zmichaels
  */
 final class GL2XDriver implements Driver<
-        GL2XBuffer, GL2XFramebuffer, GL2XTexture, GL2XShader, GL2XProgram, GL2XSampler, GL2XVertexArray, GL2XDrawQuery> {
+        GL2XBuffer, GL2XFramebuffer, GL2XRenderbuffer, GL2XTexture, GL2XShader, GL2XProgram, GL2XSampler, GL2XVertexArray, GL2XDrawQuery> {
 
     @Override
     public void blendingDisable() {
@@ -232,43 +232,12 @@ final class GL2XDriver implements Driver<
     }
 
     @Override
-    public void framebufferAddDepthAttachment(GL2XFramebuffer framebuffer, GL2XTexture texId, int mipmapLevel) {
+    public void framebufferAddRenderbuffer(GL2XFramebuffer framebuffer, int attachmentId, GL2XRenderbuffer renderbuffer) {
         final int currentFb = GL11.glGetInteger(ARBFramebufferObject.GL_FRAMEBUFFER_BINDING);
-
-        switch (texId.target) {
-            case GL11.GL_TEXTURE_1D:
-                ARBFramebufferObject.glBindFramebuffer(ARBFramebufferObject.GL_FRAMEBUFFER, framebuffer.framebufferId);
-                ARBFramebufferObject.glFramebufferTexture1D(ARBFramebufferObject.GL_FRAMEBUFFER, ARBFramebufferObject.GL_DEPTH_ATTACHMENT, GL11.GL_TEXTURE_1D, texId.textureId, mipmapLevel);
-                ARBFramebufferObject.glBindFramebuffer(ARBFramebufferObject.GL_FRAMEBUFFER, currentFb);
-                break;
-            case GL11.GL_TEXTURE_2D:
-                ARBFramebufferObject.glBindFramebuffer(ARBFramebufferObject.GL_FRAMEBUFFER, framebuffer.framebufferId);
-                ARBFramebufferObject.glFramebufferTexture2D(ARBFramebufferObject.GL_FRAMEBUFFER, ARBFramebufferObject.GL_DEPTH_ATTACHMENT, GL11.GL_TEXTURE_2D, texId.textureId, mipmapLevel);
-                ARBFramebufferObject.glBindFramebuffer(ARBFramebufferObject.GL_FRAMEBUFFER, currentFb);
-                break;
-            default:
-                throw new UnsupportedOperationException("Unsupported texture target!");
-        }
-    }
-
-    @Override
-    public void framebufferAddDepthStencilAttachment(GL2XFramebuffer framebuffer, GL2XTexture texId, int mipmapLevel) {
-        final int currentFb = GL11.glGetInteger(ARBFramebufferObject.GL_FRAMEBUFFER_BINDING);
-
-        switch (texId.target) {
-            case GL11.GL_TEXTURE_1D:
-                ARBFramebufferObject.glBindFramebuffer(ARBFramebufferObject.GL_FRAMEBUFFER, framebuffer.framebufferId);
-                ARBFramebufferObject.glFramebufferTexture1D(ARBFramebufferObject.GL_FRAMEBUFFER, ARBFramebufferObject.GL_DEPTH_STENCIL_ATTACHMENT, GL11.GL_TEXTURE_1D, texId.textureId, mipmapLevel);
-                ARBFramebufferObject.glBindFramebuffer(ARBFramebufferObject.GL_FRAMEBUFFER, currentFb);
-                break;
-            case GL11.GL_TEXTURE_2D:
-                ARBFramebufferObject.glBindFramebuffer(ARBFramebufferObject.GL_FRAMEBUFFER, framebuffer.framebufferId);
-                ARBFramebufferObject.glFramebufferTexture2D(ARBFramebufferObject.GL_FRAMEBUFFER, ARBFramebufferObject.GL_DEPTH_STENCIL_ATTACHMENT, GL11.GL_TEXTURE_2D, texId.textureId, mipmapLevel);
-                ARBFramebufferObject.glBindFramebuffer(ARBFramebufferObject.GL_FRAMEBUFFER, currentFb);
-                break;
-            default:
-                throw new UnsupportedOperationException("Unsupported texture target!");
-        }
+        
+        ARBFramebufferObject.glBindFramebuffer(ARBFramebufferObject.GL_FRAMEBUFFER, framebuffer.framebufferId);
+        ARBFramebufferObject.glFramebufferRenderbuffer(ARBFramebufferObject.GL_FRAMEBUFFER, attachmentId, ARBFramebufferObject.GL_RENDERBUFFER, renderbuffer.renderbufferId);
+        ARBFramebufferObject.glBindFramebuffer(ARBFramebufferObject.GL_FRAMEBUFFER, currentFb);
     }
 
     @Override
@@ -599,6 +568,23 @@ final class GL2XDriver implements Driver<
     @Override
     public void programUse(GL2XProgram program) {
         GL20.glUseProgram(program.programId);
+    }
+
+    @Override
+    public GL2XRenderbuffer renderbufferCreate(int internalFormat, int width, int height) {
+        final GL2XRenderbuffer renderbuffer = new GL2XRenderbuffer();
+        
+        renderbuffer.renderbufferId = ARBFramebufferObject.glGenRenderbuffers();
+        ARBFramebufferObject.glBindRenderbuffer(ARBFramebufferObject.GL_RENDERBUFFER, renderbuffer.renderbufferId);
+        ARBFramebufferObject.glRenderbufferStorage(ARBFramebufferObject.GL_RENDERBUFFER, internalFormat, width, height);
+        
+        return renderbuffer;
+    }
+
+    @Override
+    public void renderbufferDelete(GL2XRenderbuffer renderbuffer) {
+        ARBFramebufferObject.glDeleteRenderbuffers(renderbuffer.renderbufferId);
+        renderbuffer.renderbufferId = -1;
     }
 
     @Override

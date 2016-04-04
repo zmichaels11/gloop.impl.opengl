@@ -36,7 +36,7 @@ import org.lwjgl.opengl.GL45;
  * @author zmichaels
  */
 final class GL45Driver implements Driver<
-        GL45Buffer, GL45Framebuffer, GL45Texture, GL45Shader, GL45Program, GL45Sampler, GL45VertexArray, GL45DrawQuery> {
+        GL45Buffer, GL45Framebuffer, GL45Renderbuffer, GL45Texture, GL45Shader, GL45Program, GL45Sampler, GL45VertexArray, GL45DrawQuery> {
 
     private GLState state = new GLState(new Tweaks());
     
@@ -176,24 +176,15 @@ final class GL45Driver implements Driver<
                 attachmentId,
                 texture.textureId,
                 mipmapLevel);
-    }
+    }    
 
     @Override
-    public void framebufferAddDepthAttachment(GL45Framebuffer framebuffer, GL45Texture texture, int mipmapLevel) {
-        GL45.glNamedFramebufferTexture(
-                framebuffer.framebufferId,
-                GL30.GL_DEPTH_ATTACHMENT,
-                texture.textureId,
-                mipmapLevel);
-    }
-
-    @Override
-    public void framebufferAddDepthStencilAttachment(GL45Framebuffer framebuffer, GL45Texture texture, int mipmapLevel) {
-        GL45.glNamedFramebufferTexture(
-                framebuffer.framebufferId,
-                GL30.GL_DEPTH_STENCIL_ATTACHMENT,
-                texture.textureId,
-                mipmapLevel);
+    public void framebufferAddRenderbuffer(GL45Framebuffer framebuffer, int attachmentId, GL45Renderbuffer renderbuffer) {
+        GL45.glNamedFramebufferRenderbuffer(
+                framebuffer.framebufferId, 
+                attachmentId, 
+                GL30.GL_RENDERBUFFER, 
+                renderbuffer.renderbufferId);
     }
 
     @Override
@@ -468,6 +459,22 @@ final class GL45Driver implements Driver<
     @Override
     public void programUse(GL45Program program) {
         GL20.glUseProgram(program.programId);
+    }
+
+    @Override
+    public GL45Renderbuffer renderbufferCreate(int internalFormat, int width, int height) {
+        final GL45Renderbuffer renderbuffer = new GL45Renderbuffer();
+        
+        renderbuffer.renderbufferId = GL45.glCreateRenderbuffers();
+        GL45.glNamedRenderbufferStorage(renderbuffer.renderbufferId, internalFormat, width, height);
+        
+        return renderbuffer;
+    }
+
+    @Override
+    public void renderbufferDelete(GL45Renderbuffer renderbuffer) {
+        GL30.glDeleteRenderbuffers(renderbuffer.renderbufferId);
+        renderbuffer.renderbufferId = -1;        
     }
 
     @Override

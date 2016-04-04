@@ -42,7 +42,7 @@ import org.lwjgl.opengl.GLCapabilities;
  * @author zmichaels
  */
 final class ARBDriver implements Driver<
-        ARBBuffer, ARBFramebuffer, ARBTexture, ARBShader, ARBProgram, ARBSampler, ARBVertexArray, ARBDrawQuery> {
+        ARBBuffer, ARBFramebuffer, ARBRenderbuffer, ARBTexture, ARBShader, ARBProgram, ARBSampler, ARBVertexArray, ARBDrawQuery> {
 
     @Override
     public void blendingDisable() {
@@ -175,24 +175,15 @@ final class ARBDriver implements Driver<
                 attachmentId,
                 texture.textureId,
                 mipmapLevel);
-    }
+    }    
 
     @Override
-    public void framebufferAddDepthAttachment(ARBFramebuffer framebuffer, ARBTexture texture, int mipmapLevel) {
-        ARBDirectStateAccess.glNamedFramebufferTexture(
+    public void framebufferAddRenderbuffer(ARBFramebuffer framebuffer, int attachmentId, ARBRenderbuffer renderbuffer) {
+        ARBDirectStateAccess.glNamedFramebufferRenderbuffer(
                 framebuffer.framebufferId,
-                ARBFramebufferObject.GL_DEPTH_ATTACHMENT,
-                texture.textureId,
-                mipmapLevel);
-    }
-
-    @Override
-    public void framebufferAddDepthStencilAttachment(ARBFramebuffer framebuffer, ARBTexture texture, int mipmapLevel) {
-        ARBDirectStateAccess.glNamedFramebufferTexture(
-                framebuffer.framebufferId,
-                ARBFramebufferObject.GL_DEPTH_STENCIL_ATTACHMENT,
-                texture.textureId,
-                mipmapLevel);
+                attachmentId, 
+                GL30.GL_RENDERBUFFER, 
+                renderbuffer.renderbufferId);
     }
 
     @Override
@@ -630,6 +621,22 @@ final class ARBDriver implements Driver<
     @Override
     public void programUse(ARBProgram program) {
         GL20.glUseProgram(program.programId);
+    }
+
+    @Override
+    public ARBRenderbuffer renderbufferCreate(int internalFormat, int width, int height) {
+        final ARBRenderbuffer renderbuffer = new ARBRenderbuffer();
+        
+        renderbuffer.renderbufferId = ARBDirectStateAccess.glCreateRenderbuffers();
+        ARBDirectStateAccess.glNamedRenderbufferStorage(renderbuffer.renderbufferId, internalFormat, width, height);
+        
+        return renderbuffer;
+    }
+
+    @Override
+    public void renderbufferDelete(ARBRenderbuffer renderbuffer) {
+        GL30.glDeleteRenderbuffers(renderbuffer.renderbufferId);
+        renderbuffer.renderbufferId = -1;        
     }
 
     @Override

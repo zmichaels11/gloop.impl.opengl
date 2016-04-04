@@ -43,7 +43,7 @@ import org.slf4j.LoggerFactory;
  * @author zmichaels
  */
 final class GL4XDriver implements Driver<
-        GL4XBuffer, GL4XFramebuffer, GL4XTexture, GL4XShader, GL4XProgram, GL4XSampler, GL4XVertexArray, GL4XDrawQuery> {
+        GL4XBuffer, GL4XFramebuffer, GL4XRenderbuffer, GL4XTexture, GL4XShader, GL4XProgram, GL4XSampler, GL4XVertexArray, GL4XDrawQuery> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GL4XDriver.class);
     private GLState state = new GLState(new Tweaks());
@@ -229,41 +229,15 @@ final class GL4XDriver implements Driver<
         }
 
         state.framebufferPop(GL30.GL_FRAMEBUFFER);
-    }
+    }    
 
     @Override
-    public void framebufferAddDepthAttachment(GL4XFramebuffer framebuffer, GL4XTexture texId, int mipmapLevel) {
+    public void framebufferAddRenderbuffer(GL4XFramebuffer framebuffer, int attachmentId, GL4XRenderbuffer renderbuffer) {
         state.framebufferPush(GL30.GL_FRAMEBUFFER, framebuffer.framebufferId);
-
-        switch (texId.target) {
-            case GL11.GL_TEXTURE_1D:
-                GL30.glFramebufferTexture1D(GL30.GL_FRAMEBUFFER, GL30.GL_DEPTH_ATTACHMENT, GL11.GL_TEXTURE_1D, texId.textureId, mipmapLevel);
-                break;
-            case GL11.GL_TEXTURE_2D:
-                GL30.glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_DEPTH_ATTACHMENT, GL11.GL_TEXTURE_2D, texId.textureId, mipmapLevel);
-                break;
-            default:
-                throw new UnsupportedOperationException("Unsupported texture target!");
-        }
-
-        state.framebufferPop(GL30.GL_FRAMEBUFFER);
-    }
-
-    @Override
-    public void framebufferAddDepthStencilAttachment(GL4XFramebuffer framebuffer, GL4XTexture texId, int mipmapLevel) {
-        state.framebufferPush(GL30.GL_FRAMEBUFFER, framebuffer.framebufferId);
-
-        switch (texId.target) {
-            case GL11.GL_TEXTURE_1D:
-                GL30.glFramebufferTexture1D(GL30.GL_FRAMEBUFFER, GL30.GL_DEPTH_STENCIL_ATTACHMENT, GL11.GL_TEXTURE_1D, texId.textureId, mipmapLevel);
-                break;
-            case GL11.GL_TEXTURE_2D:
-                GL30.glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, GL30.GL_DEPTH_STENCIL_ATTACHMENT, GL11.GL_TEXTURE_2D, texId.textureId, mipmapLevel);
-                break;
-            default:
-                throw new UnsupportedOperationException("Unsupported texture target!");
-        }
-
+        
+        // documents does not specify if renderbuffer needs to be bound...
+        GL30.glFramebufferRenderbuffer(GL30.GL_FRAMEBUFFER, attachmentId, GL30.GL_RENDERBUFFER, renderbuffer.renderbufferId);
+        
         state.framebufferPop(GL30.GL_FRAMEBUFFER);
     }
 
@@ -648,6 +622,23 @@ final class GL4XDriver implements Driver<
     @Override
     public void programUse(GL4XProgram program) {
         GL20.glUseProgram(program.programId);
+    }
+
+    @Override
+    public GL4XRenderbuffer renderbufferCreate(int internalFormat, int width, int height) {
+        final GL4XRenderbuffer renderbuffer = new GL4XRenderbuffer();
+        
+        renderbuffer.renderbufferId = GL30.glGenRenderbuffers();
+        
+        GL30.glBindRenderbuffer(GL30.GL_RENDERBUFFER, renderbuffer.renderbufferId);
+        GL30.glRenderbufferStorage(GL30.GL_RENDERBUFFER, internalFormat, width, height);
+        return renderbuffer;
+    }
+
+    @Override
+    public void renderbufferDelete(GL4XRenderbuffer renderbuffer) {
+        GL30.glDeleteRenderbuffers(renderbuffer.renderbufferId);
+        renderbuffer.renderbufferId = -1;
     }
 
     @Override
