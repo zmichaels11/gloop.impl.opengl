@@ -45,6 +45,39 @@ final class ARBDriver implements Driver<
         ARBBuffer, ARBFramebuffer, ARBRenderbuffer, ARBTexture, ARBShader, ARBProgram, ARBSampler, ARBVertexArray, ARBDrawQuery> {
 
     @Override
+    public int shaderGetVersion() {
+        final GLCapabilities caps = GL.getCapabilities();
+                
+        if(caps.OpenGL45) {
+            return 450;
+        } else if(caps.OpenGL44) {
+            return 440;
+        } else if(caps.OpenGL43) {
+            return 430;
+        } else if(caps.OpenGL42) {
+            return 420;
+        } else if(caps.OpenGL41) {
+            return 410;
+        } else if(caps.OpenGL40) {
+            return 400;
+        } else if(caps.OpenGL33) {
+            return 330;
+        } else if(caps.OpenGL32) {
+            return 150;
+        } else if(caps.OpenGL31) {
+            return 140;
+        } else if(caps.OpenGL30) {
+            return 130;
+        } else if(caps.OpenGL21) {
+            return 120;
+        } else if(caps.OpenGL20) {
+            return 110;
+        } else {
+            return 100;
+        }
+    }
+    
+    @Override
     public void blendingDisable() {
         GL11.glDisable(GL11.GL_BLEND);
     }

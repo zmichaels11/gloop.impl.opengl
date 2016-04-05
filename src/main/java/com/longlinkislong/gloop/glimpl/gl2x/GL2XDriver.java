@@ -32,6 +32,7 @@ import org.lwjgl.opengl.GL14;
 import org.lwjgl.opengl.GL15;
 import org.lwjgl.opengl.GL20;
 import org.lwjgl.opengl.GL21;
+import org.lwjgl.opengl.GLCapabilities;
 
 /**
  *
@@ -40,6 +41,19 @@ import org.lwjgl.opengl.GL21;
 final class GL2XDriver implements Driver<
         GL2XBuffer, GL2XFramebuffer, GL2XRenderbuffer, GL2XTexture, GL2XShader, GL2XProgram, GL2XSampler, GL2XVertexArray, GL2XDrawQuery> {
 
+    @Override
+    public int shaderGetVersion() {
+        final GLCapabilities cap = GL.getCapabilities();
+        
+        if(cap.OpenGL21) {
+            return 120;
+        } else if(cap.OpenGL20) {
+            return 110;
+        } else {
+            return 100;
+        }
+    }
+    
     @Override
     public void blendingDisable() {
         GL11.glDisable(GL11.GL_BLEND);

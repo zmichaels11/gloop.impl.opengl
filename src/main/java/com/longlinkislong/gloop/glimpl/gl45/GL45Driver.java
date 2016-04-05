@@ -44,6 +44,11 @@ final class GL45Driver implements Driver<
     private GLState state = new GLState(new Tweaks());
 
     @Override
+    public int shaderGetVersion() {
+        return 450;
+    }
+    
+    @Override
     public void applyTweaks(final Tweaks tweaks) {
         this.state = new GLState(tweaks);
     }

@@ -51,6 +51,21 @@ final class GL3XDriver implements Driver<
     private GLState state = new GLState(new Tweaks());
 
     @Override
+    public int shaderGetVersion() {
+        final GLCapabilities cap = GL.getCapabilities();
+        
+        if(cap.OpenGL33) {
+            return 330;
+        } else if(cap.OpenGL32) {
+            return 150;
+        } else if(cap.OpenGL31) {
+            return 140;
+        } else {
+            return 130;
+        }
+    }
+    
+    @Override
     public void applyTweaks(final Tweaks tweak) {
         this.state = new GLState(tweak);
     }

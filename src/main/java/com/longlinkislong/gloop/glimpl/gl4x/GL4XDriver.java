@@ -35,6 +35,7 @@ import org.lwjgl.opengl.GL30;
 import org.lwjgl.opengl.GL31;
 import org.lwjgl.opengl.GL33;
 import org.lwjgl.opengl.GL40;
+import org.lwjgl.opengl.GLCapabilities;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,6 +49,25 @@ final class GL4XDriver implements Driver<
     private static final Logger LOGGER = LoggerFactory.getLogger(GL4XDriver.class);
     private GLState state = new GLState(new Tweaks());
 
+    @Override
+    public int shaderGetVersion() {
+        final GLCapabilities cap = GL.getCapabilities();
+        
+        if(cap.OpenGL45) {
+            return 450;
+        } else if(cap.OpenGL44) {
+            return 440;
+        } else if(cap.OpenGL43) {
+            return 430;
+        } else if(cap.OpenGL42) {
+            return 420;
+        } else if(cap.OpenGL41) {
+            return 410;
+        } else {
+            return 400;
+        }
+    }
+    
     @Override
     public void applyTweaks(final Tweaks tweak) {
         this.state = new GLState(tweak);
