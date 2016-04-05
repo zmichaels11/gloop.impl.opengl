@@ -30,6 +30,8 @@ import org.lwjgl.opengl.GL41;
 import org.lwjgl.opengl.GL42;
 import org.lwjgl.opengl.GL43;
 import org.lwjgl.opengl.GL45;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
@@ -38,13 +40,14 @@ import org.lwjgl.opengl.GL45;
 final class GL45Driver implements Driver<
         GL45Buffer, GL45Framebuffer, GL45Renderbuffer, GL45Texture, GL45Shader, GL45Program, GL45Sampler, GL45VertexArray, GL45DrawQuery> {
 
+    private final Logger LOGGER = LoggerFactory.getLogger("GL45Driver");
     private GLState state = new GLState(new Tweaks());
-    
+
     @Override
     public void applyTweaks(final Tweaks tweaks) {
         this.state = new GLState(tweaks);
     }
-    
+
     @Override
     public void blendingDisable() {
         GL11.glDisable(GL11.GL_BLEND);
@@ -176,14 +179,14 @@ final class GL45Driver implements Driver<
                 attachmentId,
                 texture.textureId,
                 mipmapLevel);
-    }    
+    }
 
     @Override
     public void framebufferAddRenderbuffer(GL45Framebuffer framebuffer, int attachmentId, GL45Renderbuffer renderbuffer) {
         GL45.glNamedFramebufferRenderbuffer(
-                framebuffer.framebufferId, 
-                attachmentId, 
-                GL30.GL_RENDERBUFFER, 
+                framebuffer.framebufferId,
+                attachmentId,
+                GL30.GL_RENDERBUFFER,
                 renderbuffer.renderbufferId);
     }
 
@@ -230,22 +233,22 @@ final class GL45Driver implements Driver<
     }
 
     @Override
-    public void framebufferGetPixels(GL45Framebuffer framebuffer, int x, int y, int width, int height, int format, int type, GL45Buffer dstBuffer) {               
+    public void framebufferGetPixels(GL45Framebuffer framebuffer, int x, int y, int width, int height, int format, int type, GL45Buffer dstBuffer) {
         state.framebufferPush(GL30.GL_FRAMEBUFFER, framebuffer.framebufferId);
         state.bufferPush(GL21.GL_PIXEL_PACK_BUFFER, dstBuffer.bufferId);
-        
+
         GL11.glReadPixels(
                 x, y, width, height,
                 format, type,
                 0L);
-        
+
         state.bufferPop(GL21.GL_PIXEL_PACK_BUFFER);
         state.framebufferPop(GL30.GL_FRAMEBUFFER);
     }
 
     @Override
-    public void framebufferGetPixels(GL45Framebuffer framebuffer, int x, int y, int width, int height, int format, int type, ByteBuffer dstBuffer) {        
-        state.framebufferPush(GL30.GL_FRAMEBUFFER, framebuffer.framebufferId);        
+    public void framebufferGetPixels(GL45Framebuffer framebuffer, int x, int y, int width, int height, int format, int type, ByteBuffer dstBuffer) {
+        state.framebufferPush(GL30.GL_FRAMEBUFFER, framebuffer.framebufferId);
 
         GL11.glReadPixels(
                 x, y, width, height,
@@ -257,7 +260,30 @@ final class GL45Driver implements Driver<
 
     @Override
     public boolean framebufferIsComplete(GL45Framebuffer framebuffer) {
-        return GL45.glCheckNamedFramebufferStatus(framebuffer.framebufferId, GL30.GL_FRAMEBUFFER) == GL30.GL_FRAMEBUFFER_COMPLETE;
+        final int result = GL45.glCheckNamedFramebufferStatus(framebuffer.framebufferId, GL30.GL_FRAMEBUFFER);
+
+        switch (result) {
+            case GL30.GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
+                LOGGER.warn("GLFramebuffer has an incomplete attachment!");
+                return false;
+            case GL30.GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER:
+                LOGGER.warn("GLFramebuffer has an incomplete draw buffer!");
+                return false;
+            case GL30.GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
+                LOGGER.warn("GLFramebuffer has a missing attachment!");
+                return false;
+            case GL30.GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE:
+                LOGGER.warn("GLFramebuffer has incomplete multisample!");
+                return false;
+            case GL30.GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER:
+                LOGGER.warn("GLFramebuffer has incomplete read buffer!");
+                return false;
+            case GL30.GL_FRAMEBUFFER_COMPLETE:
+                return true;
+            default:
+                LOGGER.warn("Unknown incomplete framebuffer status: {}", result);
+                return false;
+        }        
     }
 
     @Override
@@ -299,22 +325,22 @@ final class GL45Driver implements Driver<
     }
 
     @Override
-    public void programDispatchCompute(GL45Program program, int numX, int numY, int numZ) {        
-        state.programPush(program.programId);        
-        
+    public void programDispatchCompute(GL45Program program, int numX, int numY, int numZ) {
+        state.programPush(program.programId);
+
         GL43.glDispatchCompute(numX, numY, numZ);
-        
+
         state.programPop();
     }
 
     @Override
-    public int programGetUniformLocation(GL45Program program, String name) {        
+    public int programGetUniformLocation(GL45Program program, String name) {
         state.programPush(program.programId);
-        
+
         final int res = GL20.glGetUniformLocation(program.programId, name);
-        
+
         state.programPop();
-        
+
         return res;
     }
 
@@ -464,17 +490,17 @@ final class GL45Driver implements Driver<
     @Override
     public GL45Renderbuffer renderbufferCreate(int internalFormat, int width, int height) {
         final GL45Renderbuffer renderbuffer = new GL45Renderbuffer();
-        
+
         renderbuffer.renderbufferId = GL45.glCreateRenderbuffers();
         GL45.glNamedRenderbufferStorage(renderbuffer.renderbufferId, internalFormat, width, height);
-        
+
         return renderbuffer;
     }
 
     @Override
     public void renderbufferDelete(GL45Renderbuffer renderbuffer) {
         GL30.glDeleteRenderbuffers(renderbuffer.renderbufferId);
-        renderbuffer.renderbufferId = -1;        
+        renderbuffer.renderbufferId = -1;
     }
 
     @Override
@@ -749,9 +775,9 @@ final class GL45Driver implements Driver<
     @Override
     public void vertexArrayDrawArrays(GL45VertexArray vao, int drawMode, int start, int count) {
         state.vertexArrayPush(vao.vertexArrayId);
-        
+
         GL11.glDrawArrays(drawMode, start, count);
-        
+
         state.vertexArrayPop();
     }
 
@@ -759,9 +785,9 @@ final class GL45Driver implements Driver<
     public void vertexArrayDrawArraysIndirect(GL45VertexArray vao, GL45Buffer cmdBuffer, int drawMode, long offset) {
         state.vertexArrayPush(vao.vertexArrayId);
         state.bufferPush(GL40.GL_DRAW_INDIRECT_BUFFER, cmdBuffer.bufferId);
-        
+
         GL40.glDrawArraysIndirect(drawMode, offset);
-        
+
         state.bufferPop(GL40.GL_DRAW_INDIRECT_BUFFER);
         state.vertexArrayPop();
     }
@@ -771,24 +797,24 @@ final class GL45Driver implements Driver<
         state.vertexArrayPush(vao.vertexArrayId);
 
         GL31.glDrawArraysInstanced(drawMode, first, count, instanceCount);
-        
+
         state.vertexArrayPop();
     }
 
     @Override
     public void vertexArrayDrawElements(GL45VertexArray vao, int drawMode, int count, int type, long offset) {
         state.vertexArrayPush(vao.vertexArrayId);
-        
+
         GL11.glDrawElements(drawMode, count, type, offset);
-        
+
         state.vertexArrayPop();
     }
 
     @Override
     public void vertexArrayDrawElementsIndirect(GL45VertexArray vao, GL45Buffer cmdBuffer, int drawMode, int indexType, long offset) {
         state.vertexArrayPush(vao.vertexArrayId);
-        state.bufferPush(GL40.GL_DRAW_INDIRECT_BUFFER, cmdBuffer.bufferId);                
-        
+        state.bufferPush(GL40.GL_DRAW_INDIRECT_BUFFER, cmdBuffer.bufferId);
+
         GL40.glDrawElementsIndirect(drawMode, indexType, offset);
 
         state.bufferPop(GL40.GL_DRAW_INDIRECT_BUFFER);
@@ -798,31 +824,31 @@ final class GL45Driver implements Driver<
     @Override
     public void vertexArrayDrawElementsInstanced(GL45VertexArray vao, int drawMode, int count, int type, long offset, int instanceCount) {
         state.vertexArrayPush(vao.vertexArrayId);
-        
+
         GL31.glDrawElementsInstanced(drawMode, count, type, offset, instanceCount);
-        
+
         state.vertexArrayPop();
     }
 
     @Override
     public void vertexArrayDrawTransformFeedback(GL45VertexArray vao, int drawMode, int start, int count) {
         state.vertexArrayPush(vao.vertexArrayId);
-        
+
         GL11.glEnable(GL30.GL_RASTERIZER_DISCARD);
         GL30.glBeginTransformFeedback(drawMode);
         GL11.glDrawArrays(drawMode, start, count);
         GL30.glEndTransformFeedback();
         GL11.glDisable(GL30.GL_RASTERIZER_DISCARD);
-        
+
         state.vertexArrayPop();
     }
 
     @Override
     public void vertexArrayMultiDrawArrays(GL45VertexArray vao, int drawMode, IntBuffer first, IntBuffer count) {
         state.vertexArrayPush(vao.vertexArrayId);
-        
+
         GL14.glMultiDrawArrays(drawMode, first, count);
-        
+
         state.vertexArrayPop();
     }
 
