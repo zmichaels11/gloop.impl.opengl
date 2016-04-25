@@ -5,6 +5,7 @@
  */
 package com.longlinkislong.gloop.glimpl.arb;
 
+import com.longlinkislong.gloop.glimpl.GLSPIBaseObject;
 import com.longlinkislong.gloop.glspi.Buffer;
 import java.nio.ByteBuffer;
 
@@ -12,12 +13,12 @@ import java.nio.ByteBuffer;
  *
  * @author zmichaels
  */
-final class ARBBuffer implements Buffer {
+final class ARBBuffer extends GLSPIBaseObject implements Buffer {
     int bufferId = -1;
-    ByteBuffer mapBuffer;
+    ByteBuffer mapBuffer;    
     
     @Override
     public boolean isValid() {
         return bufferId != -1;
-    }
+    }    
 }

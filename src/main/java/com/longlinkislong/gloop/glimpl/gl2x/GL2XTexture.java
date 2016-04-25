@@ -5,13 +5,14 @@
  */
 package com.longlinkislong.gloop.glimpl.gl2x;
 
+import com.longlinkislong.gloop.glimpl.GLSPIBaseObject;
 import com.longlinkislong.gloop.glspi.Texture;
 
 /**
  *
  * @author zmichaels
  */
-final class GL2XTexture implements Texture {
+final class GL2XTexture extends GLSPIBaseObject implements Texture {
     int textureId = -1;
     int internalFormat = -1;
     int target = -1;

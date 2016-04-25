@@ -5,6 +5,7 @@
  */
 package com.longlinkislong.gloop.glimpl.gl2x;
 
+import com.longlinkislong.gloop.glimpl.GLSPIBaseObject;
 import com.longlinkislong.gloop.glspi.VertexArray;
 import java.util.List;
 
@@ -12,7 +13,7 @@ import java.util.List;
  *
  * @author zmichaels
  */
-final class GL2XVertexArray implements VertexArray {
+final class GL2XVertexArray extends GLSPIBaseObject implements VertexArray {
 
     GL2XBuffer element = null;
     int vertexArrayId = -1;

@@ -5,13 +5,14 @@
  */
 package com.longlinkislong.gloop.glimpl.gl3x;
 
+import com.longlinkislong.gloop.glimpl.GLSPIBaseObject;
 import com.longlinkislong.gloop.glspi.Shader;
 
 /**
  *
  * @author zmichaels
  */
-class GL3XShader implements Shader {
+class GL3XShader extends GLSPIBaseObject implements Shader {
     int shaderId = -1;
     
     @Override

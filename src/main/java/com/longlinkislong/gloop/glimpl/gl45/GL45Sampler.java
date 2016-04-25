@@ -5,13 +5,14 @@
  */
 package com.longlinkislong.gloop.glimpl.gl45;
 
+import com.longlinkislong.gloop.glimpl.GLSPIBaseObject;
 import com.longlinkislong.gloop.glspi.Sampler;
 
 /**
  *
  * @author zmichaels
  */
-final class GL45Sampler implements Sampler {
+final class GL45Sampler extends GLSPIBaseObject implements Sampler {
     int samplerId = -1;
     
     @Override

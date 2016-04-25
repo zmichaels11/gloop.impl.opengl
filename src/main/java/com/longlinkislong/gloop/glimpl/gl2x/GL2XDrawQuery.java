@@ -5,13 +5,14 @@
  */
 package com.longlinkislong.gloop.glimpl.gl2x;
 
+import com.longlinkislong.gloop.glimpl.GLSPIBaseObject;
 import com.longlinkislong.gloop.glspi.DrawQuery;
 
 /**
  *
  * @author zmichaels
  */
-final class GL2XDrawQuery implements DrawQuery {
+final class GL2XDrawQuery extends GLSPIBaseObject implements DrawQuery {
     int drawQueryId = -1;
     
     @Override

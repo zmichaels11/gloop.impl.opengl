@@ -5,13 +5,14 @@
  */
 package com.longlinkislong.gloop.glimpl.arb;
 
+import com.longlinkislong.gloop.glimpl.GLSPIBaseObject;
 import com.longlinkislong.gloop.glspi.Shader;
 
 /**
  *
  * @author zmichaels
  */
-final class ARBShader implements Shader {
+final class ARBShader extends GLSPIBaseObject  implements Shader {
     int shaderId = -1;
     
     @Override

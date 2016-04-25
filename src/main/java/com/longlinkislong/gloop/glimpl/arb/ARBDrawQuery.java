@@ -5,13 +5,14 @@
  */
 package com.longlinkislong.gloop.glimpl.arb;
 
+import com.longlinkislong.gloop.glimpl.GLSPIBaseObject;
 import com.longlinkislong.gloop.glspi.DrawQuery;
 
 /**
  *
  * @author zmichaels
  */
-final class ARBDrawQuery implements DrawQuery {
+final class ARBDrawQuery extends GLSPIBaseObject implements DrawQuery {
 
     int drawQueryId = -1;
 

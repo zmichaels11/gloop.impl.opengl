@@ -5,13 +5,14 @@
  */
 package com.longlinkislong.gloop.glimpl.gl3x;
 
+import com.longlinkislong.gloop.glimpl.GLSPIBaseObject;
 import com.longlinkislong.gloop.glspi.Framebuffer;
 
 /**
  *
  * @author zmichaels
  */
-final class GL3XFramebuffer implements Framebuffer {
+final class GL3XFramebuffer extends GLSPIBaseObject implements Framebuffer {
 
     int framebufferId = -1;
 

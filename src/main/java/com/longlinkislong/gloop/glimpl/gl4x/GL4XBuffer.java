@@ -5,6 +5,7 @@
  */
 package com.longlinkislong.gloop.glimpl.gl4x;
 
+import com.longlinkislong.gloop.glimpl.GLSPIBaseObject;
 import com.longlinkislong.gloop.glspi.Buffer;
 import java.nio.ByteBuffer;
 
@@ -12,7 +13,7 @@ import java.nio.ByteBuffer;
  *
  * @author zmichaels
  */
-final class GL4XBuffer implements Buffer {
+final class GL4XBuffer extends GLSPIBaseObject  implements Buffer {
     int bufferId = -1;
     ByteBuffer mapBuffer;
     

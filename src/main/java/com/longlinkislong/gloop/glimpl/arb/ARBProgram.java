@@ -5,13 +5,14 @@
  */
 package com.longlinkislong.gloop.glimpl.arb;
 
+import com.longlinkislong.gloop.glimpl.GLSPIBaseObject;
 import com.longlinkislong.gloop.glspi.Program;
 
 /**
  *
  * @author zmichaels
  */
-final class ARBProgram implements Program {
+final class ARBProgram extends GLSPIBaseObject implements Program {
     int programId = -1;
     
     @Override

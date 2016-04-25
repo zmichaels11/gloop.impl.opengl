@@ -5,13 +5,14 @@
  */
 package com.longlinkislong.gloop.glimpl.gl45;
 
+import com.longlinkislong.gloop.glimpl.GLSPIBaseObject;
 import com.longlinkislong.gloop.glspi.DrawQuery;
 
 /**
  *
  * @author zmichaels
  */
-final class GL45DrawQuery implements DrawQuery {
+final class GL45DrawQuery extends GLSPIBaseObject implements DrawQuery {
     int drawQueryId = -1;
     
     @Override

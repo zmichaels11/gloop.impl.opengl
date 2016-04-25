@@ -5,13 +5,14 @@
  */
 package com.longlinkislong.gloop.glimpl.gl45;
 
+import com.longlinkislong.gloop.glimpl.GLSPIBaseObject;
 import com.longlinkislong.gloop.glspi.VertexArray;
 
 /**
  *
  * @author zmichaels
  */
-final class GL45VertexArray implements VertexArray {
+final class GL45VertexArray extends GLSPIBaseObject implements VertexArray {
     int vertexArrayId = -1;
     
     @Override

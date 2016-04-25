@@ -5,13 +5,14 @@
  */
 package com.longlinkislong.gloop.glimpl.arb;
 
+import com.longlinkislong.gloop.glimpl.GLSPIBaseObject;
 import com.longlinkislong.gloop.glspi.Sampler;
 
 /**
  *
  * @author zmichaels
  */
-final class ARBSampler implements Sampler {
+final class ARBSampler extends GLSPIBaseObject implements Sampler {
 
     int samplerId = -1;
 

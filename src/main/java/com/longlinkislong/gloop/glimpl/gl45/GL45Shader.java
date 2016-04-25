@@ -5,14 +5,15 @@
  */
 package com.longlinkislong.gloop.glimpl.gl45;
 
+import com.longlinkislong.gloop.glimpl.GLSPIBaseObject;
 import com.longlinkislong.gloop.glspi.Shader;
 
 /**
  *
  * @author zmichaels
  */
-final class GL45Shader implements Shader {
-    int shaderId;
+final class GL45Shader extends GLSPIBaseObject implements Shader {
+    int shaderId = -1;
     
     @Override
     public boolean isValid() {

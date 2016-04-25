@@ -5,13 +5,14 @@
  */
 package com.longlinkislong.gloop.glimpl.arb;
 
+import com.longlinkislong.gloop.glimpl.GLSPIBaseObject;
 import com.longlinkislong.gloop.glspi.Renderbuffer;
 
 /**
  *
  * @author zmichaels
  */
-final class ARBRenderbuffer implements Renderbuffer {
+final class ARBRenderbuffer extends GLSPIBaseObject implements Renderbuffer {
     int renderbufferId = -1;
     
     @Override

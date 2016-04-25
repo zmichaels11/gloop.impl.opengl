@@ -5,13 +5,14 @@
  */
 package com.longlinkislong.gloop.glimpl.gl45;
 
+import com.longlinkislong.gloop.glimpl.GLSPIBaseObject;
 import com.longlinkislong.gloop.glspi.Program;
 
 /**
  *
  * @author zmichaels
  */
-final class GL45Program implements Program {        
+final class GL45Program extends GLSPIBaseObject  implements Program {        
     int programId = -1;
     
     @Override

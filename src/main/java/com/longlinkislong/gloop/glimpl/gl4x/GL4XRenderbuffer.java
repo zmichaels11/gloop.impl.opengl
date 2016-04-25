@@ -5,13 +5,14 @@
  */
 package com.longlinkislong.gloop.glimpl.gl4x;
 
+import com.longlinkislong.gloop.glimpl.GLSPIBaseObject;
 import com.longlinkislong.gloop.glspi.Renderbuffer;
 
 /**
  *
  * @author zmichaels
  */
-final class GL4XRenderbuffer implements Renderbuffer {
+final class GL4XRenderbuffer extends GLSPIBaseObject implements Renderbuffer {
     int renderbufferId = -1;
     
     @Override

@@ -5,13 +5,14 @@
  */
 package com.longlinkislong.gloop.glimpl.arb;
 
+import com.longlinkislong.gloop.glimpl.GLSPIBaseObject;
 import com.longlinkislong.gloop.glspi.Framebuffer;
 
 /**
  *
  * @author zmichaels
  */
-final class ARBFramebuffer implements Framebuffer {
+final class ARBFramebuffer extends GLSPIBaseObject implements Framebuffer {
     int framebufferId = -1;
     
     @Override
