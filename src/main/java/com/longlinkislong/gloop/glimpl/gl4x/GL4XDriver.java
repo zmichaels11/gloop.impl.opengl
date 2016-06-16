@@ -1132,8 +1132,16 @@ final class GL4XDriver implements Driver<
     @Override
     public int textureGetPageHeight(GL4XTexture texture) {
         if (GL.getCapabilities().GL_ARB_internalformat_query) {
+            if(RECORD_CALLS) {
+                recordCall("#VAL = [unsupported] glGetInternalformati", texture.target, texture.internalFormat, "GL_VIRTUAL_PAGE_SIZE_Y_ARB");
+            }
+
             return ARBInternalformatQuery.glGetInternalformati(texture.target, texture.internalFormat, ARBSparseTexture.GL_VIRTUAL_PAGE_SIZE_Y_ARB);
         } else {
+            if(RECORD_CALLS) {
+                recordCall("#val = [unsupported] glGetInternalformati", texture.target, texture.internalFormat, "GL_VIRTUAL_PAGE_SIZE_Y_ARB");
+            }
+
             throw new UnsupportedOperationException("ARB_internalformat_query is not supported!");
         }
     }
@@ -1141,8 +1149,16 @@ final class GL4XDriver implements Driver<
     @Override
     public int textureGetPageWidth(GL4XTexture texture) {
         if (GL.getCapabilities().GL_ARB_internalformat_query) {
+            if(RECORD_CALLS) {
+                recordCall("#val = glGetIntegernalformati", texture.target, texture.internalFormat, "GL_VIRTUAL_PAGE_SIZE_X_ARB");
+            }
+
             return ARBInternalformatQuery.glGetInternalformati(texture.target, texture.internalFormat, ARBSparseTexture.GL_VIRTUAL_PAGE_SIZE_X_ARB);
         } else {
+            if(RECORD_CALLS) {
+                recordCall("#val = [unsupported] glGetInternalformati", texture.target, texture.internalFormat, "GL_VIRTUAL_PAGE_SIZE_X_ARB");
+            }
+            
             throw new UnsupportedOperationException("ARB_internalformat_query is not supported!");
         }
     }
@@ -1155,8 +1171,16 @@ final class GL4XDriver implements Driver<
     @Override
     public void textureInvalidateData(GL4XTexture texture, int level) {
         if (GL.getCapabilities().GL_ARB_invalidate_subdata) {
+            if(RECORD_CALLS) {
+                recordCall("glInvalidateTexImage", texture.target, level);
+            }
+
             ARBInvalidateSubdata.glInvalidateTexImage(texture.target, level);
         } else {
+            if(RECORD_CALLS) {
+                recordCall("glInvalidateTexImage", texture.target, level);
+            }
+            
             LOGGER.trace("ARB_invalidate_subdata is not supported... Ignoring call to glInvalidateTexImage.");
         }
     }
@@ -1164,8 +1188,16 @@ final class GL4XDriver implements Driver<
     @Override
     public void textureInvalidateRange(GL4XTexture texture, int level, int xOffset, int yOffset, int zOffset, int width, int height, int depth) {
         if (GL.getCapabilities().GL_ARB_invalidate_subdata) {
+            if(RECORD_CALLS) {
+                recordCall("glInvalidateTexSubImage", texture.textureId, level, xOffset, yOffset, zOffset, width, height, depth);
+            }
+
             ARBInvalidateSubdata.glInvalidateTexSubImage(texture.textureId, level, xOffset, yOffset, zOffset, width, height, depth);
         } else {
+            if(RECORD_CALLS) {
+                recordCall("[ignored] glInvalidateTexSubImage", texture.textureId, level, xOffset, yOffset, zOffset, width, height, depth);
+            }
+            
             LOGGER.trace("ARB_invalidate_subdata is not supported... Ignoring call to glInvalidateTexSubImage.");
         }
     }
@@ -1209,16 +1241,41 @@ final class GL4XDriver implements Driver<
     public void vertexArrayAttachBuffer(GL4XVertexArray vao, int index, GL4XBuffer buffer, int size, int type, int stride, long offset, int divisor) {
         state.vertexArrayPush(vao.vertexArrayId);
 
+        if (RECORD_CALLS) {
+            recordCall("glBindBuffer", "GL_ARRAY_BUFFER", buffer.bufferId);
+            recordCall("glEnableVertexAttribArray", index);
+        }
+
         GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, buffer.bufferId);
         GL20.glEnableVertexAttribArray(index);
 
         if (type == GL11.GL_DOUBLE) {
-            ARBVertexAttrib64Bit.glVertexAttribLPointer(index, size, type, stride, offset);
+            if (GL.getCapabilities().GL_ARB_vertex_attrib_64bit) {
+                if(RECORD_CALLS) {
+                    recordCall("glVertexAttribLPointer", index, size, type, stride, offset);
+                }
+
+                ARBVertexAttrib64Bit.glVertexAttribLPointer(index, size, type, stride, offset);
+            } else {
+                if(RECORD_CALLS) {
+                    recordCall("[unsupported] glVertexAttribLPointer", index, size, type, stride, offset);
+                }
+                
+                throw new UnsupportedOperationException("ARB_vertex_attrib_64bit is not supported!");
+            }
         } else {
+            if(RECORD_CALLS) {
+                recordCall("glVertexAttribPointer", index, size, type, false, stride, offset);
+            }
+
             GL20.glVertexAttribPointer(index, size, type, false, stride, offset);
         }
 
         if (divisor > 0) {
+            if(RECORD_CALLS) {
+                recordCall("glVertexAttribDivisor", index, divisor);
+            }
+            
             GL33.glVertexAttribDivisor(index, divisor);
         }
 
@@ -1229,6 +1286,10 @@ final class GL4XDriver implements Driver<
     public void vertexArrayAttachIndexBuffer(GL4XVertexArray vao, GL4XBuffer buffer) {
         state.vertexArrayPush(vao.vertexArrayId);
 
+        if (RECORD_CALLS) {
+            recordCall("glBindBuffer", "GL_ELEMENT_ARRAY_BUFFER", buffer.bufferId);
+        }
+
         GL15.glBindBuffer(GL15.GL_ELEMENT_ARRAY_BUFFER, buffer.bufferId);
 
         state.vertexArrayPop();
@@ -1237,12 +1298,21 @@ final class GL4XDriver implements Driver<
     @Override
     public GL4XVertexArray vertexArrayCreate() {
         final GL4XVertexArray vao = new GL4XVertexArray();
+
+        if (RECORD_CALLS) {
+            recordCall("#vaoId = glGenVertexArrays");
+        }
+
         vao.vertexArrayId = GL30.glGenVertexArrays();
         return vao;
     }
 
     @Override
     public void vertexArrayDelete(GL4XVertexArray vao) {
+        if (RECORD_CALLS) {
+            recordCall("glDeleteVertexArrays", vao.vertexArrayId);
+        }
+
         GL30.glDeleteVertexArrays(vao.vertexArrayId);
         vao.vertexArrayId = -1;
     }
@@ -1250,6 +1320,10 @@ final class GL4XDriver implements Driver<
     @Override
     public void vertexArrayDrawArrays(GL4XVertexArray vao, int drawMode, int start, int count) {
         state.vertexArrayPush(vao.vertexArrayId);
+
+        if (RECORD_CALLS) {
+            recordCall("glDrawArrays", drawMode, start, count);
+        }
 
         GL11.glDrawArrays(drawMode, start, count);
 
@@ -1261,6 +1335,10 @@ final class GL4XDriver implements Driver<
         state.vertexArrayPush(vao.vertexArrayId);
         state.bufferPush(GL40.GL_DRAW_INDIRECT_BUFFER, cmdBuffer.bufferId);
 
+        if (RECORD_CALLS) {
+            recordCall("glDrawArraysIndirect", drawMode, offset);
+        }
+
         GL40.glDrawArraysIndirect(drawMode, offset);
 
         state.bufferPop(GL40.GL_DRAW_INDIRECT_BUFFER);
@@ -1271,6 +1349,10 @@ final class GL4XDriver implements Driver<
     public void vertexArrayDrawArraysInstanced(GL4XVertexArray vao, int drawMode, int first, int count, int instanceCount) {
         state.vertexArrayPush(vao.vertexArrayId);
 
+        if (RECORD_CALLS) {
+            recordCall("glDrawArraysInstanced", drawMode, first, count, instanceCount);
+        }
+
         GL31.glDrawArraysInstanced(drawMode, first, count, instanceCount);
 
         state.vertexArrayPop();
@@ -1279,6 +1361,10 @@ final class GL4XDriver implements Driver<
     @Override
     public void vertexArrayDrawElements(GL4XVertexArray vao, int drawMode, int count, int type, long offset) {
         state.vertexArrayPush(vao.vertexArrayId);
+
+        if (RECORD_CALLS) {
+            recordCall("glDrawElements", drawMode, count, type, offset);
+        }
 
         GL11.glDrawElements(drawMode, count, type, offset);
 
@@ -1290,6 +1376,10 @@ final class GL4XDriver implements Driver<
         state.vertexArrayPush(vao.vertexArrayId);
         state.bufferPush(GL40.GL_DRAW_INDIRECT_BUFFER, cmdBuffer.bufferId);
 
+        if (RECORD_CALLS) {
+            recordCall("glDrawElementsInstanced", drawMode, indexType, offset);
+        }
+
         GL40.glDrawElementsIndirect(drawMode, indexType, offset);
 
         state.bufferPop(GL40.GL_DRAW_INDIRECT_BUFFER);
@@ -1300,6 +1390,10 @@ final class GL4XDriver implements Driver<
     public void vertexArrayDrawElementsInstanced(GL4XVertexArray vao, int drawMode, int count, int type, long offset, int instanceCount) {
         state.vertexArrayPush(vao.vertexArrayId);
 
+        if (RECORD_CALLS) {
+            recordCall("glDrawElementsInstanced", drawMode, count, type, offset, instanceCount);
+        }
+
         GL31.glDrawElementsInstanced(drawMode, count, type, offset, instanceCount);
 
         state.vertexArrayPop();
@@ -1308,6 +1402,14 @@ final class GL4XDriver implements Driver<
     @Override
     public void vertexArrayDrawTransformFeedback(GL4XVertexArray vao, int drawMode, int start, int count) {
         state.vertexArrayPush(vao.vertexArrayId);
+
+        if (RECORD_CALLS) {
+            recordCall("glEnable", "GL_RASTERIZER_DISCARD");
+            recordCall("glBeginTransformFeedback", drawMode);
+            recordCall("glDrawArrays", drawMode, start, count);
+            recordCall("glEndTransformFeedback");
+            recordCall("glDisable", "GL_RASTERIZER_DISCARD");
+        }
 
         GL11.glEnable(GL30.GL_RASTERIZER_DISCARD);
         GL30.glBeginTransformFeedback(drawMode);
@@ -1322,6 +1424,9 @@ final class GL4XDriver implements Driver<
     public void vertexArrayMultiDrawArrays(GL4XVertexArray vao, int drawMode, IntBuffer first, IntBuffer count) {
         state.vertexArrayPush(vao.vertexArrayId);
 
+        if (RECORD_CALLS) {
+            recordCall("glMultiDrawArrays", drawMode, first, count);
+        }
         GL14.glMultiDrawArrays(drawMode, first, count);
 
         state.vertexArrayPop();
@@ -1329,6 +1434,9 @@ final class GL4XDriver implements Driver<
 
     @Override
     public void viewportApply(int x, int y, int width, int height) {
+        if (RECORD_CALLS) {
+            recordCall("glViewport", x, y, width, height);
+        }
         GL11.glViewport(x, y, width, height);
     }
 }
