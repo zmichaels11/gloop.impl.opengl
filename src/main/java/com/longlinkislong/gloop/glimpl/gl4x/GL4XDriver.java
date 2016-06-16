@@ -227,12 +227,19 @@ final class GL4XDriver implements Driver<
 
     @Override
     public void bufferInvalidateRange(GL4XBuffer buffer, long offset, long length) {
-        
-        if (RECORD_CALLS) {
-            recordCall("glInvalidateBufferSubData", buffer.bufferId, offset, length);
-        }
+        if (GL.getCapabilities().GL_ARB_invalidate_subdata) {
+            if (RECORD_CALLS) {
+                recordCall("glInvalidateBufferSubData", buffer.bufferId, offset, length);
+            }
 
-        ARBInvalidateSubdata.glInvalidateBufferSubData(buffer.bufferId, offset, length);
+            ARBInvalidateSubdata.glInvalidateBufferSubData(buffer.bufferId, offset, length);
+        } else {
+            if (RECORD_CALLS) {
+                recordCall("[ignored] glInvalidateBufferSubData", buffer.bufferId, offset, length);
+            }
+
+            LOGGER.trace("ARB_invalidate_subdata is not supported... Ignoring call to glInvalidateBufferSubData");
+        }
     }
 
     @Override
@@ -560,15 +567,23 @@ final class GL4XDriver implements Driver<
 
     @Override
     public void programDispatchCompute(GL4XProgram program, int numX, int numY, int numZ) {
-        state.programPush(program.programId);
+        if (GL.getCapabilities().GL_ARB_compute_shader) {
+            state.programPush(program.programId);
 
-        if (RECORD_CALLS) {
-            recordCall("glDispatchCompute", numX, numY, numZ);
+            if (RECORD_CALLS) {
+                recordCall("glDispatchCompute", numX, numY, numZ);
+            }
+
+            ARBComputeShader.glDispatchCompute(numX, numY, numZ);
+
+            state.programPop();
+        } else {
+            if (RECORD_CALLS) {
+                recordCall("[unsupported] glDispatchCompute", numX, numY, numZ);
+            }
+
+            throw new UnsupportedOperationException("ARB_compute_shader is not supported!");
         }
-
-        ARBComputeShader.glDispatchCompute(numX, numY, numZ);
-
-        state.programPop();
     }
 
     @Override
@@ -643,16 +658,26 @@ final class GL4XDriver implements Driver<
 
     @Override
     public void programSetStorage(GL4XProgram program, String storageName, GL4XBuffer buffer, int bindingPoint) {
-        if (RECORD_CALLS) {
-            recordCall("#sBlock = glGetProgramResourceLocation", program.programId, "GL_SHADER_STORAGE_BLOCK", storageName);
-            recordCall("glBindBufferBase", "GL_SHADER_STORAGE_BLOCK", bindingPoint, buffer.bufferId);
-            recordCall("glShaderStorageBlockBinding", program.programId, "#sBlock", bindingPoint);
+        if (GL.getCapabilities().GL_ARB_shader_storage_buffer_object) {
+            if (RECORD_CALLS) {
+                recordCall("#sBlock = glGetProgramResourceLocation", program.programId, "GL_SHADER_STORAGE_BLOCK", storageName);
+                recordCall("glBindBufferBase", "GL_SHADER_STORAGE_BLOCK", bindingPoint, buffer.bufferId);
+                recordCall("glShaderStorageBlockBinding", program.programId, "#sBlock", bindingPoint);
+            }
+
+            final int sBlock = ARBProgramInterfaceQuery.glGetProgramResourceLocation(program.programId, ARBProgramInterfaceQuery.GL_SHADER_STORAGE_BLOCK, storageName);
+
+            GL30.glBindBufferBase(ARBShaderStorageBufferObject.GL_SHADER_STORAGE_BUFFER, bindingPoint, buffer.bufferId);
+            ARBShaderStorageBufferObject.glShaderStorageBlockBinding(program.programId, sBlock, bindingPoint);
+        } else {
+            if (RECORD_CALLS) {
+                recordCall("#sBlock = glGetProgramResourceLocation", program.programId, "GL_SHADER_STORAGE_BLOCK", storageName);
+                recordCall("glBindBufferBase", "GL_SHADER_STORAGE_BLOCK", bindingPoint, buffer.bufferId);
+                recordCall("[unsupported] glShaderStorageBlockBinding", program.programId, "#sBlock", bindingPoint);
+            }
+
+            throw new UnsupportedOperationException("ARB_shader_storage_buffer_object is not supported!");
         }
-
-        final int sBlock = ARBProgramInterfaceQuery.glGetProgramResourceLocation(program.programId, ARBProgramInterfaceQuery.GL_SHADER_STORAGE_BLOCK, storageName);
-
-        GL30.glBindBufferBase(ARBShaderStorageBufferObject.GL_SHADER_STORAGE_BUFFER, bindingPoint, buffer.bufferId);
-        ARBShaderStorageBufferObject.glShaderStorageBlockBinding(program.programId, sBlock, bindingPoint);
     }
 
     @Override
@@ -1022,11 +1047,15 @@ final class GL4XDriver implements Driver<
 
     @Override
     public void textureAllocatePage(GL4XTexture texture, int level, int xOffset, int yOffset, int zOffset, int width, int height, int depth) {
-        ARBSparseTexture.glTexPageCommitmentARB(
-                texture.textureId, level,
-                xOffset, yOffset, zOffset,
-                width, height, depth,
-                true);
+        if (GL.getCapabilities().GL_ARB_sparse_texture) {
+            ARBSparseTexture.glTexPageCommitmentARB(
+                    texture.textureId, level,
+                    xOffset, yOffset, zOffset,
+                    width, height, depth,
+                    true);
+        } else {
+            throw new UnsupportedOperationException("ARB_sparse_texture is not supported!");
+        }
     }
 
     @Override
@@ -1037,11 +1066,15 @@ final class GL4XDriver implements Driver<
 
     @Override
     public void textureDeallocatePage(GL4XTexture texture, int level, int xOffset, int yOffset, int zOffset, int width, int height, int depth) {
-        ARBSparseTexture.glTexPageCommitmentARB(
-                texture.textureId, level,
-                xOffset, yOffset, zOffset,
-                width, height, depth,
-                false);
+        if (GL.getCapabilities().GL_ARB_sparse_texture) {
+            ARBSparseTexture.glTexPageCommitmentARB(
+                    texture.textureId, level,
+                    xOffset, yOffset, zOffset,
+                    width, height, depth,
+                    false);
+        } else {
+            throw new UnsupportedOperationException("ARB_sparse_texture is not supported!");
+        }
     }
 
     @Override
@@ -1089,17 +1122,29 @@ final class GL4XDriver implements Driver<
 
     @Override
     public int textureGetPageDepth(GL4XTexture texture) {
-        return ARBInternalformatQuery.glGetInternalformati(texture.target, texture.internalFormat, ARBSparseTexture.GL_VIRTUAL_PAGE_SIZE_Z_ARB);
+        if (GL.getCapabilities().GL_ARB_internalformat_query) {
+            return ARBInternalformatQuery.glGetInternalformati(texture.target, texture.internalFormat, ARBSparseTexture.GL_VIRTUAL_PAGE_SIZE_Z_ARB);
+        } else {
+            throw new UnsupportedOperationException("ARB_internalformat_query is not supported!");
+        }
     }
 
     @Override
     public int textureGetPageHeight(GL4XTexture texture) {
-        return ARBInternalformatQuery.glGetInternalformati(texture.target, texture.internalFormat, ARBSparseTexture.GL_VIRTUAL_PAGE_SIZE_Y_ARB);
+        if (GL.getCapabilities().GL_ARB_internalformat_query) {
+            return ARBInternalformatQuery.glGetInternalformati(texture.target, texture.internalFormat, ARBSparseTexture.GL_VIRTUAL_PAGE_SIZE_Y_ARB);
+        } else {
+            throw new UnsupportedOperationException("ARB_internalformat_query is not supported!");
+        }
     }
 
     @Override
     public int textureGetPageWidth(GL4XTexture texture) {
-        return ARBInternalformatQuery.glGetInternalformati(texture.target, texture.internalFormat, ARBSparseTexture.GL_VIRTUAL_PAGE_SIZE_X_ARB);
+        if (GL.getCapabilities().GL_ARB_internalformat_query) {
+            return ARBInternalformatQuery.glGetInternalformati(texture.target, texture.internalFormat, ARBSparseTexture.GL_VIRTUAL_PAGE_SIZE_X_ARB);
+        } else {
+            throw new UnsupportedOperationException("ARB_internalformat_query is not supported!");
+        }
     }
 
     @Override
@@ -1109,12 +1154,20 @@ final class GL4XDriver implements Driver<
 
     @Override
     public void textureInvalidateData(GL4XTexture texture, int level) {
-        ARBInvalidateSubdata.glInvalidateTexImage(texture.target, level);
+        if (GL.getCapabilities().GL_ARB_invalidate_subdata) {
+            ARBInvalidateSubdata.glInvalidateTexImage(texture.target, level);
+        } else {
+            LOGGER.trace("ARB_invalidate_subdata is not supported... Ignoring call to glInvalidateTexImage.");
+        }
     }
 
     @Override
     public void textureInvalidateRange(GL4XTexture texture, int level, int xOffset, int yOffset, int zOffset, int width, int height, int depth) {
-        ARBInvalidateSubdata.glInvalidateTexSubImage(texture.textureId, level, xOffset, yOffset, zOffset, width, height, depth);
+        if (GL.getCapabilities().GL_ARB_invalidate_subdata) {
+            ARBInvalidateSubdata.glInvalidateTexSubImage(texture.textureId, level, xOffset, yOffset, zOffset, width, height, depth);
+        } else {
+            LOGGER.trace("ARB_invalidate_subdata is not supported... Ignoring call to glInvalidateTexSubImage.");
+        }
     }
 
     @Override
