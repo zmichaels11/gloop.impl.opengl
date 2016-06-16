@@ -53,18 +53,18 @@ final class GL3XDriver implements Driver<
     @Override
     public int shaderGetVersion() {
         final GLCapabilities cap = GL.getCapabilities();
-        
-        if(cap.OpenGL33) {
+
+        if (cap.OpenGL33) {
             return 330;
-        } else if(cap.OpenGL32) {
+        } else if (cap.OpenGL32) {
             return 150;
-        } else if(cap.OpenGL31) {
+        } else if (cap.OpenGL31) {
             return 140;
         } else {
             return 130;
         }
     }
-    
+
     @Override
     public void applyTweaks(final Tweaks tweak) {
         this.state = new GLState(tweak);
@@ -157,12 +157,20 @@ final class GL3XDriver implements Driver<
 
     @Override
     public void bufferInvalidateData(GL3XBuffer buffer) {
-        ARBInvalidateSubdata.glInvalidateBufferData(buffer.bufferId);
+        if (GL.getCapabilities().GL_ARB_invalidate_subdata) {
+            ARBInvalidateSubdata.glInvalidateBufferData(buffer.bufferId);
+        } else {
+            LOGGER.trace("ARB_invalidate_subdata is not supported... Ignoring call to glInvalidateBufferData.");
+        }
     }
 
     @Override
     public void bufferInvalidateRange(GL3XBuffer buffer, long offset, long length) {
-        ARBInvalidateSubdata.glInvalidateBufferSubData(buffer.bufferId, offset, length);
+        if (GL.getCapabilities().GL_ARB_invalidate_subdata) {
+            ARBInvalidateSubdata.glInvalidateBufferSubData(buffer.bufferId, offset, length);
+        } else {
+            LOGGER.trace("ARB_invalidate_subdata is not supported... Ignoring call to glInvalidateBufferSubdData.");
+        }
     }
 
     @Override
@@ -253,14 +261,14 @@ final class GL3XDriver implements Driver<
         }
 
         state.framebufferPop(GL30.GL_FRAMEBUFFER);
-    }    
+    }
 
     @Override
     public void framebufferAddRenderbuffer(GL3XFramebuffer framebuffer, int attachmentId, GL3XRenderbuffer renderbuffer) {
         state.framebufferPush(GL30.GL_FRAMEBUFFER, framebuffer.framebufferId);
-        
+
         GL30.glFramebufferRenderbuffer(GL30.GL_FRAMEBUFFER, attachmentId, GL30.GL_RENDERBUFFER, renderbuffer.renderbufferId);
-        
+
         state.framebufferPop(GL30.GL_FRAMEBUFFER);
     }
 
@@ -427,10 +435,14 @@ final class GL3XDriver implements Driver<
 
     @Override
     public void programSetUniformBlock(GL3XProgram program, String uniformName, GL3XBuffer buffer, int bindingPoint) {
-        final int uBlock = ARBUniformBufferObject.glGetUniformBlockIndex(program.programId, uniformName);
+        if (GL.getCapabilities().GL_ARB_uniform_buffer_object) {
+            final int uBlock = ARBUniformBufferObject.glGetUniformBlockIndex(program.programId, uniformName);
 
-        GL30.glBindBufferBase(ARBUniformBufferObject.GL_UNIFORM_BUFFER, bindingPoint, buffer.bufferId);
-        ARBUniformBufferObject.glUniformBlockBinding(program.programId, uBlock, bindingPoint);
+            GL30.glBindBufferBase(ARBUniformBufferObject.GL_UNIFORM_BUFFER, bindingPoint, buffer.bufferId);
+            ARBUniformBufferObject.glUniformBlockBinding(program.programId, uBlock, bindingPoint);
+        } else {
+            throw new UnsupportedOperationException("ARB_uniform_buffer_object is not supported!");
+        }
     }
 
     @Override
@@ -654,12 +666,12 @@ final class GL3XDriver implements Driver<
     @Override
     public GL3XRenderbuffer renderbufferCreate(int internalFormat, int width, int height) {
         final GL3XRenderbuffer renderbuffer = new GL3XRenderbuffer();
-        
+
         renderbuffer.renderbufferId = GL30.glGenRenderbuffers();
-        
+
         GL30.glBindRenderbuffer(GL30.GL_RENDERBUFFER, renderbuffer.renderbufferId);
         GL30.glRenderbufferStorage(GL30.GL_RENDERBUFFER, internalFormat, width, height);
-        
+
         return renderbuffer;
     }
 
@@ -671,30 +683,52 @@ final class GL3XDriver implements Driver<
 
     @Override
     public void samplerBind(int unit, GL3XSampler sampler) {
-        ARBSamplerObjects.glBindSampler(unit, sampler.samplerId);
+        if (GL.getCapabilities().GL_ARB_sampler_objects) {
+            ARBSamplerObjects.glBindSampler(unit, sampler.samplerId);
+        } else {
+            throw new UnsupportedOperationException("ARB_sampler_objects is not supported!");
+        }
     }
 
     @Override
     public GL3XSampler samplerCreate() {
         final GL3XSampler sampler = new GL3XSampler();
-        sampler.samplerId = ARBSamplerObjects.glGenSamplers();
+
+        if (GL.getCapabilities().GL_ARB_sampler_objects) {
+            sampler.samplerId = ARBSamplerObjects.glGenSamplers();
+        } else {
+            sampler.samplerId = -1;
+        }
+
         return sampler;
     }
 
     @Override
     public void samplerDelete(GL3XSampler sampler) {
-        ARBSamplerObjects.glDeleteSamplers(sampler.samplerId);
-        sampler.samplerId = -1;
+        if (GL.getCapabilities().GL_ARB_sampler_objects) {
+            ARBSamplerObjects.glDeleteSamplers(sampler.samplerId);
+            sampler.samplerId = -1;
+        } else {
+            throw new UnsupportedOperationException("ARB_sampler_objects is not supported!");
+        }
     }
 
     @Override
     public void samplerSetParameter(GL3XSampler sampler, int param, int value) {
-        ARBSamplerObjects.glSamplerParameteri(sampler.samplerId, param, value);
+        if (GL.getCapabilities().GL_ARB_sampler_objects) {
+            ARBSamplerObjects.glSamplerParameteri(sampler.samplerId, param, value);
+        } else {
+            throw new UnsupportedOperationException("ARB_sampler_objects is not supported!");
+        }
     }
 
     @Override
     public void samplerSetParameter(GL3XSampler sampler, int param, float value) {
-        ARBSamplerObjects.glSamplerParameterf(sampler.samplerId, param, value);
+        if (GL.getCapabilities().GL_ARB_sampler_objects) {
+            ARBSamplerObjects.glSamplerParameterf(sampler.samplerId, param, value);
+        } else {
+            throw new UnsupportedOperationException("ARB_sampler_objects is not supported!");
+        }
     }
 
     @Override
@@ -800,11 +834,15 @@ final class GL3XDriver implements Driver<
 
     @Override
     public void textureAllocatePage(GL3XTexture texture, int level, int xOffset, int yOffset, int zOffset, int width, int height, int depth) {
-        ARBSparseTexture.glTexPageCommitmentARB(
-                texture.textureId, level,
-                xOffset, yOffset, zOffset,
-                width, height, depth,
-                true);
+        if (GL.getCapabilities().GL_ARB_sparse_texture) {
+            ARBSparseTexture.glTexPageCommitmentARB(
+                    texture.textureId, level,
+                    xOffset, yOffset, zOffset,
+                    width, height, depth,
+                    true);
+        } else {
+            throw new UnsupportedOperationException("ARB_sparse_texture is not supported!");
+        }
     }
 
     @Override
@@ -815,11 +853,15 @@ final class GL3XDriver implements Driver<
 
     @Override
     public void textureDeallocatePage(GL3XTexture texture, int level, int xOffset, int yOffset, int zOffset, int width, int height, int depth) {
-        ARBSparseTexture.glTexPageCommitmentARB(
-                texture.textureId, level,
-                xOffset, yOffset, zOffset,
-                width, height, depth,
-                false);
+        if (GL.getCapabilities().GL_ARB_sparse_texture) {
+            ARBSparseTexture.glTexPageCommitmentARB(
+                    texture.textureId, level,
+                    xOffset, yOffset, zOffset,
+                    width, height, depth,
+                    false);
+        } else {
+            throw new UnsupportedOperationException("ARB_sparse_texture is not supported!");
+        }
     }
 
     @Override
@@ -863,17 +905,29 @@ final class GL3XDriver implements Driver<
 
     @Override
     public int textureGetPageDepth(GL3XTexture texture) {
-        return ARBInternalformatQuery.glGetInternalformati(texture.target, texture.internalFormat, ARBSparseTexture.GL_VIRTUAL_PAGE_SIZE_Z_ARB);
+        if (GL.getCapabilities().GL_ARB_internalformat_query) {
+            return ARBInternalformatQuery.glGetInternalformati(texture.target, texture.internalFormat, ARBSparseTexture.GL_VIRTUAL_PAGE_SIZE_Z_ARB);
+        } else {
+            throw new UnsupportedOperationException("ARB_internalformat_query is not supported!");
+        }
     }
 
     @Override
     public int textureGetPageHeight(GL3XTexture texture) {
-        return ARBInternalformatQuery.glGetInternalformati(texture.target, texture.internalFormat, ARBSparseTexture.GL_VIRTUAL_PAGE_SIZE_Y_ARB);
+        if (GL.getCapabilities().GL_ARB_internalformat_query) {
+            return ARBInternalformatQuery.glGetInternalformati(texture.target, texture.internalFormat, ARBSparseTexture.GL_VIRTUAL_PAGE_SIZE_Y_ARB);
+        } else {
+            throw new UnsupportedOperationException("ARB_internalformat_query is not supported!");
+        }
     }
 
     @Override
     public int textureGetPageWidth(GL3XTexture texture) {
-        return ARBInternalformatQuery.glGetInternalformati(texture.target, texture.internalFormat, ARBSparseTexture.GL_VIRTUAL_PAGE_SIZE_X_ARB);
+        if (GL.getCapabilities().GL_ARB_internalformat_query) {
+            return ARBInternalformatQuery.glGetInternalformati(texture.target, texture.internalFormat, ARBSparseTexture.GL_VIRTUAL_PAGE_SIZE_X_ARB);
+        } else {
+            throw new UnsupportedOperationException("ARB_internalformat_query is not supported!");
+        }
     }
 
     @Override
@@ -883,12 +937,20 @@ final class GL3XDriver implements Driver<
 
     @Override
     public void textureInvalidateData(GL3XTexture texture, int level) {
-        ARBInvalidateSubdata.glInvalidateTexImage(texture.target, level);
+        if (GL.getCapabilities().GL_ARB_invalidate_subdata) {
+            ARBInvalidateSubdata.glInvalidateTexImage(texture.target, level);
+        } else {
+            LOGGER.trace("ARB_invalidate_subdata is not supported... Ignoring call to glInvalidateTexImage.");
+        }
     }
 
     @Override
     public void textureInvalidateRange(GL3XTexture texture, int level, int xOffset, int yOffset, int zOffset, int width, int height, int depth) {
-        ARBInvalidateSubdata.glInvalidateTexSubImage(texture.textureId, level, xOffset, yOffset, zOffset, width, height, depth);
+        if (GL.getCapabilities().GL_ARB_invalidate_subdata) {
+            ARBInvalidateSubdata.glInvalidateTexSubImage(texture.textureId, level, xOffset, yOffset, zOffset, width, height, depth);
+        } else {
+            LOGGER.trace("ARB_invalidate_subdata is not supported... Ignoring call to glInvalidateTexSubImage.");
+        }
     }
 
     @Override
@@ -909,7 +971,7 @@ final class GL3XDriver implements Driver<
                 throw new UnsupportedOperationException("Unsupported texture target: " + texture.target);
 
         }
-        
+
         state.texturePop(texture.target);
     }
 
@@ -935,13 +997,21 @@ final class GL3XDriver implements Driver<
         GL20.glEnableVertexAttribArray(index);
 
         if (type == GL11.GL_DOUBLE) {
-            ARBVertexAttrib64Bit.glVertexAttribLPointer(index, size, type, stride, offset);
+            if (GL.getCapabilities().GL_ARB_vertex_attrib_64bit) {
+                ARBVertexAttrib64Bit.glVertexAttribLPointer(index, size, type, stride, offset);
+            } else {
+                throw new UnsupportedOperationException("ARB_vertex_attrib_64bit is not supported!");
+            }
         } else {
             GL20.glVertexAttribPointer(index, size, type, false, stride, offset);
         }
 
         if (divisor > 0) {
-            GL33.glVertexAttribDivisor(index, divisor);
+            if (GL.getCapabilities().OpenGL33) {
+                GL33.glVertexAttribDivisor(index, divisor);
+            } else {
+                throw new UnsupportedOperationException("OpenGL 3.3 is not supported!");
+            }
         }
 
         state.vertexArrayPop();
@@ -976,63 +1046,79 @@ final class GL3XDriver implements Driver<
 
     @Override
     public void vertexArrayDrawArraysIndirect(GL3XVertexArray vao, GL3XBuffer cmdBuffer, int drawMode, long offset) {
-        state.vertexArrayPush(vao.vertexArrayId);
-        state.bufferPush(ARBDrawIndirect.GL_DRAW_INDIRECT_BUFFER, cmdBuffer.bufferId);
-        
-        ARBDrawIndirect.glDrawArraysIndirect(drawMode, offset);
-        
-        state.bufferPop(ARBDrawIndirect.GL_DRAW_INDIRECT_BUFFER);
-        state.vertexArrayPop();
+        if (GL.getCapabilities().GL_ARB_draw_indirect) {
+            state.vertexArrayPush(vao.vertexArrayId);
+            state.bufferPush(ARBDrawIndirect.GL_DRAW_INDIRECT_BUFFER, cmdBuffer.bufferId);
+
+            ARBDrawIndirect.glDrawArraysIndirect(drawMode, offset);
+
+            state.bufferPop(ARBDrawIndirect.GL_DRAW_INDIRECT_BUFFER);
+            state.vertexArrayPop();
+        } else {
+            throw new UnsupportedOperationException("ARB_draw_indirect is not supported!");
+        }
     }
 
     @Override
-    public void vertexArrayDrawArraysInstanced(GL3XVertexArray vao, int drawMode, int first, int count, int instanceCount) {        
-        state.vertexArrayPush(vao.vertexArrayId);
-        
-        GL31.glDrawArraysInstanced(drawMode, first, count, instanceCount);
-        
-        state.vertexArrayPop();
+    public void vertexArrayDrawArraysInstanced(GL3XVertexArray vao, int drawMode, int first, int count, int instanceCount) {
+        if (GL.getCapabilities().OpenGL31) {
+            state.vertexArrayPush(vao.vertexArrayId);
+
+            GL31.glDrawArraysInstanced(drawMode, first, count, instanceCount);
+
+            state.vertexArrayPop();
+        } else {
+            throw new UnsupportedOperationException("OpenGL 3.1 is not supported!");
+        }
     }
 
     @Override
     public void vertexArrayDrawElements(GL3XVertexArray vao, int drawMode, int count, int type, long offset) {
         state.vertexArrayPush(vao.vertexArrayId);
-        
+
         GL11.glDrawElements(drawMode, count, type, offset);
-        
+
         state.vertexArrayPop();
     }
 
     @Override
     public void vertexArrayDrawElementsIndirect(GL3XVertexArray vao, GL3XBuffer cmdBuffer, int drawMode, int indexType, long offset) {
-        state.vertexArrayPush(vao.vertexArrayId);
-        state.bufferPush(ARBDrawIndirect.GL_DRAW_INDIRECT_BUFFER, cmdBuffer.bufferId);
-        
-        ARBDrawIndirect.glDrawElementsIndirect(drawMode, indexType, offset);
-        
-        state.bufferPop(ARBDrawIndirect.GL_DRAW_INDIRECT_BUFFER);
-        state.vertexArrayPop();
+        if (GL.getCapabilities().GL_ARB_draw_indirect) {
+            state.vertexArrayPush(vao.vertexArrayId);
+            state.bufferPush(ARBDrawIndirect.GL_DRAW_INDIRECT_BUFFER, cmdBuffer.bufferId);
+
+            ARBDrawIndirect.glDrawElementsIndirect(drawMode, indexType, offset);
+
+            state.bufferPop(ARBDrawIndirect.GL_DRAW_INDIRECT_BUFFER);
+            state.vertexArrayPop();
+        } else {
+            throw new UnsupportedOperationException("ARB_draw_indirect is not supported!");
+        }
     }
 
     @Override
     public void vertexArrayDrawElementsInstanced(GL3XVertexArray vao, int drawMode, int count, int type, long offset, int instanceCount) {
-        state.vertexArrayPush(vao.vertexArrayId);
-        
-        GL31.glDrawElementsInstanced(drawMode, count, type, offset, instanceCount);
-        
-        state.vertexArrayPop();
+        if (GL.getCapabilities().OpenGL31) {
+            state.vertexArrayPush(vao.vertexArrayId);
+
+            GL31.glDrawElementsInstanced(drawMode, count, type, offset, instanceCount);
+
+            state.vertexArrayPop();
+        } else {
+            throw new UnsupportedOperationException("OpenGL 3.1 is not supported!");
+        }
     }
 
     @Override
     public void vertexArrayDrawTransformFeedback(GL3XVertexArray vao, int drawMode, int start, int count) {
         state.vertexArrayPush(vao.vertexArrayId);
-        
+
         GL11.glEnable(GL30.GL_RASTERIZER_DISCARD);
         GL30.glBeginTransformFeedback(drawMode);
         GL11.glDrawArrays(drawMode, start, count);
         GL30.glEndTransformFeedback();
         GL11.glDisable(GL30.GL_RASTERIZER_DISCARD);
-        
+
         state.vertexArrayPop();
     }
 
