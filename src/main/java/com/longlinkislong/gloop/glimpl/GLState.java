@@ -24,11 +24,11 @@ import org.lwjgl.opengl.GL40;
  */
 public final class GLState {   
     private final Tweaks tweaks;
-    private final Deque<Integer> programStack = new ArrayDeque<>();
-    private final Deque<Integer> vaoStack = new ArrayDeque<>();
-    private final Deque<Integer> bufferStack = new ArrayDeque<>();
-    private final Deque<Integer> textureStack = new ArrayDeque<>();
-    private final Deque<Integer> framebufferStack = new ArrayDeque<>();    
+    private final Deque<Integer> programStack = new ArrayDeque<>(4);
+    private final Deque<Integer> vaoStack = new ArrayDeque<>(4);
+    private final Deque<Integer> bufferStack = new ArrayDeque<>(4);
+    private final Deque<Integer> textureStack = new ArrayDeque<>(4);
+    private final Deque<Integer> framebufferStack = new ArrayDeque<>(4);
     
     public GLState(final Tweaks tweaks) {
         this.tweaks = Objects.requireNonNull(tweaks);

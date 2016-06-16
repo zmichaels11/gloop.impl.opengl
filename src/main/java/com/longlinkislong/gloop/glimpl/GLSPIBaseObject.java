@@ -5,6 +5,8 @@
  */
 package com.longlinkislong.gloop.glimpl;
 
+import java.util.List;
+
 /**
  *
  * @author zmichaels
@@ -22,5 +24,33 @@ public class GLSPIBaseObject {
     
     public final long getTimeSinceLastUpdated() {
         return System.nanoTime() - this.lastUpdated;
+    }
+
+    public static void recordCall(final List<String> callHistory, String call, Object... params) {
+        final StringBuilder record = new StringBuilder(call);
+
+        record.append("(");
+
+        if (params.length > 0) {
+            for (int i = 0; i < params.length - 1; i++) {
+                if (params[i] == null) {
+                    record.append("NULL");
+                } else if (params[i] instanceof CharSequence) {
+                    record.append("\"");
+                    record.append(params[i].toString());
+                    record.append("\"");
+                } else {
+                    record.append(params[i].toString());
+                }
+
+                record.append(", ");
+            }
+
+            record.append(params[params.length - 1].toString());
+        }
+
+        record.append(")");
+
+        callHistory.add(record.toString());
     }
 }

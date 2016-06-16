@@ -5,6 +5,7 @@
  */
 package com.longlinkislong.gloop.glimpl.gl45;
 
+import com.longlinkislong.gloop.glimpl.GLSPIBaseObject;
 import com.longlinkislong.gloop.glimpl.GLState;
 import com.longlinkislong.gloop.glspi.Driver;
 import com.longlinkislong.gloop.glspi.Shader;
@@ -43,29 +44,14 @@ import org.slf4j.LoggerFactory;
 final class GL45Driver implements Driver<
         GL45Buffer, GL45Framebuffer, GL45Renderbuffer, GL45Texture, GL45Shader, GL45Program, GL45Sampler, GL45VertexArray, GL45DrawQuery> {
 
-    private final static boolean RECORD_CALLS = Boolean.getBoolean("com.longlinkislong.gloop.glimpl.gl45.gl45driver.record_calls");
-    private final List<String> callHistory = new ArrayList<>(0);
+    private final static boolean RECORD_CALLS = Boolean.getBoolean("com.longlinkislong.gloop.record_calls");
+    private final List<String> callHistory = RECORD_CALLS ? new ArrayList<>(1024) : Collections.emptyList();
 
-    private final Logger LOGGER = LoggerFactory.getLogger("GL45Driver");
+    private static final Logger LOGGER = LoggerFactory.getLogger("GL45Driver");
     private GLState state = new GLState(new Tweaks());
 
     private void recordCall(String call, Object... params) {
-        final StringBuilder record = new StringBuilder(call);
-
-        record.append("(");
-
-        if (params.length > 0) {
-            for (int i = 0; i < params.length - 1; i++) {
-                record.append(params[i].toString());
-                record.append(", ");
-            }
-
-            record.append(params[params.length - 1].toString());
-        }
-
-        record.append(")");
-
-        callHistory.add(record.toString());
+        GLSPIBaseObject.recordCall(callHistory, call, params);
     }
 
     @Override
@@ -202,7 +188,7 @@ final class GL45Driver implements Driver<
         if (RECORD_CALLS) {
             recordCall("glMapNamedBufferRange", buffer.bufferId, offset, length, accessFlags, buffer.mapBuffer);
         }
-        
+
         buffer.mapBuffer = GL45.glMapNamedBufferRange(buffer.bufferId, offset, length, accessFlags, buffer.mapBuffer);
         return buffer.mapBuffer;
     }
@@ -996,6 +982,7 @@ final class GL45Driver implements Driver<
 
     @Override
     public void textureAllocatePage(GL45Texture texture, int level, int xOffset, int yOffset, int zOffset, int width, int height, int depth) {
+        if(GL.getCapabilities().GL_ARB_sparse_texture) {
         if (RECORD_CALLS) {
             recordCall("glTexPageCommitmentARB",
                     texture.textureId, level,
@@ -1009,6 +996,13 @@ final class GL45Driver implements Driver<
                 xOffset, yOffset, zOffset,
                 width, height, depth,
                 true);
+        } else {
+            if(RECORD_CALLS) {
+                recordCall("[unsupported] glTexPageCommitmentARB", texture.textureId, level, xOffset, yOffset, zOffset, width, height, depth, true);
+            }
+
+            throw new UnsupportedOperationException("ARB_sparse_texture is not supported!");
+        }
     }
 
     @Override
@@ -1022,6 +1016,7 @@ final class GL45Driver implements Driver<
 
     @Override
     public void textureDeallocatePage(GL45Texture texture, int level, int xOffset, int yOffset, int zOffset, int width, int height, int depth) {
+        if(GL.getCapabilities().GL_ARB_sparse_texture) {
         if (RECORD_CALLS) {
             recordCall("glTexPageCommitmentARB",
                     texture.textureId, level,
@@ -1035,6 +1030,13 @@ final class GL45Driver implements Driver<
                 xOffset, yOffset, zOffset,
                 width, height, depth,
                 false);
+        } else {
+            if(RECORD_CALLS) {
+                recordCall("[unused] glTexPageCommitmentARB", texture.textureId, level, xOffset, yOffset, zOffset, width, height, depth, true);
+            }
+
+            throw new UnsupportedOperationException("ARB_sparse_texture is not supported!");
+        }
     }
 
     @Override
@@ -1345,7 +1347,7 @@ final class GL45Driver implements Driver<
         if (RECORD_CALLS) {
             recordCall("glDrawElementsInstanced", drawMode, count, type, offset, instanceCount);
         }
-        
+
         GL31.glDrawElementsInstanced(drawMode, count, type, offset, instanceCount);
 
         state.vertexArrayPop();
@@ -1362,7 +1364,7 @@ final class GL45Driver implements Driver<
             recordCall("glEndTransformFeedback", drawMode, start, count);
             recordCall("glDisable", "GL_RASTERIZER_DISCARD");
         }
-        
+
         GL11.glEnable(GL30.GL_RASTERIZER_DISCARD);
         GL30.glBeginTransformFeedback(drawMode);
         GL11.glDrawArrays(drawMode, start, count);
@@ -1379,7 +1381,7 @@ final class GL45Driver implements Driver<
         if (RECORD_CALLS) {
             recordCall("glMultiDrawArrays", drawMode, first, count);
         }
-        
+
         GL14.glMultiDrawArrays(drawMode, first, count);
 
         state.vertexArrayPop();
@@ -1390,7 +1392,7 @@ final class GL45Driver implements Driver<
         if (RECORD_CALLS) {
             recordCall("glViewport", x, y, width, height);
         }
-        
+
         GL11.glViewport(x, y, width, height);
     }
 }
