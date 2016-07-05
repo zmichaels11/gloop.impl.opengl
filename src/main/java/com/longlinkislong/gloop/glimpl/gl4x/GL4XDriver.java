@@ -39,6 +39,7 @@ import org.lwjgl.opengl.GL30;
 import org.lwjgl.opengl.GL31;
 import org.lwjgl.opengl.GL33;
 import org.lwjgl.opengl.GL40;
+import org.lwjgl.opengl.GL43;
 import org.lwjgl.opengl.GLCapabilities;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,6 +56,64 @@ final class GL4XDriver implements Driver<
 
     private GLState state = new GLState(new Tweaks());
     private final List<String> callHistory = RECORD_CALLS ? new ArrayList<>(1024) : Collections.emptyList();
+
+    @Override
+    public void bufferBindStorage(GL4XBuffer bt, int index) {
+        GL30.glBindBufferBase(GL43.GL_SHADER_STORAGE_BUFFER, index, bt.bufferId);
+    }
+
+    @Override
+    public void bufferBindStorage(GL4XBuffer bt, int index, long offset, long size) {
+        GL30.glBindBufferRange(GL43.GL_SHADER_STORAGE_BUFFER, index, bt.bufferId, offset, size);
+    }
+
+    @Override
+    public void bufferBindUniform(GL4XBuffer bt, int index) {
+        GL30.glBindBufferBase(GL31.GL_UNIFORM_BUFFER, index, bt.bufferId);
+    }
+
+    @Override
+    public void bufferBindUniform(GL4XBuffer bt, int index, long offset, long size) {
+        GL30.glBindBufferRange(GL31.GL_UNIFORM_BUFFER, index, bt.bufferId, offset, size);
+    }
+
+    @Override
+    public int programGetStorageBlockBinding(GL4XProgram pt, String storageName) {
+        if (pt.storageBindings.containsKey(storageName)) {
+            return pt.storageBindings.get(storageName);
+        } else {
+            return -1;
+        }
+    }
+
+    @Override
+    public int programGetUniformBlockBinding(GL4XProgram pt, String uniformBlockName) {
+        if (pt.uniformBindings.containsKey(uniformBlockName)) {
+            return pt.uniformBindings.get(uniformBlockName);
+        } else {
+            return -1;
+        }
+    }
+
+    @Override
+    public void programSetStorageBlockBinding(GL4XProgram pt, String uniformBlockName, int binding) {
+        if (GL.getCapabilities().GL_ARB_shader_storage_buffer_object) {
+            final int sBlockIndex = GL31.glGetUniformBlockIndex(pt.programId, uniformBlockName);
+
+            ARBShaderStorageBufferObject.glShaderStorageBlockBinding(pt.programId, sBlockIndex, binding);
+            pt.storageBindings.put(uniformBlockName, binding);
+        } else {
+            throw new UnsupportedOperationException("ARB_shader_storage_buffer_object is not supported!");
+        }
+    }
+
+    @Override
+    public void programSetUniformBlockBinding(GL4XProgram pt, String uniformBlockName, int binding) {
+        final int uBlockIndex = GL31.glGetUniformBlockIndex(pt.programId, uniformBlockName);
+
+        GL31.glUniformBlockBinding(pt.programId, uBlockIndex, binding);
+        pt.uniformBindings.put(uniformBlockName, binding);
+    }
 
     private void recordCall(String call, Object... params) {
         GLSPIBaseObject.recordCall(callHistory, call, params);
@@ -1132,13 +1191,13 @@ final class GL4XDriver implements Driver<
     @Override
     public int textureGetPageHeight(GL4XTexture texture) {
         if (GL.getCapabilities().GL_ARB_internalformat_query) {
-            if(RECORD_CALLS) {
+            if (RECORD_CALLS) {
                 recordCall("#VAL = [unsupported] glGetInternalformati", texture.target, texture.internalFormat, "GL_VIRTUAL_PAGE_SIZE_Y_ARB");
             }
 
             return ARBInternalformatQuery.glGetInternalformati(texture.target, texture.internalFormat, ARBSparseTexture.GL_VIRTUAL_PAGE_SIZE_Y_ARB);
         } else {
-            if(RECORD_CALLS) {
+            if (RECORD_CALLS) {
                 recordCall("#val = [unsupported] glGetInternalformati", texture.target, texture.internalFormat, "GL_VIRTUAL_PAGE_SIZE_Y_ARB");
             }
 
@@ -1149,16 +1208,16 @@ final class GL4XDriver implements Driver<
     @Override
     public int textureGetPageWidth(GL4XTexture texture) {
         if (GL.getCapabilities().GL_ARB_internalformat_query) {
-            if(RECORD_CALLS) {
+            if (RECORD_CALLS) {
                 recordCall("#val = glGetIntegernalformati", texture.target, texture.internalFormat, "GL_VIRTUAL_PAGE_SIZE_X_ARB");
             }
 
             return ARBInternalformatQuery.glGetInternalformati(texture.target, texture.internalFormat, ARBSparseTexture.GL_VIRTUAL_PAGE_SIZE_X_ARB);
         } else {
-            if(RECORD_CALLS) {
+            if (RECORD_CALLS) {
                 recordCall("#val = [unsupported] glGetInternalformati", texture.target, texture.internalFormat, "GL_VIRTUAL_PAGE_SIZE_X_ARB");
             }
-            
+
             throw new UnsupportedOperationException("ARB_internalformat_query is not supported!");
         }
     }
@@ -1171,16 +1230,16 @@ final class GL4XDriver implements Driver<
     @Override
     public void textureInvalidateData(GL4XTexture texture, int level) {
         if (GL.getCapabilities().GL_ARB_invalidate_subdata) {
-            if(RECORD_CALLS) {
+            if (RECORD_CALLS) {
                 recordCall("glInvalidateTexImage", texture.target, level);
             }
 
             ARBInvalidateSubdata.glInvalidateTexImage(texture.target, level);
         } else {
-            if(RECORD_CALLS) {
+            if (RECORD_CALLS) {
                 recordCall("glInvalidateTexImage", texture.target, level);
             }
-            
+
             LOGGER.trace("ARB_invalidate_subdata is not supported... Ignoring call to glInvalidateTexImage.");
         }
     }
@@ -1188,16 +1247,16 @@ final class GL4XDriver implements Driver<
     @Override
     public void textureInvalidateRange(GL4XTexture texture, int level, int xOffset, int yOffset, int zOffset, int width, int height, int depth) {
         if (GL.getCapabilities().GL_ARB_invalidate_subdata) {
-            if(RECORD_CALLS) {
+            if (RECORD_CALLS) {
                 recordCall("glInvalidateTexSubImage", texture.textureId, level, xOffset, yOffset, zOffset, width, height, depth);
             }
 
             ARBInvalidateSubdata.glInvalidateTexSubImage(texture.textureId, level, xOffset, yOffset, zOffset, width, height, depth);
         } else {
-            if(RECORD_CALLS) {
+            if (RECORD_CALLS) {
                 recordCall("[ignored] glInvalidateTexSubImage", texture.textureId, level, xOffset, yOffset, zOffset, width, height, depth);
             }
-            
+
             LOGGER.trace("ARB_invalidate_subdata is not supported... Ignoring call to glInvalidateTexSubImage.");
         }
     }
@@ -1251,20 +1310,20 @@ final class GL4XDriver implements Driver<
 
         if (type == GL11.GL_DOUBLE) {
             if (GL.getCapabilities().GL_ARB_vertex_attrib_64bit) {
-                if(RECORD_CALLS) {
+                if (RECORD_CALLS) {
                     recordCall("glVertexAttribLPointer", index, size, type, stride, offset);
                 }
 
                 ARBVertexAttrib64Bit.glVertexAttribLPointer(index, size, type, stride, offset);
             } else {
-                if(RECORD_CALLS) {
+                if (RECORD_CALLS) {
                     recordCall("[unsupported] glVertexAttribLPointer", index, size, type, stride, offset);
                 }
-                
+
                 throw new UnsupportedOperationException("ARB_vertex_attrib_64bit is not supported!");
             }
         } else {
-            if(RECORD_CALLS) {
+            if (RECORD_CALLS) {
                 recordCall("glVertexAttribPointer", index, size, type, false, stride, offset);
             }
 
@@ -1272,10 +1331,10 @@ final class GL4XDriver implements Driver<
         }
 
         if (divisor > 0) {
-            if(RECORD_CALLS) {
+            if (RECORD_CALLS) {
                 recordCall("glVertexAttribDivisor", index, divisor);
             }
-            
+
             GL33.glVertexAttribDivisor(index, divisor);
         }
 

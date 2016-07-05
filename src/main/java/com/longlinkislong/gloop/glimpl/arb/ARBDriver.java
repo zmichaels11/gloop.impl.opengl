@@ -45,6 +45,52 @@ final class ARBDriver implements Driver<
         ARBBuffer, ARBFramebuffer, ARBRenderbuffer, ARBTexture, ARBShader, ARBProgram, ARBSampler, ARBVertexArray, ARBDrawQuery> {
 
     @Override
+    public void bufferBindStorage(ARBBuffer bt, int binding) {
+        final GLCapabilities cap = GL.getCapabilities();
+
+        if(!cap.OpenGL40) {
+            throw new UnsupportedOperationException("OpenGL 4.0 is not supported!");
+        } else if(cap.GL_ARB_shader_storage_buffer_object) {
+            throw new UnsupportedOperationException("ARB_shader_storage_buffer_object is not supported!");
+        }
+    }
+
+    @Override
+    public void bufferBindStorage(ARBBuffer bt, int i, long l, long l1) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public void bufferBindUniform(ARBBuffer bt, int i) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public void bufferBindUniform(ARBBuffer bt, int i, long l, long l1) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public int programGetStorageBlockBinding(ARBProgram pt, String string) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public int programGetUniformBlockBinding(ARBProgram pt, String string) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public void programSetStorageBlockBinding(ARBProgram pt, String string, int i) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public void programSetUniformBlockBinding(ARBProgram pt, String string, int i) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
     public int shaderGetVersion() {
         final GLCapabilities caps = GL.getCapabilities();
                 

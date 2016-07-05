@@ -50,9 +50,65 @@ final class GL45Driver implements Driver<
     private static final Logger LOGGER = LoggerFactory.getLogger("GL45Driver");
     private GLState state = new GLState(new Tweaks());
 
+    @Override
+    public void bufferBindStorage(GL45Buffer bt, int index) {
+        GL30.glBindBufferBase(GL43.GL_SHADER_STORAGE_BUFFER, index, bt.bufferId);
+    }
+
+    @Override
+    public void bufferBindStorage(GL45Buffer bt, int index, long offset, long size) {
+        GL30.glBindBufferRange(GL43.GL_SHADER_STORAGE_BUFFER, index, bt.bufferId, offset, size);
+    }
+
+    @Override
+    public void bufferBindUniform(GL45Buffer bt, int index) {
+        GL30.glBindBufferBase(GL31.GL_UNIFORM_BUFFER, index, bt.bufferId);
+    }
+
+    @Override
+    public void bufferBindUniform(GL45Buffer bt, int index, long offset, long size) {
+        GL30.glBindBufferRange(GL31.GL_UNIFORM_BUFFER, index, bt.bufferId, offset, size);
+    }
+
+    @Override
+    public int programGetStorageBlockBinding(GL45Program pt, String storageBlockName) {
+        if(pt.storageBindings.containsKey(storageBlockName)) {
+            return pt.storageBindings.get(storageBlockName);
+        } else {
+            return -1;
+        }
+    }
+
+    @Override
+    public int programGetUniformBlockBinding(GL45Program pt, String uniformBlockName) {
+        if(pt.uniformBindings.containsKey(uniformBlockName)) {
+            return pt.uniformBindings.get(uniformBlockName);
+        } else {
+            return -1;
+        }
+    }
+
+    @Override
+    public void programSetStorageBlockBinding(GL45Program pt, String uniformBlockName, int binding) {
+        final int uBlockIndex = GL31.glGetUniformBlockIndex(pt.programId, uniformBlockName);
+
+        GL43.glShaderStorageBlockBinding(pt.programId, uBlockIndex, binding);
+        pt.storageBindings.put(uniformBlockName, binding);
+    }
+
+    @Override
+    public void programSetUniformBlockBinding(GL45Program pt, String uniformBlockName, int binding) {
+        final int sBlockIndex = GL31.glGetUniformBlockIndex(pt.programId, uniformBlockName);
+
+        GL31.glUniformBlockBinding(pt.programId, sBlockIndex, binding);
+        pt.uniformBindings.put(uniformBlockName, binding);
+    }
+
     private void recordCall(String call, Object... params) {
         GLSPIBaseObject.recordCall(callHistory, call, params);
     }
+
+
 
     @Override
     public List<String> getCallHistory() {
@@ -501,6 +557,8 @@ final class GL45Driver implements Driver<
 
         GL20.glDeleteProgram(program.programId);
         program.programId = -1;
+        program.storageBindings.clear();
+        program.uniformBindings.clear();
     }
 
     @Override

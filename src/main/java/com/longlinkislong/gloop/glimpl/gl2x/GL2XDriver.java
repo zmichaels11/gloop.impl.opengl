@@ -42,6 +42,64 @@ final class GL2XDriver implements Driver<
         GL2XBuffer, GL2XFramebuffer, GL2XRenderbuffer, GL2XTexture, GL2XShader, GL2XProgram, GL2XSampler, GL2XVertexArray, GL2XDrawQuery> {
 
     @Override
+    public void bufferBindStorage(GL2XBuffer bt, int i) {
+        throw new UnsupportedOperationException("GL_arb_shader_storage_buffer_object is not supported!");
+    }
+
+    @Override
+    public void bufferBindStorage(GL2XBuffer bt, int i, long l, long l1) {
+        throw new UnsupportedOperationException("GL_arb_shader_storage_buffer_object is not supported!");
+    }
+
+    @Override
+    public void bufferBindUniform(GL2XBuffer bt, int binding) {
+        if(GL.getCapabilities().GL_ARB_uniform_buffer_object) {
+            ARBUniformBufferObject.glBindBufferBase(ARBUniformBufferObject.GL_UNIFORM_BUFFER, binding, bt.bufferId);
+        } else {
+            throw new UnsupportedOperationException("ARB_uniform_buffer_object is not supported!");
+        }
+    }
+
+    @Override
+    public void bufferBindUniform(GL2XBuffer bt, int binding, long offset, long size) {
+        if(GL.getCapabilities().GL_ARB_uniform_buffer_object) {
+            ARBUniformBufferObject.glBindBufferRange(ARBUniformBufferObject.GL_UNIFORM_BUFFER, binding, bt.bufferId, offset, size);
+        } else {
+            throw new UnsupportedOperationException("ARB_uniform_buffer_object is not supported!");
+        }
+    }
+
+    @Override
+    public int programGetStorageBlockBinding(GL2XProgram pt, String string) {
+        throw new UnsupportedOperationException("ARB_shader_storage_buffer_object is not supported!");
+    }
+
+    @Override
+    public int programGetUniformBlockBinding(GL2XProgram pt, String ublockName) {
+        if(pt.uniformBindings.containsKey(ublockName)) {
+            return pt.uniformBindings.get(ublockName);
+        } else {
+            return -1;
+        }
+    }
+
+    @Override
+    public void programSetStorageBlockBinding(GL2XProgram pt, String string, int i) {
+        throw new UnsupportedOperationException("ARB_shader_storage_buffer_object is not supported!");
+    }
+
+    @Override
+    public void programSetUniformBlockBinding(GL2XProgram pt, String ublockName, int binding) {
+        if(GL.getCapabilities().GL_ARB_uniform_buffer_object) {
+            final int ublockIndex = ARBUniformBufferObject.glGetUniformBlockIndex(pt.programId, ublockName);
+
+            ARBUniformBufferObject.glUniformBlockBinding(pt.programId, ublockIndex, binding);
+        } else {
+            throw new UnsupportedOperationException("ARB_uniform_buffer_object is not supported!");
+        }
+    }
+
+    @Override
     public int shaderGetVersion() {
         final GLCapabilities cap = GL.getCapabilities();
         

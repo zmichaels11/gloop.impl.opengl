@@ -7,6 +7,8 @@ package com.longlinkislong.gloop.glimpl.gl3x;
 
 import com.longlinkislong.gloop.glimpl.GLSPIBaseObject;
 import com.longlinkislong.gloop.glspi.Program;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  *
@@ -14,6 +16,7 @@ import com.longlinkislong.gloop.glspi.Program;
  */
 final class GL3XProgram extends GLSPIBaseObject implements Program {
     int programId = -1;
+    final Map<String, Integer> uniformBindings = new HashMap<>(0);
     
     @Override
     public boolean isValid() {

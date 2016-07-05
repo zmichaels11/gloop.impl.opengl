@@ -51,6 +51,59 @@ final class GL3XDriver implements Driver<
     private GLState state = new GLState(new Tweaks());
 
     @Override
+    public void bufferBindStorage(GL3XBuffer bt, int index) {
+        throw new UnsupportedOperationException("GL_arb_shader_storage_buffer_object or OpenGL 4.0 is not supported!");
+    }
+
+    @Override
+    public void bufferBindStorage(GL3XBuffer bt, int index, long offset, long size) {
+        throw new UnsupportedOperationException("GL_arb_shader_storage_buffer_object or OpenGL 4.0 is not supported!");
+    }
+
+    @Override
+    public void bufferBindUniform(GL3XBuffer bt, int index) {
+        final GLCapabilities cap = GL.getCapabilities();
+
+        if (cap.OpenGL31 || cap.GL_ARB_uniform_buffer_object) {
+            GL30.glBindBufferBase(GL31.GL_UNIFORM_BUFFER, index, bt.bufferId);
+        } else {
+            throw new UnsupportedOperationException("GL_arb_uniform_buffer_object or OpenGL 3.1 is not supported!");
+        }
+    }
+
+    @Override
+    public void bufferBindUniform(GL3XBuffer bt, int index, long offset, long size) {
+        GL30.glBindBufferRange(GL31.GL_UNIFORM_BUFFER, index, bt.bufferId, offset, size);
+    }
+
+    @Override
+    public int programGetStorageBlockBinding(GL3XProgram pt, String string) {
+        throw new UnsupportedOperationException("GL_arb_shader_storage_buffer_object is not supported!");
+    }
+
+    @Override
+    public int programGetUniformBlockBinding(GL3XProgram pt, String ublockName) {
+        if(pt.uniformBindings.containsKey(ublockName)) {
+            return pt.uniformBindings.get(ublockName);
+        } else {
+            return -1;
+        }
+    }
+
+    @Override
+    public void programSetStorageBlockBinding(GL3XProgram pt, String string, int i) {
+        throw new UnsupportedOperationException("GL_arb_shader_storage_buffer_object is not supported!");
+    }
+
+    @Override
+    public void programSetUniformBlockBinding(GL3XProgram pt, String ublockName, int binding) {
+        final int ublockIndex = GL31.glGetUniformBlockIndex(pt.programId, ublockName);
+
+        GL31.glUniformBlockBinding(pt.programId, ublockIndex, binding);
+        pt.uniformBindings.put(ublockName, binding);
+    }
+
+    @Override
     public int shaderGetVersion() {
         final GLCapabilities cap = GL.getCapabilities();
 
