@@ -48,46 +48,96 @@ final class ARBDriver implements Driver<
     public void bufferBindStorage(ARBBuffer bt, int binding) {
         final GLCapabilities cap = GL.getCapabilities();
 
-        if(!cap.OpenGL40) {
+        if(!cap.GL_ARB_uniform_buffer_object) {
+            throw new UnsupportedOperationException("ARB_uniform_buffer_object is not supported!");
+        } else if(!cap.OpenGL40) {
             throw new UnsupportedOperationException("OpenGL 4.0 is not supported!");
         } else if(cap.GL_ARB_shader_storage_buffer_object) {
             throw new UnsupportedOperationException("ARB_shader_storage_buffer_object is not supported!");
         }
+
+        ARBUniformBufferObject.glBindBufferBase(ARBShaderStorageBufferObject.GL_SHADER_STORAGE_BUFFER, binding, bt.bufferId);
     }
 
     @Override
-    public void bufferBindStorage(ARBBuffer bt, int i, long l, long l1) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    public void bufferBindStorage(ARBBuffer bt, int binding, long offset, long size) {
+        final GLCapabilities cap = GL.getCapabilities();
+
+        if(!cap.GL_ARB_uniform_buffer_object) {
+            throw new UnsupportedOperationException("ARB_uniform_buffer_object is not supported!");
+        } else if(!cap.OpenGL40) {
+            throw new UnsupportedOperationException("OpenGL 4.0 is not supported!");
+        } else if(cap.GL_ARB_shader_storage_buffer_object) {
+            throw new UnsupportedOperationException("ARB_shader_storage_buffer_object is not supported!");
+        }
+
+        ARBUniformBufferObject.glBindBufferRange(ARBShaderStorageBufferObject.GL_SHADER_STORAGE_BUFFER, binding, bt.bufferId, offset, size);
     }
 
     @Override
-    public void bufferBindUniform(ARBBuffer bt, int i) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    public void bufferBindUniform(ARBBuffer bt, int binding) {
+        if(GL.getCapabilities().GL_ARB_uniform_buffer_object) {
+            ARBUniformBufferObject.glBindBufferBase(ARBUniformBufferObject.GL_UNIFORM_BUFFER, binding, bt.bufferId);
+        } else {
+            throw new UnsupportedOperationException("ARB_uniform_buffer_object is not supported!");
+        }
     }
 
     @Override
-    public void bufferBindUniform(ARBBuffer bt, int i, long l, long l1) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    public void bufferBindUniform(ARBBuffer bt, int binding, long offset, long size) {
+        if(GL.getCapabilities().GL_ARB_uniform_buffer_object) {
+            ARBUniformBufferObject.glBindBufferRange(ARBUniformBufferObject.GL_UNIFORM_BUFFER, binding, bt.bufferId, offset, size);
+        } else {
+            throw new UnsupportedOperationException("ARB_uniform_buffer_object is not supported!");
+        }
     }
 
     @Override
-    public int programGetStorageBlockBinding(ARBProgram pt, String string) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    public int programGetStorageBlockBinding(ARBProgram pt, String sName) {
+        if(pt.storageBindings.containsKey(sName)) {
+            return pt.storageBindings.get(sName);
+        } else {
+            return -1;
+        }
     }
 
     @Override
-    public int programGetUniformBlockBinding(ARBProgram pt, String string) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    public int programGetUniformBlockBinding(ARBProgram pt, String uName) {
+        if(pt.uniformBindings.containsKey(uName)) {
+            return pt.uniformBindings.get(uName);
+        } else {
+            return -1;
+        }
     }
 
     @Override
-    public void programSetStorageBlockBinding(ARBProgram pt, String string, int i) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    public void programSetStorageBlockBinding(ARBProgram pt, String sName, int binding) {
+        final GLCapabilities cap = GL.getCapabilities();
+
+        if(!cap.GL_ARB_uniform_buffer_object) {
+            throw new UnsupportedOperationException("ARB_uniform_buffer_object is not supported!");
+        } else if(!cap.OpenGL40) {
+            throw new UnsupportedOperationException("OpenGL 4.0 is not supported!");
+        } else if(!cap.GL_ARB_shader_storage_buffer_object) {
+            throw new UnsupportedOperationException("ARB_shader_storage_buffer_object is not supported!");
+        }
+
+        final int sblockIndex = ARBUniformBufferObject.glGetUniformBlockIndex(pt.programId, sName);
+
+        ARBShaderStorageBufferObject.glShaderStorageBlockBinding(pt.programId, sblockIndex, binding);
+        pt.storageBindings.put(sName, binding);
     }
 
     @Override
-    public void programSetUniformBlockBinding(ARBProgram pt, String string, int i) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    public void programSetUniformBlockBinding(ARBProgram pt, String uName, int binding) {
+        if(!GL.getCapabilities().GL_ARB_uniform_buffer_object) {
+            throw new UnsupportedOperationException("ARB_uniform_buffer_object is not supported!");
+        }
+
+        final int ublockIndex = ARBUniformBufferObject.glGetUniformBlockIndex(pt.programId, uName);
+
+        ARBUniformBufferObject.glUniformBlockBinding(pt.programId, ublockIndex, binding);
+        pt.uniformBindings.put(uName, binding);
     }
 
     @Override

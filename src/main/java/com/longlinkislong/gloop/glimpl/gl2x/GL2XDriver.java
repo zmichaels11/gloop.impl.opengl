@@ -42,18 +42,18 @@ final class GL2XDriver implements Driver<
         GL2XBuffer, GL2XFramebuffer, GL2XRenderbuffer, GL2XTexture, GL2XShader, GL2XProgram, GL2XSampler, GL2XVertexArray, GL2XDrawQuery> {
 
     @Override
-    public void bufferBindStorage(GL2XBuffer bt, int i) {
-        throw new UnsupportedOperationException("GL_arb_shader_storage_buffer_object is not supported!");
+    public void bufferBindStorage(GL2XBuffer bt, int binding) {
+        throw new UnsupportedOperationException("ARB_shader_storage_buffer_object is not supported!");
     }
 
     @Override
-    public void bufferBindStorage(GL2XBuffer bt, int i, long l, long l1) {
-        throw new UnsupportedOperationException("GL_arb_shader_storage_buffer_object is not supported!");
+    public void bufferBindStorage(GL2XBuffer bt, int binding, long offset, long size) {
+        throw new UnsupportedOperationException("ARB_shader_storage_buffer_object is not supported!");
     }
 
     @Override
     public void bufferBindUniform(GL2XBuffer bt, int binding) {
-        if(GL.getCapabilities().GL_ARB_uniform_buffer_object) {
+        if (GL.getCapabilities().GL_ARB_uniform_buffer_object) {
             ARBUniformBufferObject.glBindBufferBase(ARBUniformBufferObject.GL_UNIFORM_BUFFER, binding, bt.bufferId);
         } else {
             throw new UnsupportedOperationException("ARB_uniform_buffer_object is not supported!");
@@ -62,7 +62,7 @@ final class GL2XDriver implements Driver<
 
     @Override
     public void bufferBindUniform(GL2XBuffer bt, int binding, long offset, long size) {
-        if(GL.getCapabilities().GL_ARB_uniform_buffer_object) {
+        if (GL.getCapabilities().GL_ARB_uniform_buffer_object) {
             ARBUniformBufferObject.glBindBufferRange(ARBUniformBufferObject.GL_UNIFORM_BUFFER, binding, bt.bufferId, offset, size);
         } else {
             throw new UnsupportedOperationException("ARB_uniform_buffer_object is not supported!");
@@ -70,13 +70,13 @@ final class GL2XDriver implements Driver<
     }
 
     @Override
-    public int programGetStorageBlockBinding(GL2XProgram pt, String string) {
+    public int programGetStorageBlockBinding(GL2XProgram pt, String sName) {
         throw new UnsupportedOperationException("ARB_shader_storage_buffer_object is not supported!");
     }
 
     @Override
     public int programGetUniformBlockBinding(GL2XProgram pt, String ublockName) {
-        if(pt.uniformBindings.containsKey(ublockName)) {
+        if (pt.uniformBindings.containsKey(ublockName)) {
             return pt.uniformBindings.get(ublockName);
         } else {
             return -1;
@@ -90,7 +90,7 @@ final class GL2XDriver implements Driver<
 
     @Override
     public void programSetUniformBlockBinding(GL2XProgram pt, String ublockName, int binding) {
-        if(GL.getCapabilities().GL_ARB_uniform_buffer_object) {
+        if (GL.getCapabilities().GL_ARB_uniform_buffer_object) {
             final int ublockIndex = ARBUniformBufferObject.glGetUniformBlockIndex(pt.programId, ublockName);
 
             ARBUniformBufferObject.glUniformBlockBinding(pt.programId, ublockIndex, binding);
@@ -102,16 +102,16 @@ final class GL2XDriver implements Driver<
     @Override
     public int shaderGetVersion() {
         final GLCapabilities cap = GL.getCapabilities();
-        
-        if(cap.OpenGL21) {
+
+        if (cap.OpenGL21) {
             return 120;
-        } else if(cap.OpenGL20) {
+        } else if (cap.OpenGL20) {
             return 110;
         } else {
             return 100;
         }
     }
-    
+
     @Override
     public void blendingDisable() {
         GL11.glDisable(GL11.GL_BLEND);
@@ -306,7 +306,7 @@ final class GL2XDriver implements Driver<
     @Override
     public void framebufferAddRenderbuffer(GL2XFramebuffer framebuffer, int attachmentId, GL2XRenderbuffer renderbuffer) {
         final int currentFb = GL11.glGetInteger(ARBFramebufferObject.GL_FRAMEBUFFER_BINDING);
-        
+
         ARBFramebufferObject.glBindFramebuffer(ARBFramebufferObject.GL_FRAMEBUFFER, framebuffer.framebufferId);
         ARBFramebufferObject.glFramebufferRenderbuffer(ARBFramebufferObject.GL_FRAMEBUFFER, attachmentId, ARBFramebufferObject.GL_RENDERBUFFER, renderbuffer.renderbufferId);
         ARBFramebufferObject.glBindFramebuffer(ARBFramebufferObject.GL_FRAMEBUFFER, currentFb);
@@ -645,11 +645,11 @@ final class GL2XDriver implements Driver<
     @Override
     public GL2XRenderbuffer renderbufferCreate(int internalFormat, int width, int height) {
         final GL2XRenderbuffer renderbuffer = new GL2XRenderbuffer();
-        
+
         renderbuffer.renderbufferId = ARBFramebufferObject.glGenRenderbuffers();
         ARBFramebufferObject.glBindRenderbuffer(ARBFramebufferObject.GL_RENDERBUFFER, renderbuffer.renderbufferId);
         ARBFramebufferObject.glRenderbufferStorage(ARBFramebufferObject.GL_RENDERBUFFER, internalFormat, width, height);
-        
+
         return renderbuffer;
     }
 
