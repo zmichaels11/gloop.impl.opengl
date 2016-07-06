@@ -1107,6 +1107,10 @@ final class GL4XDriver implements Driver<
 
     @Override
     public long textureMap(GL4XTexture texture) {
+        if(texture.pHandle != -1) {
+            return texture.pHandle;
+        }
+        
         if (GL.getCapabilities().GL_ARB_bindless_texture) {
             texture.pHandle = ARBBindlessTexture.glGetTextureHandleARB(texture.textureId);
             ARBBindlessTexture.glMakeTextureHandleResidentARB(texture.pHandle);
@@ -1118,6 +1122,10 @@ final class GL4XDriver implements Driver<
 
     @Override
     public void textureUnmap(GL4XTexture texture) {
+        if(texture.pHandle == -1) {
+            return;
+        }
+        
         if(GL.getCapabilities().GL_ARB_bindless_texture) {
             ARBBindlessTexture.glMakeTextureHandleNonResidentARB(texture.pHandle);
             texture.pHandle = -1;

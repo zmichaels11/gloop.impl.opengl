@@ -1100,6 +1100,10 @@ final class GL45Driver implements Driver<
 
     @Override
     public long textureMap(GL45Texture texture) {
+        if(texture.pHandle != -1) {
+            return texture.pHandle;
+        }
+
         if (GL.getCapabilities().GL_ARB_bindless_texture) {
             texture.pHandle = ARBBindlessTexture.glGetTextureHandleARB(texture.textureId);
             ARBBindlessTexture.glMakeTextureHandleResidentARB(texture.pHandle);
@@ -1111,6 +1115,10 @@ final class GL45Driver implements Driver<
 
     @Override
     public void textureUnmap(GL45Texture texture) {
+        if(texture.pHandle == -1) {
+            return;
+        }
+        
         if(GL.getCapabilities().GL_ARB_bindless_texture) {
             ARBBindlessTexture.glMakeTextureHandleNonResidentARB(texture.pHandle);
             texture.pHandle = -1;
