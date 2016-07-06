@@ -17,6 +17,7 @@ import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import org.lwjgl.opengl.ARBBindlessTexture;
 import org.lwjgl.opengl.ARBSparseTexture;
 import org.lwjgl.opengl.EXTTextureFilterAnisotropic;
 import org.lwjgl.opengl.GL;
@@ -1094,6 +1095,27 @@ final class GL45Driver implements Driver<
             }
 
             throw new UnsupportedOperationException("ARB_sparse_texture is not supported!");
+        }
+    }
+
+    @Override
+    public long textureMap(GL45Texture texture) {
+        if (GL.getCapabilities().GL_ARB_bindless_texture) {
+            texture.pHandle = ARBBindlessTexture.glGetTextureHandleARB(texture.textureId);
+            ARBBindlessTexture.glMakeTextureHandleResidentARB(texture.pHandle);
+            return texture.pHandle;
+        } else {
+            throw new UnsupportedOperationException("ARB_bindless_texture is not supported!");
+        }
+    }
+
+    @Override
+    public void textureUnmap(GL45Texture texture) {
+        if(GL.getCapabilities().GL_ARB_bindless_texture) {
+            ARBBindlessTexture.glMakeTextureHandleNonResidentARB(texture.pHandle);
+            texture.pHandle = -1;
+        } else {
+            throw new UnsupportedOperationException("ARB_bindless_texture is not supported!");
         }
     }
 

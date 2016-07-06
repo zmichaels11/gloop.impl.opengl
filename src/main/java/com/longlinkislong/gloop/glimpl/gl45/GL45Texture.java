@@ -16,6 +16,7 @@ final class GL45Texture extends GLSPIBaseObject implements Texture{
     int textureId = -1;
     int target = -1;
     int internalFormat = -1;
+    long pHandle = -1;
     
     @Override
     public boolean isValid() {

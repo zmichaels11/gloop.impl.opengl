@@ -13,6 +13,8 @@ import com.longlinkislong.gloop.glspi.Texture;
  * @author zmichaels
  */
 final class GL4XTexture extends GLSPIBaseObject implements Texture {
+
+    long pHandle = -1;
     int textureId = -1;
     int target = -1;
     int internalFormat = -1;    

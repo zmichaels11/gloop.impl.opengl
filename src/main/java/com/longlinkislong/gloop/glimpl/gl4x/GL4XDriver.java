@@ -17,6 +17,7 @@ import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import org.lwjgl.opengl.ARBBindlessTexture;
 import org.lwjgl.opengl.ARBBufferStorage;
 import org.lwjgl.opengl.ARBComputeShader;
 import org.lwjgl.opengl.ARBInternalformatQuery;
@@ -1102,6 +1103,27 @@ final class GL4XDriver implements Driver<
         state.texturePop(texture.target);
 
         return texture;
+    }
+
+    @Override
+    public long textureMap(GL4XTexture texture) {
+        if (GL.getCapabilities().GL_ARB_bindless_texture) {
+            texture.pHandle = ARBBindlessTexture.glGetTextureHandleARB(texture.textureId);
+            ARBBindlessTexture.glMakeTextureHandleResidentARB(texture.pHandle);
+            return texture.pHandle;
+        } else {
+            throw new UnsupportedOperationException("ARB_bindless_texture is not supported!");
+        }
+    }
+
+    @Override
+    public void textureUnmap(GL4XTexture texture) {
+        if(GL.getCapabilities().GL_ARB_bindless_texture) {
+            ARBBindlessTexture.glMakeTextureHandleNonResidentARB(texture.pHandle);
+            texture.pHandle = -1;
+        } else {
+            throw new UnsupportedOperationException("ARB_bindless_texture is not supported!");
+        }
     }
 
     @Override
