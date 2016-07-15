@@ -61,6 +61,16 @@ final class GL3XDriver implements Driver<
     }
 
     @Override
+    public void bufferBindFeedback(GL3XBuffer bt, int index) {
+        GL30.glBindBufferBase(GL30.GL_TRANSFORM_FEEDBACK_BUFFER, index, bt.bufferId);
+    }
+
+    @Override
+    public void bufferBindFeedback(GL3XBuffer bt, int index, long offset, long size) {
+        GL30.glBindBufferRange(GL30.GL_TRANSFORM_FEEDBACK_BUFFER, index, bt.bufferId, offset, size);
+    }
+
+    @Override
     public void bufferBindUniform(GL3XBuffer bt, int index) {
         final GLCapabilities cap = GL.getCapabilities();
 

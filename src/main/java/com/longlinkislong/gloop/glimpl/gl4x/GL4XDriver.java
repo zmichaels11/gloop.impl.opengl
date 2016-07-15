@@ -69,6 +69,16 @@ final class GL4XDriver implements Driver<
     }
 
     @Override
+    public void bufferBindFeedback(GL4XBuffer bt, int index) {
+        GL30.glBindBufferBase(GL30.GL_TRANSFORM_FEEDBACK_BUFFER, index, bt.bufferId);
+    }
+
+    @Override
+    public void bufferBindFeedback(GL4XBuffer bt, int index, long offset, long size) {
+        GL30.glBindBufferRange(GL30.GL_TRANSFORM_FEEDBACK_BUFFER, index, bt.bufferId, offset, size);
+    }
+
+    @Override
     public void bufferBindUniform(GL4XBuffer bt, int index) {
         GL30.glBindBufferBase(GL31.GL_UNIFORM_BUFFER, index, bt.bufferId);
     }

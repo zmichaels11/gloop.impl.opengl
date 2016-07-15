@@ -52,6 +52,16 @@ final class GL2XDriver implements Driver<
     }
 
     @Override
+    public void bufferBindFeedback(GL2XBuffer bt, int i) {
+        throw new UnsupportedOperationException("Transform Feedback requires OpenGL3.0!");
+    }
+
+    @Override
+    public void bufferBindFeedback(GL2XBuffer bt, int i, long l, long l1) {
+        throw new UnsupportedOperationException("Transform Feedback requires OpenGL3.0!");
+    }
+
+    @Override
     public void bufferBindUniform(GL2XBuffer bt, int binding) {
         if (GL.getCapabilities().GL_ARB_uniform_buffer_object) {
             ARBUniformBufferObject.glBindBufferBase(ARBUniformBufferObject.GL_UNIFORM_BUFFER, binding, bt.bufferId);

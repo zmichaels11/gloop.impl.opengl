@@ -148,6 +148,16 @@ final class VK10Driver implements Driver<
     }
 
     @Override
+    public void bufferBindFeedback(VK10Buffer bt, int i) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public void bufferBindFeedback(VK10Buffer bt, int i, long l, long l1) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
     public void bufferBindUniform(VK10Buffer bt, int i) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }

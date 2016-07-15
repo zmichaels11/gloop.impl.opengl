@@ -75,6 +75,24 @@ final class ARBDriver implements Driver<
     }
 
     @Override
+    public void bufferBindFeedback(ARBBuffer bt, int index) {
+        if(GL.getCapabilities().OpenGL30) {
+            GL30.glBindBufferBase(GL30.GL_TRANSFORM_FEEDBACK_BUFFER, index, bt.bufferId);
+        } else {
+            throw new UnsupportedOperationException("Transform Feedback requires OpenGL3.0!");
+        }
+    }
+
+    @Override
+    public void bufferBindFeedback(ARBBuffer bt, int index, long offset, long size) {
+        if(GL.getCapabilities().OpenGL30) {
+            GL30.glBindBufferRange(GL30.GL_TRANSFORM_FEEDBACK_BUFFER, index, bt.bufferId, offset, size);
+        } else {
+            throw new UnsupportedOperationException("Transform Feedback requires OpenGL3.0!");
+        }
+    }
+
+    @Override
     public void bufferBindUniform(ARBBuffer bt, int binding) {
         if(GL.getCapabilities().GL_ARB_uniform_buffer_object) {
             ARBUniformBufferObject.glBindBufferBase(ARBUniformBufferObject.GL_UNIFORM_BUFFER, binding, bt.bufferId);
