@@ -51,6 +51,26 @@ final class GL3XDriver implements Driver<
     private GLState state = new GLState(new Tweaks());
 
     @Override
+    public void bufferBindAtomic(GL3XBuffer bt, int i) {
+        throw new UnsupportedOperationException("OpenGL 4.2 is not supported!"); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public void bufferBindAtomic(GL3XBuffer bt, int i, long l, long l1) {
+        throw new UnsupportedOperationException("OpenGL 4.2 is not supported!"); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public int bufferGetMaxUniformBindings() {
+        return GL11.glGetInteger(GL31.GL_MAX_UNIFORM_BUFFER_BINDINGS);
+    }
+
+    @Override
+    public int bufferGetMaxUniformBlockSize() {
+        return GL11.glGetInteger(GL31.GL_MAX_UNIFORM_BLOCK_SIZE);
+    }
+
+    @Override
     public void bufferBindStorage(GL3XBuffer bt, int index) {
         throw new UnsupportedOperationException("GL_arb_shader_storage_buffer_object or OpenGL 4.0 is not supported!");
     }
@@ -1017,6 +1037,11 @@ final class GL3XDriver implements Driver<
     }
 
     @Override
+    public long textureMap(GL3XTexture tt) {
+        throw new UnsupportedOperationException("OpenGL 4.0 is not supported!");
+    }
+
+    @Override
     public void textureSetData(GL3XTexture texture, int level, int xOffset, int yOffset, int zOffset, int width, int height, int depth, int format, int type, ByteBuffer data) {
         state.texturePush(texture.target, texture.textureId);
 
@@ -1050,6 +1075,23 @@ final class GL3XDriver implements Driver<
         state.texturePush(texture.target, texture.textureId);
         GL11.glTexParameterf(texture.target, param, value);
         state.texturePop(texture.target);
+    }
+
+    @Override
+    public void textureUnmap(GL3XTexture tt) {
+        throw new UnsupportedOperationException("OpenGL 4.0 is not supported!");
+    }
+
+    @Override
+    public void transformFeedbackBegin(int drawMode) {
+        GL11.glEnable(GL30.GL_RASTERIZER_DISCARD);
+        GL30.glBeginTransformFeedback(drawMode);
+    }
+
+    @Override
+    public void transformFeedbackEnd() {
+        GL30.glEndTransformFeedback();
+        GL11.glDisable(GL30.GL_RASTERIZER_DISCARD);
     }
 
     @Override
@@ -1170,27 +1212,7 @@ final class GL3XDriver implements Driver<
         } else {
             throw new UnsupportedOperationException("OpenGL 3.1 is not supported!");
         }
-    }
-
-    @Override
-    public void vertexArrayDrawTransformFeedback(GL3XVertexArray vao, int drawMode, int start, int count) {
-        state.vertexArrayPush(vao.vertexArrayId);
-
-        GL11.glEnable(GL30.GL_RASTERIZER_DISCARD);
-        GL30.glBeginTransformFeedback(drawMode);
-        GL11.glDrawArrays(drawMode, start, count);
-        GL30.glEndTransformFeedback();
-        GL11.glDisable(GL30.GL_RASTERIZER_DISCARD);
-
-        state.vertexArrayPop();
-    }
-
-    @Override
-    public void vertexArrayMultiDrawArrays(GL3XVertexArray vao, int drawMode, IntBuffer first, IntBuffer count) {
-        state.vertexArrayPush(vao.vertexArrayId);
-        GL14.glMultiDrawArrays(drawMode, first, count);
-        state.vertexArrayPop();
-    }
+    }   
 
     @Override
     public void viewportApply(int x, int y, int width, int height) {

@@ -42,6 +42,16 @@ final class GL2XDriver implements Driver<
         GL2XBuffer, GL2XFramebuffer, GL2XRenderbuffer, GL2XTexture, GL2XShader, GL2XProgram, GL2XSampler, GL2XVertexArray, GL2XDrawQuery> {
 
     @Override
+    public void bufferBindAtomic(GL2XBuffer bt, int i) {
+        throw new UnsupportedOperationException("OpenGL 4.2 is not supported!");
+    }
+
+    @Override
+    public void bufferBindAtomic(GL2XBuffer bt, int i, long l, long l1) {
+        throw new UnsupportedOperationException("OpenGL 4.2 is not supported!");
+    }
+
+    @Override
     public void bufferBindStorage(GL2XBuffer bt, int binding) {
         throw new UnsupportedOperationException("ARB_shader_storage_buffer_object is not supported!");
     }
@@ -77,6 +87,16 @@ final class GL2XDriver implements Driver<
         } else {
             throw new UnsupportedOperationException("ARB_uniform_buffer_object is not supported!");
         }
+    }
+
+    @Override
+    public int bufferGetMaxUniformBindings() {
+        throw new UnsupportedOperationException("OpenGL 3.0 is not supported!");
+    }
+
+    @Override
+    public int bufferGetMaxUniformBlockSize() {
+        throw new UnsupportedOperationException("OpenGL 3.0 is not supported!");
     }
 
     @Override
@@ -934,6 +954,11 @@ final class GL2XDriver implements Driver<
     }
 
     @Override
+    public long textureMap(GL2XTexture tt) {
+        throw new UnsupportedOperationException("ARB_bindless_texture requires OpenGL 4.0!");
+    }
+
+    @Override
     public void textureSetData(GL2XTexture texture, int level, int xOffset, int yOffset, int zOffset, int width, int height, int depth, int format, int type, ByteBuffer data) {
         switch (texture.target) {
             case GL11.GL_TEXTURE_1D: {
@@ -1008,6 +1033,21 @@ final class GL2XDriver implements Driver<
         GL11.glBindTexture(texture.target, texture.textureId);
         GL11.glTexParameterf(texture.target, param, value);
         GL11.glBindTexture(texture.target, currentTexture);
+    }
+
+    @Override
+    public void textureUnmap(GL2XTexture tt) {
+        throw new UnsupportedOperationException("ARB_bindless_texture requires OpenGL 4.0!");
+    }
+
+    @Override
+    public void transformFeedbackBegin(int i) {
+        throw new UnsupportedOperationException("OpenGL 3.0 is not supported!");
+    }
+
+    @Override
+    public void transformFeedbackEnd() {
+        throw new UnsupportedOperationException("OpenGL 3.0 is not supported!");
     }
 
     @Override
@@ -1097,16 +1137,16 @@ final class GL2XDriver implements Driver<
 
             vao.attribs.forEach(attrib -> GL20.glDisableVertexAttribArray(attrib.index));
         }
+    }   
+
+    @Override
+    public void vertexArrayDrawArraysIndirect(GL2XVertexArray vat, GL2XBuffer bt, int i, long l) {
+        throw new UnsupportedOperationException("ARB_draw_indirect requires OpenGL 3.1!");
     }
 
     @Override
-    public void vertexArrayDrawArraysIndirect(GL2XVertexArray vao, GL2XBuffer cmdBuffer, int drawMode, long offset) {
-        throw new UnsupportedOperationException("Indirect draw is not supported!");
-    }
-
-    @Override
-    public void vertexArrayDrawArraysInstanced(GL2XVertexArray vao, int drawMode, int first, int count, int instanceCount) {
-        throw new UnsupportedOperationException("Instanced draw is not supported!");
+    public void vertexArrayDrawArraysInstanced(GL2XVertexArray vat, int i, int i1, int i2, int i3) {
+        throw new UnsupportedOperationException("OpenGL 3.1 is not supported!");
     }
 
     @Override
@@ -1132,39 +1172,13 @@ final class GL2XDriver implements Driver<
 
     @Override
     public void vertexArrayDrawElementsIndirect(GL2XVertexArray vao, GL2XBuffer cmdBuffer, int drawMode, int indexType, long offset) {
-        throw new UnsupportedOperationException("Indirect draw is not supported!");
+        throw new UnsupportedOperationException("ARB_draw_arrays_instanced requires OpenGL 3.1!");
     }
 
     @Override
     public void vertexArrayDrawElementsInstanced(GL2XVertexArray vao, int drawMode, int count, int type, long offset, int instanceCount) {
-        throw new UnsupportedOperationException("Instanced draw is not supported!");
-    }
-
-    @Override
-    public void vertexArrayDrawTransformFeedback(GL2XVertexArray vao, int drawMode, int start, int count) {
-        throw new UnsupportedOperationException("Feedback draw is not supported!");
-    }
-
-    @Override
-    public void vertexArrayMultiDrawArrays(GL2XVertexArray vao, int drawMode, IntBuffer first, IntBuffer count) {
-        if (GL.getCapabilities().GL_ARB_vertex_array_object) {
-            final int currentVao = GL11.glGetInteger(ARBVertexArrayObject.GL_VERTEX_ARRAY_BINDING);
-
-            ARBVertexArrayObject.glBindVertexArray(vao.vertexArrayId);
-            GL14.glMultiDrawArrays(drawMode, first, count);
-            ARBVertexArrayObject.glBindVertexArray(currentVao);
-        } else {
-            vao.attribs.forEach(attrib -> {
-                GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, attrib.buffer.bufferId);
-                GL20.glEnableVertexAttribArray(attrib.index);
-                GL20.glVertexAttribPointer(attrib.index, attrib.size, attrib.type, false, attrib.stride, attrib.offset);
-            });
-
-            GL14.glMultiDrawArrays(drawMode, first, count);
-
-            vao.attribs.forEach(attrib -> GL20.glDisableVertexAttribArray(attrib.index));
-        }
-    }
+        throw new UnsupportedOperationException("OpenGL 3.1 is not supported!");
+    }    
 
     @Override
     public void viewportApply(int x, int y, int width, int height) {

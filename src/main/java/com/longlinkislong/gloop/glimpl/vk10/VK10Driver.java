@@ -138,6 +138,16 @@ final class VK10Driver implements Driver<
     }
 
     @Override
+    public void bufferBindAtomic(VK10Buffer bt, int i) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public void bufferBindAtomic(VK10Buffer bt, int i, long l, long l1) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
     public void bufferBindStorage(VK10Buffer bt, int i) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
@@ -184,6 +194,16 @@ final class VK10Driver implements Driver<
 
     @Override
     public void bufferGetData(VK10Buffer bt, long l, ByteBuffer bb) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public int bufferGetMaxUniformBindings() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public int bufferGetMaxUniformBlockSize() {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
@@ -583,6 +603,11 @@ final class VK10Driver implements Driver<
     }
 
     @Override
+    public int shaderGetVersion() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
     public VK10Texture textureAllocate(int i, int i1, int i2, int i3, int i4) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
@@ -663,6 +688,11 @@ final class VK10Driver implements Driver<
     }
 
     @Override
+    public long textureMap(VK10Texture tt) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
     public void textureSetData(VK10Texture tt, int i, int i1, int i2, int i3, int i4, int i5, int i6, int i7, int i8, ByteBuffer bb) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
@@ -674,6 +704,21 @@ final class VK10Driver implements Driver<
 
     @Override
     public void textureSetParameter(VK10Texture tt, int i, float f) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public void textureUnmap(VK10Texture tt) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public void transformFeedbackBegin(int i) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public void transformFeedbackEnd() {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
@@ -725,17 +770,7 @@ final class VK10Driver implements Driver<
     @Override
     public void vertexArrayDrawElementsInstanced(VK10VertexArray vat, int i, int i1, int i2, long l, int i3) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    @Override
-    public void vertexArrayDrawTransformFeedback(VK10VertexArray vat, int i, int i1, int i2) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    @Override
-    public void vertexArrayMultiDrawArrays(VK10VertexArray vat, int i, IntBuffer ib, IntBuffer ib1) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
+    }    
 
     @Override
     public void viewportApply(int i, int i1, int i2, int i3) {

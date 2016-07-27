@@ -52,6 +52,16 @@ final class GL45Driver implements Driver<
     private GLState state = new GLState(new Tweaks());
 
     @Override
+    public void bufferBindAtomic(GL45Buffer bt, int index) {
+        GL30.glBindBufferBase(GL42.GL_ATOMIC_COUNTER_BUFFER, index, bt.bufferId);
+    }
+
+    @Override
+    public void bufferBindAtomic(GL45Buffer bt, int index, long offset, long size) {
+        GL30.glBindBufferRange(GL42.GL_ATOMIC_COUNTER_BUFFER, index, bt.bufferId, offset, size);
+    }
+
+    @Override
     public void bufferBindStorage(GL45Buffer bt, int index) {
         GL30.glBindBufferBase(GL43.GL_SHADER_STORAGE_BUFFER, index, bt.bufferId);
     }
@@ -79,6 +89,11 @@ final class GL45Driver implements Driver<
     @Override
     public void bufferBindUniform(GL45Buffer bt, int index, long offset, long size) {
         GL30.glBindBufferRange(GL31.GL_UNIFORM_BUFFER, index, bt.bufferId, offset, size);
+    }
+
+    @Override
+    public int bufferGetMaxUniformBindings() {
+        return GL11.glGetInteger(GL31.GL_MAX_UNIFORM_BUFFER_BINDINGS);
     }
 
     @Override
@@ -115,11 +130,21 @@ final class GL45Driver implements Driver<
         pt.uniformBindings.put(uniformBlockName, binding);
     }
 
+    @Override
+    public void transformFeedbackBegin(int drawMode) {
+        GL11.glEnable(GL30.GL_RASTERIZER_DISCARD);
+        GL30.glBeginTransformFeedback(drawMode);
+    }
+
+    @Override
+    public void transformFeedbackEnd() {
+        GL30.glEndTransformFeedback();
+        GL11.glDisable(GL30.GL_RASTERIZER_DISCARD);
+    }
+
     private void recordCall(String call, Object... params) {
         GLSPIBaseObject.recordCall(callHistory, call, params);
     }
-
-
 
     @Override
     public List<String> getCallHistory() {
@@ -221,6 +246,11 @@ final class GL45Driver implements Driver<
         }
 
         GL45.glGetNamedBufferSubData(buffer.bufferId, offset, out);
+    }
+
+    @Override
+    public int bufferGetMaxUniformBlockSize() {
+        return GL11.glGetInteger(GL31.GL_MAX_UNIFORM_BLOCK_SIZE);
     }
 
     @Override
@@ -1436,6 +1466,7 @@ final class GL45Driver implements Driver<
 
         state.bufferPop(GL40.GL_DRAW_INDIRECT_BUFFER);
         state.vertexArrayPop();
+
     }
 
     @Override
@@ -1449,41 +1480,7 @@ final class GL45Driver implements Driver<
         GL31.glDrawElementsInstanced(drawMode, count, type, offset, instanceCount);
 
         state.vertexArrayPop();
-    }
-
-    @Override
-    public void vertexArrayDrawTransformFeedback(GL45VertexArray vao, int drawMode, int start, int count) {
-        state.vertexArrayPush(vao.vertexArrayId);
-
-        if (RECORD_CALLS) {
-            recordCall("glEnable", "GL_RASTERIZER_DISCARD");
-            recordCall("glBeginTransformFeedback", drawMode);
-            recordCall("glDrawArrays", drawMode, start, count);
-            recordCall("glEndTransformFeedback", drawMode, start, count);
-            recordCall("glDisable", "GL_RASTERIZER_DISCARD");
-        }
-
-        GL11.glEnable(GL30.GL_RASTERIZER_DISCARD);
-        GL30.glBeginTransformFeedback(drawMode);
-        GL11.glDrawArrays(drawMode, start, count);
-        GL30.glEndTransformFeedback();
-        GL11.glDisable(GL30.GL_RASTERIZER_DISCARD);
-
-        state.vertexArrayPop();
-    }
-
-    @Override
-    public void vertexArrayMultiDrawArrays(GL45VertexArray vao, int drawMode, IntBuffer first, IntBuffer count) {
-        state.vertexArrayPush(vao.vertexArrayId);
-
-        if (RECORD_CALLS) {
-            recordCall("glMultiDrawArrays", drawMode, first, count);
-        }
-
-        GL14.glMultiDrawArrays(drawMode, first, count);
-
-        state.vertexArrayPop();
-    }
+    }   
 
     @Override
     public void viewportApply(int x, int y, int width, int height) {

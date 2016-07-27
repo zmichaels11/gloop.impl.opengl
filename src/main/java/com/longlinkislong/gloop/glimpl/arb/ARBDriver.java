@@ -11,6 +11,7 @@ import java.nio.ByteBuffer;
 import java.nio.DoubleBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
+import org.lwjgl.opengl.ARBBindlessTexture;
 import org.lwjgl.opengl.ARBComputeShader;
 import org.lwjgl.opengl.ARBDirectStateAccess;
 import org.lwjgl.opengl.ARBDrawIndirect;
@@ -35,6 +36,7 @@ import org.lwjgl.opengl.GL20;
 import org.lwjgl.opengl.GL21;
 import org.lwjgl.opengl.GL30;
 import org.lwjgl.opengl.GL31;
+import org.lwjgl.opengl.GL42;
 import org.lwjgl.opengl.GLCapabilities;
 
 /**
@@ -45,14 +47,36 @@ final class ARBDriver implements Driver<
         ARBBuffer, ARBFramebuffer, ARBRenderbuffer, ARBTexture, ARBShader, ARBProgram, ARBSampler, ARBVertexArray, ARBDrawQuery> {
 
     @Override
+    public void bufferBindAtomic(ARBBuffer bt, int index) {
+        final GLCapabilities cap = GL.getCapabilities();
+
+        if (!cap.OpenGL42) {
+            throw new UnsupportedOperationException("OpenGL 4.2 is not supported!");
+        }
+
+        GL30.glBindBufferBase(GL42.GL_ATOMIC_COUNTER_BUFFER, index, bt.bufferId);
+    }
+
+    @Override
+    public void bufferBindAtomic(ARBBuffer bt, int index, long offset, long size) {
+        final GLCapabilities cap = GL.getCapabilities();
+
+        if (!cap.OpenGL42) {
+            throw new UnsupportedOperationException("OpenGL 4.2 is not supported!");
+        }
+
+        GL30.glBindBufferRange(GL42.GL_ATOMIC_COUNTER_BUFFER, index, bt.bufferId, offset, size);
+    }
+
+    @Override
     public void bufferBindStorage(ARBBuffer bt, int binding) {
         final GLCapabilities cap = GL.getCapabilities();
 
-        if(!cap.GL_ARB_uniform_buffer_object) {
+        if (!cap.GL_ARB_uniform_buffer_object) {
             throw new UnsupportedOperationException("ARB_uniform_buffer_object is not supported!");
-        } else if(!cap.OpenGL40) {
+        } else if (!cap.OpenGL40) {
             throw new UnsupportedOperationException("OpenGL 4.0 is not supported!");
-        } else if(cap.GL_ARB_shader_storage_buffer_object) {
+        } else if (cap.GL_ARB_shader_storage_buffer_object) {
             throw new UnsupportedOperationException("ARB_shader_storage_buffer_object is not supported!");
         }
 
@@ -63,11 +87,11 @@ final class ARBDriver implements Driver<
     public void bufferBindStorage(ARBBuffer bt, int binding, long offset, long size) {
         final GLCapabilities cap = GL.getCapabilities();
 
-        if(!cap.GL_ARB_uniform_buffer_object) {
+        if (!cap.GL_ARB_uniform_buffer_object) {
             throw new UnsupportedOperationException("ARB_uniform_buffer_object is not supported!");
-        } else if(!cap.OpenGL40) {
+        } else if (!cap.OpenGL40) {
             throw new UnsupportedOperationException("OpenGL 4.0 is not supported!");
-        } else if(cap.GL_ARB_shader_storage_buffer_object) {
+        } else if (cap.GL_ARB_shader_storage_buffer_object) {
             throw new UnsupportedOperationException("ARB_shader_storage_buffer_object is not supported!");
         }
 
@@ -76,7 +100,7 @@ final class ARBDriver implements Driver<
 
     @Override
     public void bufferBindFeedback(ARBBuffer bt, int index) {
-        if(GL.getCapabilities().OpenGL30) {
+        if (GL.getCapabilities().OpenGL30) {
             GL30.glBindBufferBase(GL30.GL_TRANSFORM_FEEDBACK_BUFFER, index, bt.bufferId);
         } else {
             throw new UnsupportedOperationException("Transform Feedback requires OpenGL3.0!");
@@ -85,7 +109,7 @@ final class ARBDriver implements Driver<
 
     @Override
     public void bufferBindFeedback(ARBBuffer bt, int index, long offset, long size) {
-        if(GL.getCapabilities().OpenGL30) {
+        if (GL.getCapabilities().OpenGL30) {
             GL30.glBindBufferRange(GL30.GL_TRANSFORM_FEEDBACK_BUFFER, index, bt.bufferId, offset, size);
         } else {
             throw new UnsupportedOperationException("Transform Feedback requires OpenGL3.0!");
@@ -94,7 +118,7 @@ final class ARBDriver implements Driver<
 
     @Override
     public void bufferBindUniform(ARBBuffer bt, int binding) {
-        if(GL.getCapabilities().GL_ARB_uniform_buffer_object) {
+        if (GL.getCapabilities().GL_ARB_uniform_buffer_object) {
             ARBUniformBufferObject.glBindBufferBase(ARBUniformBufferObject.GL_UNIFORM_BUFFER, binding, bt.bufferId);
         } else {
             throw new UnsupportedOperationException("ARB_uniform_buffer_object is not supported!");
@@ -103,7 +127,7 @@ final class ARBDriver implements Driver<
 
     @Override
     public void bufferBindUniform(ARBBuffer bt, int binding, long offset, long size) {
-        if(GL.getCapabilities().GL_ARB_uniform_buffer_object) {
+        if (GL.getCapabilities().GL_ARB_uniform_buffer_object) {
             ARBUniformBufferObject.glBindBufferRange(ARBUniformBufferObject.GL_UNIFORM_BUFFER, binding, bt.bufferId, offset, size);
         } else {
             throw new UnsupportedOperationException("ARB_uniform_buffer_object is not supported!");
@@ -111,8 +135,30 @@ final class ARBDriver implements Driver<
     }
 
     @Override
+    public int bufferGetMaxUniformBindings() {
+        final GLCapabilities caps = GL.getCapabilities();
+
+        if (caps.OpenGL31) {
+            return GL11.glGetInteger(GL31.GL_MAX_UNIFORM_BUFFER_BINDINGS);
+        } else {
+            return 0;
+        }
+    }
+
+    @Override
+    public int bufferGetMaxUniformBlockSize() {
+        final GLCapabilities caps = GL.getCapabilities();
+
+        if (caps.OpenGL31) {
+            return GL11.glGetInteger(GL31.GL_MAX_UNIFORM_BLOCK_SIZE);
+        } else {
+            return 0;
+        }
+    }
+
+    @Override
     public int programGetStorageBlockBinding(ARBProgram pt, String sName) {
-        if(pt.storageBindings.containsKey(sName)) {
+        if (pt.storageBindings.containsKey(sName)) {
             return pt.storageBindings.get(sName);
         } else {
             return -1;
@@ -121,7 +167,7 @@ final class ARBDriver implements Driver<
 
     @Override
     public int programGetUniformBlockBinding(ARBProgram pt, String uName) {
-        if(pt.uniformBindings.containsKey(uName)) {
+        if (pt.uniformBindings.containsKey(uName)) {
             return pt.uniformBindings.get(uName);
         } else {
             return -1;
@@ -132,11 +178,11 @@ final class ARBDriver implements Driver<
     public void programSetStorageBlockBinding(ARBProgram pt, String sName, int binding) {
         final GLCapabilities cap = GL.getCapabilities();
 
-        if(!cap.GL_ARB_uniform_buffer_object) {
+        if (!cap.GL_ARB_uniform_buffer_object) {
             throw new UnsupportedOperationException("ARB_uniform_buffer_object is not supported!");
-        } else if(!cap.OpenGL40) {
+        } else if (!cap.OpenGL40) {
             throw new UnsupportedOperationException("OpenGL 4.0 is not supported!");
-        } else if(!cap.GL_ARB_shader_storage_buffer_object) {
+        } else if (!cap.GL_ARB_shader_storage_buffer_object) {
             throw new UnsupportedOperationException("ARB_shader_storage_buffer_object is not supported!");
         }
 
@@ -148,7 +194,7 @@ final class ARBDriver implements Driver<
 
     @Override
     public void programSetUniformBlockBinding(ARBProgram pt, String uName, int binding) {
-        if(!GL.getCapabilities().GL_ARB_uniform_buffer_object) {
+        if (!GL.getCapabilities().GL_ARB_uniform_buffer_object) {
             throw new UnsupportedOperationException("ARB_uniform_buffer_object is not supported!");
         }
 
@@ -161,36 +207,36 @@ final class ARBDriver implements Driver<
     @Override
     public int shaderGetVersion() {
         final GLCapabilities caps = GL.getCapabilities();
-                
-        if(caps.OpenGL45) {
+
+        if (caps.OpenGL45) {
             return 450;
-        } else if(caps.OpenGL44) {
+        } else if (caps.OpenGL44) {
             return 440;
-        } else if(caps.OpenGL43) {
+        } else if (caps.OpenGL43) {
             return 430;
-        } else if(caps.OpenGL42) {
+        } else if (caps.OpenGL42) {
             return 420;
-        } else if(caps.OpenGL41) {
+        } else if (caps.OpenGL41) {
             return 410;
-        } else if(caps.OpenGL40) {
+        } else if (caps.OpenGL40) {
             return 400;
-        } else if(caps.OpenGL33) {
+        } else if (caps.OpenGL33) {
             return 330;
-        } else if(caps.OpenGL32) {
+        } else if (caps.OpenGL32) {
             return 150;
-        } else if(caps.OpenGL31) {
+        } else if (caps.OpenGL31) {
             return 140;
-        } else if(caps.OpenGL30) {
+        } else if (caps.OpenGL30) {
             return 130;
-        } else if(caps.OpenGL21) {
+        } else if (caps.OpenGL21) {
             return 120;
-        } else if(caps.OpenGL20) {
+        } else if (caps.OpenGL20) {
             return 110;
         } else {
             return 100;
         }
     }
-    
+
     @Override
     public void blendingDisable() {
         GL11.glDisable(GL11.GL_BLEND);
@@ -322,14 +368,14 @@ final class ARBDriver implements Driver<
                 attachmentId,
                 texture.textureId,
                 mipmapLevel);
-    }    
+    }
 
     @Override
     public void framebufferAddRenderbuffer(ARBFramebuffer framebuffer, int attachmentId, ARBRenderbuffer renderbuffer) {
         ARBDirectStateAccess.glNamedFramebufferRenderbuffer(
                 framebuffer.framebufferId,
-                attachmentId, 
-                GL30.GL_RENDERBUFFER, 
+                attachmentId,
+                GL30.GL_RENDERBUFFER,
                 renderbuffer.renderbufferId);
     }
 
@@ -773,17 +819,17 @@ final class ARBDriver implements Driver<
     @Override
     public ARBRenderbuffer renderbufferCreate(int internalFormat, int width, int height) {
         final ARBRenderbuffer renderbuffer = new ARBRenderbuffer();
-        
+
         renderbuffer.renderbufferId = ARBDirectStateAccess.glCreateRenderbuffers();
         ARBDirectStateAccess.glNamedRenderbufferStorage(renderbuffer.renderbufferId, internalFormat, width, height);
-        
+
         return renderbuffer;
     }
 
     @Override
     public void renderbufferDelete(ARBRenderbuffer renderbuffer) {
         GL30.glDeleteRenderbuffers(renderbuffer.renderbufferId);
-        renderbuffer.renderbufferId = -1;        
+        renderbuffer.renderbufferId = -1;
     }
 
     @Override
@@ -986,6 +1032,28 @@ final class ARBDriver implements Driver<
     }
 
     @Override
+    public long textureMap(ARBTexture texture) {
+        final GLCapabilities caps = GL.getCapabilities();
+
+        if(!caps.OpenGL40) {
+            throw new UnsupportedOperationException("OpenGL 4.0 is not supported!");
+        }
+
+        if(!caps.GL_ARB_bindless_texture) {
+            throw new UnsupportedOperationException("ARB_bindless_texture is not supported!");
+        }
+
+        if(texture.pHandle != -1) {
+            return texture.pHandle;
+        } else {
+            texture.pHandle = ARBBindlessTexture.glGetTextureHandleARB(texture.textureId);
+            ARBBindlessTexture.glMakeTextureHandleResidentARB(texture.pHandle);
+
+            return texture.pHandle;
+        }
+    }
+
+    @Override
     public void textureSetData(
             ARBTexture texture,
             int level, int xOffset, int yOffset, int zOffset,
@@ -1015,6 +1083,50 @@ final class ARBDriver implements Driver<
     @Override
     public void textureSetParameter(ARBTexture texture, int param, float value) {
         ARBDirectStateAccess.glTextureParameterf(texture.textureId, param, value);
+    }
+
+    @Override
+    public void textureUnmap(ARBTexture texture) {
+        final GLCapabilities caps = GL.getCapabilities();
+
+        if (!caps.OpenGL40) {
+            throw new UnsupportedOperationException("OpenGL 4.0 is not supported!");
+        }
+
+        if (!caps.GL_ARB_bindless_texture) {
+            throw new UnsupportedOperationException("ARB_bindless_texture is not supported!");
+        }
+
+        if (texture.pHandle == -1) {
+            return;
+        }
+
+        ARBBindlessTexture.glMakeTextureHandleNonResidentARB(texture.pHandle);
+        texture.pHandle = -1;
+    }
+
+    @Override
+    public void transformFeedbackBegin(int drawMode) {
+        final GLCapabilities caps = GL.getCapabilities();
+
+        if (!caps.OpenGL30) {
+            throw new UnsupportedOperationException("OpenGL 3.0 is not supported!");
+        }
+
+        GL11.glEnable(GL30.GL_RASTERIZER_DISCARD);
+        GL30.glBeginTransformFeedback(drawMode);
+    }
+
+    @Override
+    public void transformFeedbackEnd() {
+        final GLCapabilities caps = GL.getCapabilities();
+
+        if (!caps.OpenGL30) {
+            throw new UnsupportedOperationException("OpenGL 3.0 is not supported!");
+        }
+
+        GL30.glEndTransformFeedback();
+        GL11.glDisable(GL30.GL_RASTERIZER_DISCARD);
     }
 
     @Override
@@ -1127,28 +1239,6 @@ final class ARBDriver implements Driver<
 
         ARBVertexArrayObject.glBindVertexArray(vao.vertexArrayId);
         GL31.glDrawElementsInstanced(drawMode, count, type, offset, instanceCount);
-        ARBVertexArrayObject.glBindVertexArray(currentVao);
-    }
-
-    @Override
-    public void vertexArrayDrawTransformFeedback(ARBVertexArray vao, int drawMode, int start, int count) {
-        final int currentVao = GL11.glGetInteger(ARBVertexArrayObject.GL_VERTEX_ARRAY_BINDING);
-
-        ARBVertexArrayObject.glBindVertexArray(vao.vertexArrayId);
-        GL11.glEnable(GL30.GL_RASTERIZER_DISCARD);
-        GL30.glBeginTransformFeedback(drawMode);
-        GL11.glDrawArrays(drawMode, start, count);
-        GL30.glEndTransformFeedback();
-        GL11.glDisable(GL30.GL_RASTERIZER_DISCARD);
-        ARBVertexArrayObject.glBindVertexArray(currentVao);
-    }
-
-    @Override
-    public void vertexArrayMultiDrawArrays(ARBVertexArray vao, int drawMode, IntBuffer first, IntBuffer count) {
-        final int currentVao = GL11.glGetInteger(ARBVertexArrayObject.GL_VERTEX_ARRAY_BINDING);
-
-        ARBVertexArrayObject.glBindVertexArray(vao.vertexArrayId);
-        GL14.glMultiDrawArrays(drawMode, first, count);
         ARBVertexArrayObject.glBindVertexArray(currentVao);
     }
 

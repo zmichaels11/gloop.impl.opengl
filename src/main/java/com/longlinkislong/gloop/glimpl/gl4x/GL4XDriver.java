@@ -40,6 +40,7 @@ import org.lwjgl.opengl.GL30;
 import org.lwjgl.opengl.GL31;
 import org.lwjgl.opengl.GL33;
 import org.lwjgl.opengl.GL40;
+import org.lwjgl.opengl.GL42;
 import org.lwjgl.opengl.GL43;
 import org.lwjgl.opengl.GLCapabilities;
 import org.slf4j.Logger;
@@ -57,6 +58,38 @@ final class GL4XDriver implements Driver<
 
     private GLState state = new GLState(new Tweaks());
     private final List<String> callHistory = RECORD_CALLS ? new ArrayList<>(1024) : Collections.emptyList();
+
+    @Override
+    public void bufferBindAtomic(GL4XBuffer bt, int index) {
+        final GLCapabilities caps = GL.getCapabilities();
+
+        if(caps.OpenGL42) {
+            GL30.glBindBufferBase(GL42.GL_ATOMIC_COUNTER_BUFFER, index, bt.bufferId);
+        } else {
+            throw new UnsupportedOperationException("OpenGL 4.2 is not supported!");
+        }
+    }
+
+    @Override
+    public void bufferBindAtomic(GL4XBuffer bt, int index, long offset, long size) {
+        final GLCapabilities caps = GL.getCapabilities();
+
+        if(caps.OpenGL42) {
+            GL30.glBindBufferRange(GL42.GL_ATOMIC_COUNTER_BUFFER, index, bt.bufferId, offset, size);
+        } else {
+            throw new UnsupportedOperationException("OpenGL 4.2 is not supported!");
+        }
+    }
+
+    @Override
+    public int bufferGetMaxUniformBindings() {
+        return GL11.glGetInteger(GL31.GL_MAX_UNIFORM_BUFFER_BINDINGS);
+    }
+
+    @Override
+    public int bufferGetMaxUniformBlockSize() {
+        return GL11.glGetInteger(GL31.GL_MAX_UNIFORM_BLOCK_SIZE);
+    }
 
     @Override
     public void bufferBindStorage(GL4XBuffer bt, int index) {
@@ -124,6 +157,18 @@ final class GL4XDriver implements Driver<
 
         GL31.glUniformBlockBinding(pt.programId, uBlockIndex, binding);
         pt.uniformBindings.put(uniformBlockName, binding);
+    }
+
+    @Override
+    public void transformFeedbackBegin(int drawMode) {
+        GL11.glEnable(GL30.GL_RASTERIZER_DISCARD);
+        GL30.glBeginTransformFeedback(drawMode);
+    }
+
+    @Override
+    public void transformFeedbackEnd() {
+        GL30.glEndTransformFeedback();
+        GL11.glDisable(GL30.GL_RASTERIZER_DISCARD);
     }
 
     private void recordCall(String call, Object... params) {
@@ -1494,39 +1539,6 @@ final class GL4XDriver implements Driver<
         }
 
         GL31.glDrawElementsInstanced(drawMode, count, type, offset, instanceCount);
-
-        state.vertexArrayPop();
-    }
-
-    @Override
-    public void vertexArrayDrawTransformFeedback(GL4XVertexArray vao, int drawMode, int start, int count) {
-        state.vertexArrayPush(vao.vertexArrayId);
-
-        if (RECORD_CALLS) {
-            recordCall("glEnable", "GL_RASTERIZER_DISCARD");
-            recordCall("glBeginTransformFeedback", drawMode);
-            recordCall("glDrawArrays", drawMode, start, count);
-            recordCall("glEndTransformFeedback");
-            recordCall("glDisable", "GL_RASTERIZER_DISCARD");
-        }
-
-        GL11.glEnable(GL30.GL_RASTERIZER_DISCARD);
-        GL30.glBeginTransformFeedback(drawMode);
-        GL11.glDrawArrays(drawMode, start, count);
-        GL30.glEndTransformFeedback();
-        GL11.glDisable(GL30.GL_RASTERIZER_DISCARD);
-
-        state.vertexArrayPop();
-    }
-
-    @Override
-    public void vertexArrayMultiDrawArrays(GL4XVertexArray vao, int drawMode, IntBuffer first, IntBuffer count) {
-        state.vertexArrayPush(vao.vertexArrayId);
-
-        if (RECORD_CALLS) {
-            recordCall("glMultiDrawArrays", drawMode, first, count);
-        }
-        GL14.glMultiDrawArrays(drawMode, first, count);
 
         state.vertexArrayPop();
     }
