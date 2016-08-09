@@ -608,7 +608,7 @@ final class VK10Driver implements Driver<
     }
 
     @Override
-    public VK10Texture textureAllocate(int i, int i1, int i2, int i3, int i4) {
+    public VK10Texture textureAllocate(int i, int i1, int i2, int i3, int i4, int dataType) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 

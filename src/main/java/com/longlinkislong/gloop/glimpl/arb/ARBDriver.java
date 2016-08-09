@@ -899,7 +899,7 @@ final class ARBDriver implements Driver<
     }
 
     @Override
-    public ARBTexture textureAllocate(int mipmaps, int internalFormat, int width, int height, int depth) {
+    public ARBTexture textureAllocate(int mipmaps, int internalFormat, int width, int height, int depth, int dataType) {
         final int target;
 
         if (width < 1 || height < 1 || depth < 1) {

@@ -755,7 +755,7 @@ final class GL2XDriver implements Driver<
     }
 
     @Override
-    public GL2XTexture textureAllocate(int mipmaps, int internalFormat, int width, int height, int depth) {
+    public GL2XTexture textureAllocate(int mipmaps, int internalFormat, int width, int height, int depth, int dataType) {
         final int target;
 
         if (width < 1 || height < 1 || depth < 1) {
@@ -785,7 +785,7 @@ final class GL2XDriver implements Driver<
                 GL11.glTexParameteri(GL11.GL_TEXTURE_1D, GL12.GL_TEXTURE_MAX_LEVEL, mipmaps);
 
                 for (int i = 0; i < mipmaps; i++) {
-                    GL11.glTexImage1D(GL11.GL_TEXTURE_1D, i, internalFormat, width, 0, guessFormat(internalFormat), GL11.GL_UNSIGNED_BYTE, 0);
+                    GL11.glTexImage1D(GL11.GL_TEXTURE_1D, i, internalFormat, width, 0, guessFormat(internalFormat), dataType, 0);
                     width = Math.max(1, (width / 2));
                 }
                 GL11.glBindTexture(GL11.GL_TEXTURE_1D, currentTexture);
@@ -797,7 +797,7 @@ final class GL2XDriver implements Driver<
                 GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL12.GL_TEXTURE_MAX_LEVEL, mipmaps);
 
                 for (int i = 0; i < mipmaps; i++) {
-                    GL11.glTexImage2D(GL11.GL_TEXTURE_2D, i, internalFormat, width, height, 0, guessFormat(internalFormat), GL11.GL_UNSIGNED_BYTE, 0);
+                    GL11.glTexImage2D(GL11.GL_TEXTURE_2D, i, internalFormat, width, height, 0, guessFormat(internalFormat), dataType, 0);
                     width = Math.max(1, (width / 2));
                     height = Math.max(1, (height / 2));
                 }
@@ -811,7 +811,7 @@ final class GL2XDriver implements Driver<
                 GL11.glTexParameteri(GL12.GL_TEXTURE_3D, GL12.GL_TEXTURE_MAX_LEVEL, mipmaps);
 
                 for (int i = 0; i < mipmaps; i++) {
-                    GL12.glTexImage3D(GL12.GL_TEXTURE_3D, i, internalFormat, width, height, depth, 0, guessFormat(internalFormat), GL11.GL_UNSIGNED_BYTE, 0);
+                    GL12.glTexImage3D(GL12.GL_TEXTURE_3D, i, internalFormat, width, height, depth, 0, guessFormat(internalFormat), dataType, 0);
                     width = Math.max(1, (width / 2));
                     height = Math.max(1, (height / 2));
                     depth = Math.max(1, (depth / 2));

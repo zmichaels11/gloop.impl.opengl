@@ -1027,7 +1027,7 @@ final class GL45Driver implements Driver<
     }
 
     @Override
-    public GL45Texture textureAllocate(int mipmaps, int internalFormat, int width, int height, int depth) {
+    public GL45Texture textureAllocate(int mipmaps, int internalFormat, int width, int height, int depth, int dataType) {
         final int target;
 
         if (width < 1 || height < 1 || depth < 1) {

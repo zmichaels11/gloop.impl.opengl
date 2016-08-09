@@ -13,7 +13,6 @@ import java.nio.ByteBuffer;
 import java.nio.DoubleBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
-import org.lwjgl.opengl.ARBBufferStorage;
 import org.lwjgl.opengl.ARBCopyBuffer;
 import org.lwjgl.opengl.ARBDrawIndirect;
 import org.lwjgl.opengl.ARBGPUShaderFP64;
@@ -113,7 +112,7 @@ final class GL3XDriver implements Driver<
 
     @Override
     public int programGetUniformBlockBinding(GL3XProgram pt, String ublockName) {
-        if(pt.uniformBindings.containsKey(ublockName)) {
+        if (pt.uniformBindings.containsKey(ublockName)) {
             return pt.uniformBindings.get(ublockName);
         } else {
             return -1;
@@ -170,20 +169,15 @@ final class GL3XDriver implements Driver<
         state.bufferPush(GL15.GL_ARRAY_BUFFER, buffer.bufferId);
 
         GL15.glBufferData(GL15.GL_ARRAY_BUFFER, size, usage);
+        buffer.size = size;
+        buffer.usage = usage;
 
         state.bufferPop(GL15.GL_ARRAY_BUFFER);
     }
 
     @Override
     public void bufferAllocateImmutable(GL3XBuffer buffer, long size, int bitflags) {
-        if (GL.getCapabilities().GL_ARB_buffer_storage) {
-            state.bufferPush(GL15.GL_ARRAY_BUFFER, buffer.bufferId);
-            ARBBufferStorage.glBufferStorage(GL15.GL_ARRAY_BUFFER, size, bitflags);
-            state.bufferPop(GL15.GL_ARRAY_BUFFER);
-        } else {
-            LOGGER.trace("immutable buffer allocate is not supported; falling back on buffer allocate!");
-            this.bufferAllocate(buffer, size, GL15.GL_DYNAMIC_DRAW);
-        }
+        this.bufferAllocate(buffer, size, GL15.GL_DYNAMIC_DRAW);
     }
 
     @Override
@@ -243,7 +237,7 @@ final class GL3XDriver implements Driver<
         if (GL.getCapabilities().GL_ARB_invalidate_subdata) {
             ARBInvalidateSubdata.glInvalidateBufferData(buffer.bufferId);
         } else {
-            LOGGER.trace("ARB_invalidate_subdata is not supported... Ignoring call to glInvalidateBufferData.");
+            bufferAllocate(buffer, buffer.size, buffer.usage); // effectively the same
         }
     }
 
@@ -252,7 +246,7 @@ final class GL3XDriver implements Driver<
         if (GL.getCapabilities().GL_ARB_invalidate_subdata) {
             ARBInvalidateSubdata.glInvalidateBufferSubData(buffer.bufferId, offset, length);
         } else {
-            LOGGER.trace("ARB_invalidate_subdata is not supported... Ignoring call to glInvalidateBufferSubdData.");
+            bufferAllocate(buffer, buffer.size, buffer.usage);
         }
     }
 
@@ -852,7 +846,7 @@ final class GL3XDriver implements Driver<
     }
 
     @Override
-    public GL3XTexture textureAllocate(int mipmaps, int internalFormat, int width, int height, int depth) {
+    public GL3XTexture textureAllocate(int mipmaps, int internalFormat, int width, int height, int depth, int dataType) {
         final int target;
 
         if (width < 1 || height < 1 || depth < 1) {
@@ -881,7 +875,7 @@ final class GL3XDriver implements Driver<
                 GL11.glTexParameteri(GL11.GL_TEXTURE_1D, GL12.GL_TEXTURE_MAX_LEVEL, mipmaps);
 
                 for (int i = 0; i < mipmaps; i++) {
-                    GL11.glTexImage1D(GL11.GL_TEXTURE_1D, i, internalFormat, width, 0, guessFormat(internalFormat), GL11.GL_UNSIGNED_BYTE, 0);
+                    GL11.glTexImage1D(GL11.GL_TEXTURE_1D, i, internalFormat, width, 0, guessFormat(internalFormat), dataType, 0);
                     width = Math.max(1, (width / 2));
                 }
                 break;
@@ -890,7 +884,7 @@ final class GL3XDriver implements Driver<
                 GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL12.GL_TEXTURE_MAX_LEVEL, mipmaps);
 
                 for (int i = 0; i < mipmaps; i++) {
-                    GL11.glTexImage2D(GL11.GL_TEXTURE_2D, i, internalFormat, width, height, 0, guessFormat(internalFormat), GL11.GL_UNSIGNED_BYTE, 0);
+                    GL11.glTexImage2D(GL11.GL_TEXTURE_2D, i, internalFormat, width, height, 0, guessFormat(internalFormat), dataType, 0);
                     width = Math.max(1, (width / 2));
                     height = Math.max(1, (height / 2));
                 }
@@ -900,7 +894,7 @@ final class GL3XDriver implements Driver<
                 GL11.glTexParameteri(GL12.GL_TEXTURE_3D, GL12.GL_TEXTURE_MAX_LEVEL, mipmaps);
 
                 for (int i = 0; i < mipmaps; i++) {
-                    GL12.glTexImage3D(GL12.GL_TEXTURE_3D, i, internalFormat, width, height, depth, 0, guessFormat(internalFormat), GL11.GL_UNSIGNED_BYTE, 0);
+                    GL12.glTexImage3D(GL12.GL_TEXTURE_3D, i, internalFormat, width, height, depth, 0, guessFormat(internalFormat), dataType, 0);
                     width = Math.max(1, (width / 2));
                     height = Math.max(1, (height / 2));
                     depth = Math.max(1, (depth / 2));
@@ -1212,7 +1206,7 @@ final class GL3XDriver implements Driver<
         } else {
             throw new UnsupportedOperationException("OpenGL 3.1 is not supported!");
         }
-    }   
+    }
 
     @Override
     public void viewportApply(int x, int y, int width, int height) {

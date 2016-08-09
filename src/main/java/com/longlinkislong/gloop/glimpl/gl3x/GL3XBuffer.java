@@ -16,6 +16,8 @@ import java.nio.ByteBuffer;
 final class GL3XBuffer extends GLSPIBaseObject  implements Buffer {
     int bufferId = -1;
     ByteBuffer mapBuffer;
+    long size;
+    int usage;
     
     @Override
     public boolean isValid() {
