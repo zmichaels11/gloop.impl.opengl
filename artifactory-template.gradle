@@ -104,7 +104,11 @@ task versionIncrementMinor << {
 }
 
 def setVersion(major, minor, revision) {    
-    new ProcessBuilder('sqlite3', 'versioning.db', "replace into versioning(library, hash, major, minor, revision) values('$project.name', '${getHash()}', $major, $minor, $revision)").start()        
+    def process = new ProcessBuilder('sqlite3', database, "REPLACE INTO versioning (library, hash, major, minor, revision) VALUES ('$project.name', '${getHash()}', $major, $minor, $revision)").redirectErrorStream(true).start()
+
+    process.inputStream.eachLine { println it }
+    
+    println "Set version to $major.$minor.$revision"
 }
 
 def getHash() {
@@ -112,7 +116,7 @@ def getHash() {
 }
 
 def getSnapshot(projectName) {
-    def result = new ProcessBuilder('sqlite3', 'versioning.db', "select hash from versioning where library='$projectName'").start().text.trim()
+    def result = new ProcessBuilder('sqlite3', database, "SELECT hash FROM versioning WHERE library='$projectName'").start().text.trim()
     
     return "$result-SNAPSHOT"
 }
@@ -142,10 +146,11 @@ def getVersion(projectName, buildType) {
 }
 
 def getRelease(projectName) {
-    def version = new ProcessBuilder('sqlite3', 'versioning.db', "select major, minor, revision from versioning where library='$projectName'").start().text.trim()
+    def version = new ProcessBuilder('sqlite3', database, "SELECT major,minor,revision FROM versioning WHERE library='$projectName'").start().text.trim()
     
     if (version.empty) {
-        System.err.println("Library [$projectName] was not found in database!")
+        def dbFile = new File(database).absolutePath
+        System.err.println("Library [$projectName] was not found in database: $dbFile")
         return null
     } else {
         return version.replace('|', '.')
@@ -183,7 +188,9 @@ task versionDump << {
         setVersion(0, 0, 0)
         releaseVersion = '0.0.0'
     } else {
-        new ProcessBuilder('sqlite3', 'versioning.db', "update versioning set hash='$revHash' where library='$project.name'").start()
+        def process = new ProcessBuilder('sqlite3', database, "UPDATE versioning SET hash='$revHash' WHERE library='$project.name'").redirectErrorStream(true).start()
+        
+        process.inputStream.eachLine { println it }
     }
                                                 
     snapshot.write snapshotVersion
