@@ -10,19 +10,38 @@ sourceCompatibility = '1.8'
 [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
 
 repositories {
-    mavenCentral()
-    maven { url 'https://oss.sonatype.org/content/repositories/snapshots' }
+    mavenCentral()    
     maven { url 'http://jartifacts.longlinkislong.com/artifactory/libs-snapshot' }
     maven { url 'http://jartifacts.longlinkislong.com/artifactory/libs-release' }
 }
 
-def getProjectVersion(projId) {
-    return "${versionUrl}?name=${projId}".toURL().text.trim()
+def getVersion(projectName) {
+    return getVersion(projectName, build)
+}
+
+def getVersion(projectName, buildType) {
+    if (isJenkins.toBoolean()) {
+        if (buildType == 'snapshot') {
+            return getSnapshot(projectName)
+        } else if (buildType == 'release') {
+            return getRelease(projectName)
+        } else {
+            throw new IllegalStateException("Unsupported build type: $buildType")
+        }
+    } else {
+        if (buildType == 'snapshot') {
+            return "http://jenkins.longlinkislong.com/job/$projectName/lastSuccessfulBuild/artifact/build/version.snapshot".toURL().text.trim()
+        } else if (buildType == 'release') {
+            return "http://jenkins.longlinkislong.com/job/$projectName/lastSuccessfulBuild/artifact/build/version.release".toURL().text.trim()
+        } else {
+            throw new IllegalArgumentException("Unsupported build type: $buildType")
+        }
+    }
 }
 
 dependencies {
     compile 'org.slf4j:slf4j-api:1.7.+'    
-    compile "com.longlinkislong:gloop-spi:${getProjectVersion('gloop-spi')}"
+    compile "com.longlinkislong:gloop-spi:${getVersion('gloop-1.X.X-vectors')}"
     compile "org.lwjgl:lwjgl:3.0.0"
     compile "org.lwjgl:lwjgl-platform:3.0.0:natives-windows"
     compile "org.lwjgl:lwjgl-platform:3.0.0:natives-linux"
