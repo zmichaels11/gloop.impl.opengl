@@ -16,7 +16,7 @@ repositories {
 }
 
 def getSnapshot(projectName) {
-    def result = new ProcessBuilder('sqlite3', 'versioning.db', "select hash from versioning where library='$projectName'").start().text.trim()
+    def result = new ProcessBuilder('sqlite3', database, "SELECT hash FROM versioning WHERE library='$projectName'").start().text.trim()
     
     return "$result-SNAPSHOT"
 }
@@ -46,10 +46,11 @@ def getVersion(projectName, buildType) {
 }
 
 def getRelease(projectName) {
-    def version = new ProcessBuilder('sqlite3', 'versioning.db', "select major, minor, revision from versioning where library='$projectName'").start().text.trim()
+    def version = new ProcessBuilder('sqlite3', database, "SELECT major,minor,revision FROM versioning WHERE library='$projectName'").start().text.trim()
     
     if (version.empty) {
-        System.err.println("Library [$projectName] was not found in database!")
+        def dbFile = new File(database).absolutePath
+        System.err.println("Library [$projectName] was not found in database: $dbFile")
         return null
     } else {
         return version.replace('|', '.')
@@ -58,7 +59,7 @@ def getRelease(projectName) {
 
 dependencies {
     compile 'org.slf4j:slf4j-api:1.7.+'    
-    compile "com.longlinkislong:gloop-spi:${getVersion('gloop-1.X.X-vectors')}"
+    compile "com.longlinkislong:gloop-spi:${getVersion('gloop-vectors')}"
     compile "org.lwjgl:lwjgl:3.0.0"
     compile "org.lwjgl:lwjgl-platform:3.0.0:natives-windows"
     compile "org.lwjgl:lwjgl-platform:3.0.0:natives-linux"
