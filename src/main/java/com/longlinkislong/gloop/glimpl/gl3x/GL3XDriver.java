@@ -876,7 +876,7 @@ final class GL3XDriver implements Driver<
                 GL11.glTexParameteri(GL11.GL_TEXTURE_1D, GL12.GL_TEXTURE_MAX_LEVEL, mipmaps);
 
                 if (GL.getCapabilities().GL_ARB_texture_storage) {
-                    ARBTextureStorage.glTexStorage1D(GL11.GL_TEXTURE_1D, mipmaps, guessFormat(internalFormat), width);
+                    ARBTextureStorage.glTexStorage1D(GL11.GL_TEXTURE_1D, mipmaps, internalFormat, width);
                 } else {
                     for (int i = 0; i < mipmaps; i++) {
                         GL11.glTexImage1D(GL11.GL_TEXTURE_1D, i, internalFormat, width, 0, guessFormat(internalFormat), dataType, 0);
@@ -889,7 +889,7 @@ final class GL3XDriver implements Driver<
                 GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL12.GL_TEXTURE_MAX_LEVEL, mipmaps);
 
                 if (GL.getCapabilities().GL_ARB_texture_storage) {
-                    ARBTextureStorage.glTexStorage2D(GL11.GL_TEXTURE_2D, mipmaps, guessFormat(internalFormat), width, height);
+                    ARBTextureStorage.glTexStorage2D(GL11.GL_TEXTURE_2D, mipmaps, internalFormat, width, height);
                 } else {
                     for (int i = 0; i < mipmaps; i++) {
                         GL11.glTexImage2D(GL11.GL_TEXTURE_2D, i, internalFormat, width, height, 0, guessFormat(internalFormat), dataType, 0);
@@ -903,7 +903,7 @@ final class GL3XDriver implements Driver<
                 GL11.glTexParameteri(GL12.GL_TEXTURE_3D, GL12.GL_TEXTURE_MAX_LEVEL, mipmaps);
 
                 if (GL.getCapabilities().GL_ARB_texture_storage) {
-                    ARBTextureStorage.glTexStorage3D(GL12.GL_TEXTURE_3D, mipmaps, guessFormat(internalFormat), width, height, depth);
+                    ARBTextureStorage.glTexStorage3D(GL12.GL_TEXTURE_3D, mipmaps, internalFormat, width, height, depth);
                 } else {
                     for (int i = 0; i < mipmaps; i++) {
                         GL12.glTexImage3D(GL12.GL_TEXTURE_3D, i, internalFormat, width, height, depth, 0, guessFormat(internalFormat), dataType, 0);
