@@ -53,7 +53,7 @@ final class GL45Driver implements Driver<
 
     @Override
     public void bufferBindAtomic(GL45Buffer bt, int index) {
-        GL30.glBindBufferBase(GL42.GL_ATOMIC_COUNTER_BUFFER, index, bt.bufferId);
+        GL30.glBindBufferBase(GL42.GL_ATOMIC_COUNTER_BUFFER, index, bt.bufferId);        
     }
 
     @Override
