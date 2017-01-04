@@ -1127,7 +1127,7 @@ final class GL4XDriver implements Driver<
                 GL11.glTexParameteri(GL11.GL_TEXTURE_1D, GL12.GL_TEXTURE_MAX_LEVEL, mipmaps);
 
                 if (GL.getCapabilities().GL_ARB_texture_storage) {
-                    ARBTextureStorage.glTexStorage1D(GL11.GL_TEXTURE_1D, mipmaps, internalFormat, width);                    
+                    ARBTextureStorage.glTexStorage1D(GL11.GL_TEXTURE_1D, mipmaps, internalFormat, width);
                 } else {
                     for (int i = 0; i < mipmaps; i++) {
                         GL11.glTexImage1D(GL11.GL_TEXTURE_1D, i, internalFormat, width, 0, guessFormat(internalFormat), dataType, 0);
@@ -1406,12 +1406,13 @@ final class GL4XDriver implements Driver<
         GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, buffer.bufferId);
         GL20.glEnableVertexAttribArray(index);
 
-        if (type == GL11.GL_DOUBLE) {
+        // check if we need 64bit types
+        if (type == GL11.GL_DOUBLE || type == ARBBindlessTexture.GL_UNSIGNED_INT64_ARB) {
             if (GL.getCapabilities().GL_ARB_vertex_attrib_64bit) {
                 if (RECORD_CALLS) {
                     recordCall("glVertexAttribLPointer", index, size, type, stride, offset);
                 }
-
+                
                 ARBVertexAttrib64Bit.glVertexAttribLPointer(index, size, type, stride, offset);
             } else {
                 if (RECORD_CALLS) {
@@ -1420,12 +1421,18 @@ final class GL4XDriver implements Driver<
 
                 throw new UnsupportedOperationException("ARB_vertex_attrib_64bit is not supported!");
             }
+        // either FLOAT or any [un]signed integer type (except UNSIGNED_INT64)
         } else {
             if (RECORD_CALLS) {
                 recordCall("glVertexAttribPointer", index, size, type, false, stride, offset);
             }
 
-            GL20.glVertexAttribPointer(index, size, type, false, stride, offset);
+            // FLOAT must go in VertexAttribPointer
+            if (type == GL11.GL_FLOAT) {
+                GL20.glVertexAttribPointer(index, size, type, false, stride, offset);
+            } else {
+                GL30.glVertexAttribIPointer(index, size, type, stride, offset);
+            }
         }
 
         if (divisor > 0) {

@@ -53,7 +53,7 @@ final class GL45Driver implements Driver<
 
     @Override
     public void bufferBindAtomic(GL45Buffer bt, int index) {
-        GL30.glBindBufferBase(GL42.GL_ATOMIC_COUNTER_BUFFER, index, bt.bufferId);        
+        GL30.glBindBufferBase(GL42.GL_ATOMIC_COUNTER_BUFFER, index, bt.bufferId);
     }
 
     @Override
@@ -98,7 +98,7 @@ final class GL45Driver implements Driver<
 
     @Override
     public int programGetStorageBlockBinding(GL45Program pt, String storageBlockName) {
-        if(pt.storageBindings.containsKey(storageBlockName)) {
+        if (pt.storageBindings.containsKey(storageBlockName)) {
             return pt.storageBindings.get(storageBlockName);
         } else {
             return -1;
@@ -107,7 +107,7 @@ final class GL45Driver implements Driver<
 
     @Override
     public int programGetUniformBlockBinding(GL45Program pt, String uniformBlockName) {
-        if(pt.uniformBindings.containsKey(uniformBlockName)) {
+        if (pt.uniformBindings.containsKey(uniformBlockName)) {
             return pt.uniformBindings.get(uniformBlockName);
         } else {
             return -1;
@@ -1081,22 +1081,22 @@ final class GL45Driver implements Driver<
 
     @Override
     public void textureAllocatePage(GL45Texture texture, int level, int xOffset, int yOffset, int zOffset, int width, int height, int depth) {
-        if(GL.getCapabilities().GL_ARB_sparse_texture) {
-        if (RECORD_CALLS) {
-            recordCall("glTexPageCommitmentARB",
+        if (GL.getCapabilities().GL_ARB_sparse_texture) {
+            if (RECORD_CALLS) {
+                recordCall("glTexPageCommitmentARB",
+                        texture.textureId, level,
+                        xOffset, yOffset, zOffset,
+                        width, height, depth,
+                        true);
+            }
+
+            ARBSparseTexture.glTexPageCommitmentARB(
                     texture.textureId, level,
                     xOffset, yOffset, zOffset,
                     width, height, depth,
                     true);
-        }
-
-        ARBSparseTexture.glTexPageCommitmentARB(
-                texture.textureId, level,
-                xOffset, yOffset, zOffset,
-                width, height, depth,
-                true);
         } else {
-            if(RECORD_CALLS) {
+            if (RECORD_CALLS) {
                 recordCall("[unsupported] glTexPageCommitmentARB", texture.textureId, level, xOffset, yOffset, zOffset, width, height, depth, true);
             }
 
@@ -1115,22 +1115,22 @@ final class GL45Driver implements Driver<
 
     @Override
     public void textureDeallocatePage(GL45Texture texture, int level, int xOffset, int yOffset, int zOffset, int width, int height, int depth) {
-        if(GL.getCapabilities().GL_ARB_sparse_texture) {
-        if (RECORD_CALLS) {
-            recordCall("glTexPageCommitmentARB",
+        if (GL.getCapabilities().GL_ARB_sparse_texture) {
+            if (RECORD_CALLS) {
+                recordCall("glTexPageCommitmentARB",
+                        texture.textureId, level,
+                        xOffset, yOffset, zOffset,
+                        width, height, depth,
+                        false);
+            }
+
+            ARBSparseTexture.glTexPageCommitmentARB(
                     texture.textureId, level,
                     xOffset, yOffset, zOffset,
                     width, height, depth,
                     false);
-        }
-
-        ARBSparseTexture.glTexPageCommitmentARB(
-                texture.textureId, level,
-                xOffset, yOffset, zOffset,
-                width, height, depth,
-                false);
         } else {
-            if(RECORD_CALLS) {
+            if (RECORD_CALLS) {
                 recordCall("[unused] glTexPageCommitmentARB", texture.textureId, level, xOffset, yOffset, zOffset, width, height, depth, true);
             }
 
@@ -1140,7 +1140,7 @@ final class GL45Driver implements Driver<
 
     @Override
     public long textureMap(GL45Texture texture) {
-        if(texture.pHandle != -1) {
+        if (texture.pHandle != -1) {
             return texture.pHandle;
         }
 
@@ -1155,11 +1155,11 @@ final class GL45Driver implements Driver<
 
     @Override
     public void textureUnmap(GL45Texture texture) {
-        if(texture.pHandle == -1) {
+        if (texture.pHandle == -1) {
             return;
         }
-        
-        if(GL.getCapabilities().GL_ARB_bindless_texture) {
+
+        if (GL.getCapabilities().GL_ARB_bindless_texture) {
             ARBBindlessTexture.glMakeTextureHandleNonResidentARB(texture.pHandle);
             texture.pHandle = -1;
         } else {
@@ -1329,6 +1329,7 @@ final class GL45Driver implements Driver<
         if (stride == 0) {
             switch (type) {
                 case GL11.GL_DOUBLE:
+                case ARBBindlessTexture.GL_UNSIGNED_INT64_ARB:
                     stride = size * 8;
                     break;
                 case GL11.GL_FLOAT:
@@ -1346,6 +1347,28 @@ final class GL45Driver implements Driver<
             }
         }
 
+        final boolean isFloatingPoint;
+        final boolean is64Bit;
+
+        switch (type) {
+            case GL11.GL_DOUBLE:
+                isFloatingPoint = true;
+                is64Bit = true;
+                break;
+            case GL11.GL_FLOAT:
+                isFloatingPoint = true;
+                is64Bit = false;
+                break;
+            case ARBBindlessTexture.GL_UNSIGNED_INT64_ARB:
+                isFloatingPoint = false;
+                is64Bit = true;
+                break;
+            default:
+                isFloatingPoint = false;
+                is64Bit = false;
+                break;
+        }
+
         if (RECORD_CALLS) {
             final int vaoId = vao.vertexArrayId;
 
@@ -1356,7 +1379,19 @@ final class GL45Driver implements Driver<
         }
 
         GL45.glEnableVertexArrayAttrib(vao.vertexArrayId, index);
-        GL45.glVertexArrayAttribFormat(vao.vertexArrayId, index, size, type, false, 0);
+
+        if (is64Bit) {
+            // ARB_bindless_texture states that this accepts EITHER DOUBLE or UNSIGNED_INT64_ARB
+            GL45.glVertexArrayAttribLFormat(vao.vertexArrayId, index, size, type, 0);
+        } else {
+            if (isFloatingPoint) {
+                // OpenGL spec 4.5 states that this ONLY accepts floating point types. DOUBLE is converted to FLOAT here
+                GL45.glVertexArrayAttribFormat(vao.vertexArrayId, index, size, type, false, 0);
+            } else {                
+                GL45.glVertexArrayAttribIFormat(vao.vertexArrayId, index, size, type, 0);
+            }
+        }
+        
         GL45.glVertexArrayVertexBuffer(vao.vertexArrayId, index, buffer.bufferId, offset, stride);
         GL45.glVertexArrayAttribBinding(vao.vertexArrayId, index, index);
 
@@ -1480,7 +1515,7 @@ final class GL45Driver implements Driver<
         GL31.glDrawElementsInstanced(drawMode, count, type, offset, instanceCount);
 
         state.vertexArrayPop();
-    }   
+    }
 
     @Override
     public void viewportApply(int x, int y, int width, int height) {

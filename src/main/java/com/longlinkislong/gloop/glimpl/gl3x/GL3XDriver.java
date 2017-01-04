@@ -1115,7 +1115,11 @@ final class GL3XDriver implements Driver<
                 throw new UnsupportedOperationException("ARB_vertex_attrib_64bit is not supported!");
             }
         } else {
-            GL20.glVertexAttribPointer(index, size, type, false, stride, offset);
+            if (type == GL11.GL_FLOAT) {
+                GL20.glVertexAttribPointer(index, size, type, false, stride, offset);
+            } else {
+                GL30.glVertexAttribIPointer(index, size, type, stride, offset);
+            }
         }
 
         if (divisor > 0) {
