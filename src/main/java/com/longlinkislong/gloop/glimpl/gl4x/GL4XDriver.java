@@ -170,11 +170,7 @@ final class GL4XDriver implements Driver<
     public void transformFeedbackEnd() {
         GL30.glEndTransformFeedback();
         GL11.glDisable(GL30.GL_RASTERIZER_DISCARD);
-    }
-
-    private void recordCall(String call, Object... params) {
-        GLSPIBaseObject.recordCall(callHistory, call, params);
-    }
+    }    
 
     @Override
     public List<String> getCallHistory() {
@@ -212,21 +208,11 @@ final class GL4XDriver implements Driver<
 
     @Override
     public void blendingDisable() {
-        if (RECORD_CALLS) {
-            recordCall("glDisable", "GL_BLEND");
-        }
-
         GL11.glDisable(GL11.GL_BLEND);
     }
 
     @Override
     public void blendingEnable(int rgbEq, int aEq, int rgbFuncSrc, int rgbFuncDst, int aFuncSrc, int aFuncDst) {
-        if (RECORD_CALLS) {
-            recordCall("glEnable", "GL_BLEND");
-            recordCall("glBlendFuncSeparate", rgbFuncSrc, rgbFuncDst, aFuncSrc, aFuncDst);
-            recordCall("glBlendEquationSeparate", rgbEq, aEq);
-        }
-
         GL11.glEnable(GL11.GL_BLEND);
         GL14.glBlendFuncSeparate(rgbFuncSrc, rgbFuncDst, aFuncSrc, aFuncDst);
         GL20.glBlendEquationSeparate(rgbEq, aEq);
@@ -235,10 +221,6 @@ final class GL4XDriver implements Driver<
     @Override
     public void bufferAllocate(GL4XBuffer buffer, long size, int usage) {
         state.bufferPush(GL15.GL_ARRAY_BUFFER, buffer.bufferId);
-
-        if (RECORD_CALLS) {
-            recordCall("glBufferData", "GL_ARRAY_BUFFER", size, usage);
-        }
 
         GL15.glBufferData(GL15.GL_ARRAY_BUFFER, size, usage);
 
@@ -249,10 +231,6 @@ final class GL4XDriver implements Driver<
     public void bufferAllocateImmutable(GL4XBuffer buffer, long size, int bitflags) {
         if (GL.getCapabilities().GL_ARB_buffer_storage) {
             state.bufferPush(GL15.GL_ARRAY_BUFFER, buffer.bufferId);
-
-            if (RECORD_CALLS) {
-                recordCall("glBufferStorage", "GL_ARRAY_BUFFER", size, bitflags);
-            }
 
             ARBBufferStorage.glBufferStorage(GL15.GL_ARRAY_BUFFER, size, bitflags);
 
@@ -265,12 +243,6 @@ final class GL4XDriver implements Driver<
 
     @Override
     public void bufferCopyData(GL4XBuffer srcBuffer, long srcOffset, GL4XBuffer dstBuffer, long dstOffset, long size) {
-        if (RECORD_CALLS) {
-            recordCall("glBindBuffer", "GL_COPY_READ_BUFFER", srcBuffer.bufferId);
-            recordCall("glBindBuffer", "GL_COPY_WRITE_BUFFER", dstBuffer.bufferId);
-            recordCall("glCopyBufferSubData", "GL_COPY_READ_BUFFER", "GL_COPY_WRITE_BUFFER", srcOffset, dstOffset, size);
-        }
-
         GL15.glBindBuffer(GL31.GL_COPY_READ_BUFFER, srcBuffer.bufferId);
         GL15.glBindBuffer(GL31.GL_COPY_WRITE_BUFFER, dstBuffer.bufferId);
         GL31.glCopyBufferSubData(GL31.GL_COPY_READ_BUFFER, GL31.GL_COPY_WRITE_BUFFER, srcOffset, dstOffset, size);
@@ -278,10 +250,6 @@ final class GL4XDriver implements Driver<
 
     @Override
     public GL4XBuffer bufferCreate() {
-        if (RECORD_CALLS) {
-            recordCall("#bufferId = glGenBuffers");
-        }
-
         final GL4XBuffer buffer = new GL4XBuffer();
         buffer.bufferId = GL15.glGenBuffers();
         return buffer;
@@ -289,10 +257,6 @@ final class GL4XDriver implements Driver<
 
     @Override
     public void bufferDelete(GL4XBuffer buffer) {
-        if (RECORD_CALLS) {
-            recordCall("glDeleteBuffers", buffer.bufferId);
-        }
-
         GL15.glDeleteBuffers(buffer.bufferId);
         buffer.bufferId = -1;
     }
@@ -300,10 +264,6 @@ final class GL4XDriver implements Driver<
     @Override
     public void bufferGetData(GL4XBuffer buffer, long offset, ByteBuffer out) {
         state.bufferPush(GL15.GL_ARRAY_BUFFER, buffer.bufferId);
-
-        if (RECORD_CALLS) {
-            recordCall("glGetBufferSubData", "GL_ARRAY_BUFFER", offset, out);
-        }
 
         GL15.glGetBufferSubData(GL15.GL_ARRAY_BUFFER, offset, out);
 
@@ -314,10 +274,6 @@ final class GL4XDriver implements Driver<
     public int bufferGetParameterI(GL4XBuffer buffer, int paramId) {
         state.bufferPush(GL15.GL_ARRAY_BUFFER, buffer.bufferId);
 
-        if (RECORD_CALLS) {
-            recordCall("#val = glGetBufferParameteri", "GL_ARRAY_BUFFER", buffer.bufferId);
-        }
-
         final int res = GL15.glGetBufferParameteri(GL15.GL_ARRAY_BUFFER, buffer.bufferId);
 
         state.bufferPop(GL15.GL_ARRAY_BUFFER);
@@ -327,16 +283,8 @@ final class GL4XDriver implements Driver<
     @Override
     public void bufferInvalidateData(GL4XBuffer buffer) {
         if (GL.getCapabilities().GL_ARB_invalidate_subdata) {
-            if (RECORD_CALLS) {
-                recordCall("glInvalidateBufferData", buffer.bufferId);
-            }
-
             ARBInvalidateSubdata.glInvalidateBufferData(buffer.bufferId);
         } else {
-            if (RECORD_CALLS) {
-                recordCall("[ignored] glInvalidateBufferData", buffer.bufferId);
-            }
-
             LOGGER.trace("ARB_invalidate_subdata is not supported... Ignoring call to glInvalidateBufferData.");
         }
     }
@@ -344,16 +292,8 @@ final class GL4XDriver implements Driver<
     @Override
     public void bufferInvalidateRange(GL4XBuffer buffer, long offset, long length) {
         if (GL.getCapabilities().GL_ARB_invalidate_subdata) {
-            if (RECORD_CALLS) {
-                recordCall("glInvalidateBufferSubData", buffer.bufferId, offset, length);
-            }
-
             ARBInvalidateSubdata.glInvalidateBufferSubData(buffer.bufferId, offset, length);
         } else {
-            if (RECORD_CALLS) {
-                recordCall("[ignored] glInvalidateBufferSubData", buffer.bufferId, offset, length);
-            }
-
             LOGGER.trace("ARB_invalidate_subdata is not supported... Ignoring call to glInvalidateBufferSubData");
         }
     }
@@ -361,10 +301,6 @@ final class GL4XDriver implements Driver<
     @Override
     public ByteBuffer bufferMapData(GL4XBuffer buffer, long offset, long length, int accessFlags) {
         state.bufferPush(GL15.GL_ARRAY_BUFFER, buffer.bufferId);
-
-        if (RECORD_CALLS) {
-            recordCall("glMapBufferRange", "GL_ARRAY_BUFFER", offset, length, accessFlags, buffer.mapBuffer);
-        }
 
         buffer.mapBuffer = GL30.glMapBufferRange(GL15.GL_ARRAY_BUFFER, offset, length, accessFlags, buffer.mapBuffer);
 
@@ -377,10 +313,6 @@ final class GL4XDriver implements Driver<
     public void bufferSetData(GL4XBuffer buffer, ByteBuffer data, int usage) {
         state.bufferPush(GL15.GL_ARRAY_BUFFER, buffer.bufferId);
 
-        if (RECORD_CALLS) {
-            recordCall("glBufferData", "GL_ARRAY_BUFFER", data, usage);
-        }
-
         GL15.glBufferData(GL15.GL_ARRAY_BUFFER, data, usage);
 
         state.bufferPop(GL15.GL_ARRAY_BUFFER);
@@ -390,10 +322,6 @@ final class GL4XDriver implements Driver<
     public void bufferUnmapData(GL4XBuffer buffer) {
         state.bufferPush(GL15.GL_ARRAY_BUFFER, buffer.bufferId);
 
-        if (RECORD_CALLS) {
-            recordCall("glUnmapBuffer", "GL_ARRAY_BUFFER");
-        }
-
         GL15.glUnmapBuffer(GL15.GL_ARRAY_BUFFER);
 
         state.bufferPop(GL15.GL_ARRAY_BUFFER);
@@ -401,12 +329,6 @@ final class GL4XDriver implements Driver<
 
     @Override
     public void clear(int bitfield, float red, float green, float blue, float alpha, double depth) {
-        if (RECORD_CALLS) {
-            recordCall("glClearColor", red, green, blue, alpha);
-            recordCall("glClearDepth", depth);
-            recordCall("glClear", bitfield);
-        }
-
         GL11.glClearColor(red, green, blue, alpha);
         GL11.glClearDepth(depth);
         GL11.glClear(bitfield);
@@ -414,20 +336,11 @@ final class GL4XDriver implements Driver<
 
     @Override
     public void depthTestDisable() {
-        if (RECORD_CALLS) {
-            recordCall("glDisable", "GL_DEPTH_TEST");
-        }
-
         GL11.glDisable(GL11.GL_DEPTH_TEST);
     }
 
     @Override
     public void depthTestEnable(int depthTest) {
-        if (RECORD_CALLS) {
-            recordCall("glEnable", "GL_DEPTH_TEST");
-            recordCall("glDepthFunc", depthTest);
-        }
-
         GL11.glEnable(GL11.GL_DEPTH_TEST);
         GL11.glDepthFunc(depthTest);
     }
@@ -468,17 +381,9 @@ final class GL4XDriver implements Driver<
 
         switch (texId.target) {
             case GL11.GL_TEXTURE_1D:
-                if (RECORD_CALLS) {
-                    recordCall("glFramebufferTexture1D", "GL_FRAMEBUFFER", attachmentId, "GL_TEXTURE_1D", texId.textureId, mipmapLevel);
-                }
-
                 GL30.glFramebufferTexture1D(GL30.GL_FRAMEBUFFER, attachmentId, GL11.GL_TEXTURE_1D, texId.textureId, mipmapLevel);
                 break;
             case GL11.GL_TEXTURE_2D:
-                if (RECORD_CALLS) {
-                    recordCall("glFramebufferTexture2D", "GL_FRAMEBUFFER", attachmentId, "GL_TEXTURE_2D", texId.textureId, mipmapLevel);
-                }
-
                 GL30.glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, attachmentId, GL11.GL_TEXTURE_2D, texId.textureId, mipmapLevel);
                 break;
             default:
@@ -492,9 +397,6 @@ final class GL4XDriver implements Driver<
     public void framebufferAddRenderbuffer(GL4XFramebuffer framebuffer, int attachmentId, GL4XRenderbuffer renderbuffer) {
         state.framebufferPush(GL30.GL_FRAMEBUFFER, framebuffer.framebufferId);
 
-        if (RECORD_CALLS) {
-            recordCall("glFramebufferRenderbuffer", "GL_FRAMEBUFFER", attachmentId, "GL_RENDERBUFFER", renderbuffer.renderbufferId);
-        }
         // documents does not specify if renderbuffer needs to be bound...
         GL30.glFramebufferRenderbuffer(GL30.GL_FRAMEBUFFER, attachmentId, GL30.GL_RENDERBUFFER, renderbuffer.renderbufferId);
 
@@ -503,17 +405,9 @@ final class GL4XDriver implements Driver<
 
     @Override
     public void framebufferBind(GL4XFramebuffer framebuffer, IntBuffer attachments) {
-        if (RECORD_CALLS) {
-            recordCall("glBindFramebuffer", "GL_FRAMEBUFFER", framebuffer.framebufferId);
-        }
-
         GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, framebuffer.framebufferId);
 
         if (attachments != null) {
-            if (RECORD_CALLS) {
-                recordCall("glDrawBuffers", attachments);
-            }
-
             GL20.glDrawBuffers(attachments);
         }
     }
@@ -523,10 +417,6 @@ final class GL4XDriver implements Driver<
         state.framebufferPush(GL30.GL_READ_FRAMEBUFFER, srcFb.framebufferId);
         state.framebufferPush(GL30.GL_DRAW_FRAMEBUFFER, dstFb.framebufferId);
 
-        if (RECORD_CALLS) {
-            recordCall("glBlitFramebuffer", srcX0, srcY0, srcX1, srcY1, dstX0, dstY0, dstX1, dstY1, bitfield, filter);
-        }
-
         GL30.glBlitFramebuffer(srcX0, srcY0, srcX1, srcY1, dstX0, dstY0, dstX1, dstY1, bitfield, filter);
 
         state.framebufferPop(GL30.GL_DRAW_FRAMEBUFFER);
@@ -535,21 +425,15 @@ final class GL4XDriver implements Driver<
 
     @Override
     public GL4XFramebuffer framebufferCreate() {
-        if (RECORD_CALLS) {
-            recordCall("#fbId = glGenFramebuffers");
-        }
-
         final GL4XFramebuffer fb = new GL4XFramebuffer();
+        
         fb.framebufferId = GL30.glGenFramebuffers();
+        
         return fb;
     }
 
     @Override
     public void framebufferDelete(GL4XFramebuffer framebuffer) {
-        if (RECORD_CALLS) {
-            recordCall("glDeleteFramebuffers", framebuffer.framebufferId);
-        }
-
         GL30.glDeleteFramebuffers(framebuffer.framebufferId);
         framebuffer.framebufferId = -1;
     }
@@ -566,10 +450,6 @@ final class GL4XDriver implements Driver<
         state.framebufferPush(GL30.GL_FRAMEBUFFER, framebuffer.framebufferId);
         state.bufferPush(GL21.GL_PIXEL_PACK_BUFFER, dstBuffer.bufferId);
 
-        if (RECORD_CALLS) {
-            recordCall("glReadPixels", x, y, width, height, format, type, 0L);
-        }
-
         GL11.glReadPixels(
                 x, y, width, height,
                 format, type,
@@ -583,10 +463,6 @@ final class GL4XDriver implements Driver<
     public void framebufferGetPixels(GL4XFramebuffer framebuffer, int x, int y, int width, int height, int format, int type, ByteBuffer dstBuffer) {
         state.framebufferPush(GL30.GL_FRAMEBUFFER, framebuffer.framebufferId);
 
-        if (RECORD_CALLS) {
-            recordCall("glReadPixels", x, y, width, height, format, type, dstBuffer);
-        }
-
         GL11.glReadPixels(
                 x, y, width, height,
                 format, type,
@@ -599,10 +475,6 @@ final class GL4XDriver implements Driver<
     public boolean framebufferIsComplete(GL4XFramebuffer framebuffer) {
         state.framebufferPush(GL30.GL_FRAMEBUFFER, framebuffer.framebufferId);
 
-        if (RECORD_CALLS) {
-            recordCall("#complete = glCheckFramebufferStatus", "GL_FRAMEBUFFER");
-        }
-
         final int complete = GL30.glCheckFramebufferStatus(GL30.GL_FRAMEBUFFER);
 
         state.framebufferPop(GL30.GL_FRAMEBUFFER);
@@ -612,12 +484,6 @@ final class GL4XDriver implements Driver<
 
     @Override
     public void maskApply(boolean red, boolean green, boolean blue, boolean alpha, boolean depth, int stencil) {
-        if (RECORD_CALLS) {
-            recordCall("glColorMask", red, green, blue, alpha);
-            recordCall("glDepthMask", depth);
-            recordCall("glStencilMask", stencil);
-        }
-
         GL11.glColorMask(red, green, blue, alpha);
         GL11.glDepthMask(depth);
         GL11.glStencilMask(stencil);
@@ -625,35 +491,15 @@ final class GL4XDriver implements Driver<
 
     @Override
     public void polygonSetParameters(float pointSize, float lineWidth, int frontFace, int cullFace, int polygonMode, float offsetFactor, float offsetUnits) {
-        if (RECORD_CALLS) {
-            recordCall("glPointSize", pointSize);
-            recordCall("glLineWidth", lineWidth);
-            recordCall("glFrontFace", frontFace);
-        }
-
         GL11.glPointSize(pointSize);
         GL11.glLineWidth(lineWidth);
         GL11.glFrontFace(frontFace);
 
         if (cullFace == 0) {
-            if (RECORD_CALLS) {
-                recordCall("glDisable", "GL_CULL_FACE");
-            }
-
             GL11.glDisable(GL11.GL_CULL_FACE);
         } else {
-            if (RECORD_CALLS) {
-                recordCall("glEnable", "GL_CULL_FACE");
-                recordCall("glCullFace", cullFace);
-            }
-
             GL11.glEnable(GL11.GL_CULL_FACE);
             GL11.glCullFace(cullFace);
-        }
-
-        if (RECORD_CALLS) {
-            recordCall("glPolygonMode", "GL_FRONT_AND_BACK", polygonMode);
-            recordCall("glPolygonOffset", offsetFactor, offsetUnits);
         }
 
         GL11.glPolygonMode(GL11.GL_FRONT_AND_BACK, polygonMode);
@@ -662,10 +508,6 @@ final class GL4XDriver implements Driver<
 
     @Override
     public GL4XProgram programCreate() {
-        if (RECORD_CALLS) {
-            recordCall("#programId = glCreateProgram");
-        }
-
         GL4XProgram program = new GL4XProgram();
         program.programId = GL20.glCreateProgram();
         return program;
@@ -673,10 +515,6 @@ final class GL4XDriver implements Driver<
 
     @Override
     public void programDelete(GL4XProgram program) {
-        if (RECORD_CALLS) {
-            recordCall("glDeleteProgram", program.programId);
-        }
-
         GL20.glDeleteProgram(program.programId);
         program.programId = -1;
     }
@@ -686,18 +524,10 @@ final class GL4XDriver implements Driver<
         if (GL.getCapabilities().GL_ARB_compute_shader) {
             state.programPush(program.programId);
 
-            if (RECORD_CALLS) {
-                recordCall("glDispatchCompute", numX, numY, numZ);
-            }
-
             ARBComputeShader.glDispatchCompute(numX, numY, numZ);
 
             state.programPop();
         } else {
-            if (RECORD_CALLS) {
-                recordCall("[unsupported] glDispatchCompute", numX, numY, numZ);
-            }
-
             throw new UnsupportedOperationException("ARB_compute_shader is not supported!");
         }
     }
@@ -705,10 +535,6 @@ final class GL4XDriver implements Driver<
     @Override
     public int programGetUniformLocation(GL4XProgram program, String name) {
         state.programPush(program.programId);
-
-        if (RECORD_CALLS) {
-            recordCall("#loc = glGetUniformLocation", program.programId, name);
-        }
 
         final int res = GL20.glGetUniformLocation(program.programId, name);
 
@@ -721,15 +547,7 @@ final class GL4XDriver implements Driver<
         for (Shader shader : shaders) {
             final int shaderId = ((GL4XShader) shader).shaderId;
 
-            if (RECORD_CALLS) {
-                recordCall("glAttachShader", program.programId, shaderId);
-            }
-
             GL20.glAttachShader(program.programId, shaderId);
-        }
-
-        if (RECORD_CALLS) {
-            recordCall("glLinkProgram", program.programId);
         }
 
         GL20.glLinkProgram(program.programId);
@@ -737,73 +555,39 @@ final class GL4XDriver implements Driver<
         for (Shader shader : shaders) {
             final int shaderId = ((GL4XShader) shader).shaderId;
 
-            if (RECORD_CALLS) {
-                recordCall("glDetachShader", program.programId, shaderId);
-            }
-
             GL20.glDetachShader(program.programId, ((GL4XShader) shader).shaderId);
         }
     }
 
     @Override
     public void programSetAttribLocation(GL4XProgram program, int index, String name) {
-        if (RECORD_CALLS) {
-            recordCall("glBindAttribLocation", program.programId, index, name);
-        }
-
         GL20.glBindAttribLocation(program.programId, index, name);
     }
 
     @Override
     public void programSetFeedbackBuffer(GL4XProgram program, int varyingLoc, GL4XBuffer buffer) {
-        if (RECORD_CALLS) {
-            recordCall("glBindBufferBase", "GL_TRANSFORM_FEEDBACK_BUFFER", varyingLoc, buffer.bufferId);
-        }
-
         GL30.glBindBufferBase(GL30.GL_TRANSFORM_FEEDBACK_BUFFER, varyingLoc, buffer.bufferId);
     }
 
     @Override
     public void programSetFeedbackVaryings(GL4XProgram program, String[] varyings) {
-        if (RECORD_CALLS) {
-            recordCall("glTransformFeedbackVaryings", program.programId, varyings, "GL_SEPARATE_ATTRIBS");
-        }
-
         GL30.glTransformFeedbackVaryings(program.programId, varyings, GL30.GL_SEPARATE_ATTRIBS);
     }
 
     @Override
     public void programSetStorage(GL4XProgram program, String storageName, GL4XBuffer buffer, int bindingPoint) {
         if (GL.getCapabilities().GL_ARB_shader_storage_buffer_object) {
-            if (RECORD_CALLS) {
-                recordCall("#sBlock = glGetProgramResourceLocation", program.programId, "GL_SHADER_STORAGE_BLOCK", storageName);
-                recordCall("glBindBufferBase", "GL_SHADER_STORAGE_BLOCK", bindingPoint, buffer.bufferId);
-                recordCall("glShaderStorageBlockBinding", program.programId, "#sBlock", bindingPoint);
-            }
-
             final int sBlock = ARBProgramInterfaceQuery.glGetProgramResourceLocation(program.programId, ARBProgramInterfaceQuery.GL_SHADER_STORAGE_BLOCK, storageName);
 
             GL30.glBindBufferBase(ARBShaderStorageBufferObject.GL_SHADER_STORAGE_BUFFER, bindingPoint, buffer.bufferId);
             ARBShaderStorageBufferObject.glShaderStorageBlockBinding(program.programId, sBlock, bindingPoint);
         } else {
-            if (RECORD_CALLS) {
-                recordCall("#sBlock = glGetProgramResourceLocation", program.programId, "GL_SHADER_STORAGE_BLOCK", storageName);
-                recordCall("glBindBufferBase", "GL_SHADER_STORAGE_BLOCK", bindingPoint, buffer.bufferId);
-                recordCall("[unsupported] glShaderStorageBlockBinding", program.programId, "#sBlock", bindingPoint);
-            }
-
             throw new UnsupportedOperationException("ARB_shader_storage_buffer_object is not supported!");
         }
     }
 
     @Override
     public void programSetUniformBlock(GL4XProgram program, String uniformName, GL4XBuffer buffer, int bindingPoint) {
-        if (RECORD_CALLS) {
-            recordCall("#uBlock = glGetUniformBlockIndex", program.programId, uniformName);
-            recordCall("glBindBufferBase", "GL_UNIFORM_BUFFER", bindingPoint, buffer.bufferId);
-            recordCall("glUniformBlockBinding", program.programId, "#uBlock", bindingPoint);
-        }
-
         final int uBlock = GL31.glGetUniformBlockIndex(program.programId, uniformName);
 
         GL30.glBindBufferBase(GL31.GL_UNIFORM_BUFFER, bindingPoint, buffer.bufferId);
@@ -1289,16 +1073,8 @@ final class GL4XDriver implements Driver<
     @Override
     public int textureGetPageHeight(GL4XTexture texture) {
         if (GL.getCapabilities().GL_ARB_internalformat_query) {
-            if (RECORD_CALLS) {
-                recordCall("#VAL = [unsupported] glGetInternalformati", texture.target, texture.internalFormat, "GL_VIRTUAL_PAGE_SIZE_Y_ARB");
-            }
-
             return ARBInternalformatQuery.glGetInternalformati(texture.target, texture.internalFormat, ARBSparseTexture.GL_VIRTUAL_PAGE_SIZE_Y_ARB);
         } else {
-            if (RECORD_CALLS) {
-                recordCall("#val = [unsupported] glGetInternalformati", texture.target, texture.internalFormat, "GL_VIRTUAL_PAGE_SIZE_Y_ARB");
-            }
-
             throw new UnsupportedOperationException("ARB_internalformat_query is not supported!");
         }
     }
@@ -1306,16 +1082,8 @@ final class GL4XDriver implements Driver<
     @Override
     public int textureGetPageWidth(GL4XTexture texture) {
         if (GL.getCapabilities().GL_ARB_internalformat_query) {
-            if (RECORD_CALLS) {
-                recordCall("#val = glGetIntegernalformati", texture.target, texture.internalFormat, "GL_VIRTUAL_PAGE_SIZE_X_ARB");
-            }
-
             return ARBInternalformatQuery.glGetInternalformati(texture.target, texture.internalFormat, ARBSparseTexture.GL_VIRTUAL_PAGE_SIZE_X_ARB);
         } else {
-            if (RECORD_CALLS) {
-                recordCall("#val = [unsupported] glGetInternalformati", texture.target, texture.internalFormat, "GL_VIRTUAL_PAGE_SIZE_X_ARB");
-            }
-
             throw new UnsupportedOperationException("ARB_internalformat_query is not supported!");
         }
     }
@@ -1328,16 +1096,8 @@ final class GL4XDriver implements Driver<
     @Override
     public void textureInvalidateData(GL4XTexture texture, int level) {
         if (GL.getCapabilities().GL_ARB_invalidate_subdata) {
-            if (RECORD_CALLS) {
-                recordCall("glInvalidateTexImage", texture.target, level);
-            }
-
             ARBInvalidateSubdata.glInvalidateTexImage(texture.target, level);
         } else {
-            if (RECORD_CALLS) {
-                recordCall("glInvalidateTexImage", texture.target, level);
-            }
-
             LOGGER.trace("ARB_invalidate_subdata is not supported... Ignoring call to glInvalidateTexImage.");
         }
     }
@@ -1345,16 +1105,8 @@ final class GL4XDriver implements Driver<
     @Override
     public void textureInvalidateRange(GL4XTexture texture, int level, int xOffset, int yOffset, int zOffset, int width, int height, int depth) {
         if (GL.getCapabilities().GL_ARB_invalidate_subdata) {
-            if (RECORD_CALLS) {
-                recordCall("glInvalidateTexSubImage", texture.textureId, level, xOffset, yOffset, zOffset, width, height, depth);
-            }
-
             ARBInvalidateSubdata.glInvalidateTexSubImage(texture.textureId, level, xOffset, yOffset, zOffset, width, height, depth);
         } else {
-            if (RECORD_CALLS) {
-                recordCall("[ignored] glInvalidateTexSubImage", texture.textureId, level, xOffset, yOffset, zOffset, width, height, depth);
-            }
-
             LOGGER.trace("ARB_invalidate_subdata is not supported... Ignoring call to glInvalidateTexSubImage.");
         }
     }
@@ -1398,35 +1150,18 @@ final class GL4XDriver implements Driver<
     public void vertexArrayAttachBuffer(GL4XVertexArray vao, int index, GL4XBuffer buffer, int size, int type, int stride, long offset, int divisor) {
         state.vertexArrayPush(vao.vertexArrayId);
 
-        if (RECORD_CALLS) {
-            recordCall("glBindBuffer", "GL_ARRAY_BUFFER", buffer.bufferId);
-            recordCall("glEnableVertexAttribArray", index);
-        }
-
         GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, buffer.bufferId);
         GL20.glEnableVertexAttribArray(index);
 
         // check if we need 64bit types
         if (type == GL11.GL_DOUBLE || type == ARBBindlessTexture.GL_UNSIGNED_INT64_ARB) {
             if (GL.getCapabilities().GL_ARB_vertex_attrib_64bit) {
-                if (RECORD_CALLS) {
-                    recordCall("glVertexAttribLPointer", index, size, type, stride, offset);
-                }
-                
                 ARBVertexAttrib64Bit.glVertexAttribLPointer(index, size, type, stride, offset);
             } else {
-                if (RECORD_CALLS) {
-                    recordCall("[unsupported] glVertexAttribLPointer", index, size, type, stride, offset);
-                }
-
                 throw new UnsupportedOperationException("ARB_vertex_attrib_64bit is not supported!");
             }
         // either FLOAT or any [un]signed integer type (except UNSIGNED_INT64)
         } else {
-            if (RECORD_CALLS) {
-                recordCall("glVertexAttribPointer", index, size, type, false, stride, offset);
-            }
-
             // FLOAT must go in VertexAttribPointer
             if (type == GL11.GL_FLOAT) {
                 GL20.glVertexAttribPointer(index, size, type, false, stride, offset);
@@ -1436,10 +1171,6 @@ final class GL4XDriver implements Driver<
         }
 
         if (divisor > 0) {
-            if (RECORD_CALLS) {
-                recordCall("glVertexAttribDivisor", index, divisor);
-            }
-
             GL33.glVertexAttribDivisor(index, divisor);
         }
 
@@ -1450,10 +1181,6 @@ final class GL4XDriver implements Driver<
     public void vertexArrayAttachIndexBuffer(GL4XVertexArray vao, GL4XBuffer buffer) {
         state.vertexArrayPush(vao.vertexArrayId);
 
-        if (RECORD_CALLS) {
-            recordCall("glBindBuffer", "GL_ELEMENT_ARRAY_BUFFER", buffer.bufferId);
-        }
-
         GL15.glBindBuffer(GL15.GL_ELEMENT_ARRAY_BUFFER, buffer.bufferId);
 
         state.vertexArrayPop();
@@ -1463,20 +1190,12 @@ final class GL4XDriver implements Driver<
     public GL4XVertexArray vertexArrayCreate() {
         final GL4XVertexArray vao = new GL4XVertexArray();
 
-        if (RECORD_CALLS) {
-            recordCall("#vaoId = glGenVertexArrays");
-        }
-
         vao.vertexArrayId = GL30.glGenVertexArrays();
         return vao;
     }
 
     @Override
     public void vertexArrayDelete(GL4XVertexArray vao) {
-        if (RECORD_CALLS) {
-            recordCall("glDeleteVertexArrays", vao.vertexArrayId);
-        }
-
         GL30.glDeleteVertexArrays(vao.vertexArrayId);
         vao.vertexArrayId = -1;
     }
@@ -1484,10 +1203,6 @@ final class GL4XDriver implements Driver<
     @Override
     public void vertexArrayDrawArrays(GL4XVertexArray vao, int drawMode, int start, int count) {
         state.vertexArrayPush(vao.vertexArrayId);
-
-        if (RECORD_CALLS) {
-            recordCall("glDrawArrays", drawMode, start, count);
-        }
 
         GL11.glDrawArrays(drawMode, start, count);
 
@@ -1499,10 +1214,6 @@ final class GL4XDriver implements Driver<
         state.vertexArrayPush(vao.vertexArrayId);
         state.bufferPush(GL40.GL_DRAW_INDIRECT_BUFFER, cmdBuffer.bufferId);
 
-        if (RECORD_CALLS) {
-            recordCall("glDrawArraysIndirect", drawMode, offset);
-        }
-
         GL40.glDrawArraysIndirect(drawMode, offset);
 
         state.bufferPop(GL40.GL_DRAW_INDIRECT_BUFFER);
@@ -1513,10 +1224,6 @@ final class GL4XDriver implements Driver<
     public void vertexArrayDrawArraysInstanced(GL4XVertexArray vao, int drawMode, int first, int count, int instanceCount) {
         state.vertexArrayPush(vao.vertexArrayId);
 
-        if (RECORD_CALLS) {
-            recordCall("glDrawArraysInstanced", drawMode, first, count, instanceCount);
-        }
-
         GL31.glDrawArraysInstanced(drawMode, first, count, instanceCount);
 
         state.vertexArrayPop();
@@ -1525,10 +1232,6 @@ final class GL4XDriver implements Driver<
     @Override
     public void vertexArrayDrawElements(GL4XVertexArray vao, int drawMode, int count, int type, long offset) {
         state.vertexArrayPush(vao.vertexArrayId);
-
-        if (RECORD_CALLS) {
-            recordCall("glDrawElements", drawMode, count, type, offset);
-        }
 
         GL11.glDrawElements(drawMode, count, type, offset);
 
@@ -1540,10 +1243,6 @@ final class GL4XDriver implements Driver<
         state.vertexArrayPush(vao.vertexArrayId);
         state.bufferPush(GL40.GL_DRAW_INDIRECT_BUFFER, cmdBuffer.bufferId);
 
-        if (RECORD_CALLS) {
-            recordCall("glDrawElementsInstanced", drawMode, indexType, offset);
-        }
-
         GL40.glDrawElementsIndirect(drawMode, indexType, offset);
 
         state.bufferPop(GL40.GL_DRAW_INDIRECT_BUFFER);
@@ -1554,10 +1253,6 @@ final class GL4XDriver implements Driver<
     public void vertexArrayDrawElementsInstanced(GL4XVertexArray vao, int drawMode, int count, int type, long offset, int instanceCount) {
         state.vertexArrayPush(vao.vertexArrayId);
 
-        if (RECORD_CALLS) {
-            recordCall("glDrawElementsInstanced", drawMode, count, type, offset, instanceCount);
-        }
-
         GL31.glDrawElementsInstanced(drawMode, count, type, offset, instanceCount);
 
         state.vertexArrayPop();
@@ -1565,9 +1260,6 @@ final class GL4XDriver implements Driver<
 
     @Override
     public void viewportApply(int x, int y, int width, int height) {
-        if (RECORD_CALLS) {
-            recordCall("glViewport", x, y, width, height);
-        }
         GL11.glViewport(x, y, width, height);
     }
 }
