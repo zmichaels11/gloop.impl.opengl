@@ -5,7 +5,6 @@
  */
 package com.longlinkislong.gloop.glimpl.gl4x;
 
-import com.longlinkislong.gloop.glimpl.GLSPIBaseObject;
 import com.longlinkislong.gloop.glimpl.GLState;
 import com.longlinkislong.gloop.glspi.Driver;
 import com.longlinkislong.gloop.glspi.Shader;
@@ -20,12 +19,9 @@ import java.util.List;
 import org.lwjgl.opengl.ARBBindlessTexture;
 import org.lwjgl.opengl.ARBBufferStorage;
 import org.lwjgl.opengl.ARBComputeShader;
-import org.lwjgl.opengl.ARBInternalformatQuery;
 import org.lwjgl.opengl.ARBInvalidateSubdata;
-import org.lwjgl.opengl.ARBProgramInterfaceQuery;
 import org.lwjgl.opengl.ARBSeparateShaderObjects;
 import org.lwjgl.opengl.ARBShaderStorageBufferObject;
-import org.lwjgl.opengl.ARBSparseTexture;
 import org.lwjgl.opengl.ARBTextureStorage;
 import org.lwjgl.opengl.ARBVertexAttrib64Bit;
 import org.lwjgl.opengl.EXTTextureFilterAnisotropic;
@@ -52,7 +48,7 @@ import org.slf4j.LoggerFactory;
  * @author zmichaels
  */
 final class GL4XDriver implements Driver<
-        GL4XBuffer, GL4XFramebuffer, GL4XRenderbuffer, GL4XTexture, GL4XShader, GL4XProgram, GL4XSampler, GL4XVertexArray, GL4XDrawQuery> {
+        GL4XBuffer, GL4XFramebuffer, GL4XRenderbuffer, GL4XTexture, GL4XShader, GL4XProgram, GL4XSampler, GL4XVertexArray> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GL4XDriver.class);
     private static final boolean RECORD_CALLS = Boolean.getBoolean("com.longlinkislong.gloop.record_calls");
@@ -171,16 +167,6 @@ final class GL4XDriver implements Driver<
         GL30.glEndTransformFeedback();
         GL11.glDisable(GL30.GL_RASTERIZER_DISCARD);
     }    
-
-    @Override
-    public List<String> getCallHistory() {
-        return Collections.unmodifiableList(new ArrayList<>(this.callHistory));
-    }
-
-    @Override
-    public void clearCallHistory() {
-        this.callHistory.clear();
-    }
 
     @Override
     public int shaderGetVersion() {
@@ -343,37 +329,7 @@ final class GL4XDriver implements Driver<
     public void depthTestEnable(int depthTest) {
         GL11.glEnable(GL11.GL_DEPTH_TEST);
         GL11.glDepthFunc(depthTest);
-    }
-
-    @Override
-    public void drawQueryBeginConditionalRender(GL4XDrawQuery query, int mode) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    @Override
-    public GL4XDrawQuery drawQueryCreate() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    @Override
-    public void drawQueryDelete(GL4XDrawQuery query) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    @Override
-    public void drawQueryDisable(int condition) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    @Override
-    public void drawQueryEnable(int condition, GL4XDrawQuery query) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    @Override
-    public void drawQueryEndConditionRender() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
+    }    
 
     @Override
     public void framebufferAddAttachment(GL4XFramebuffer framebuffer, int attachmentId, GL4XTexture texId, int mipmapLevel) {
@@ -565,33 +521,8 @@ final class GL4XDriver implements Driver<
     }
 
     @Override
-    public void programSetFeedbackBuffer(GL4XProgram program, int varyingLoc, GL4XBuffer buffer) {
-        GL30.glBindBufferBase(GL30.GL_TRANSFORM_FEEDBACK_BUFFER, varyingLoc, buffer.bufferId);
-    }
-
-    @Override
     public void programSetFeedbackVaryings(GL4XProgram program, String[] varyings) {
         GL30.glTransformFeedbackVaryings(program.programId, varyings, GL30.GL_SEPARATE_ATTRIBS);
-    }
-
-    @Override
-    public void programSetStorage(GL4XProgram program, String storageName, GL4XBuffer buffer, int bindingPoint) {
-        if (GL.getCapabilities().GL_ARB_shader_storage_buffer_object) {
-            final int sBlock = ARBProgramInterfaceQuery.glGetProgramResourceLocation(program.programId, ARBProgramInterfaceQuery.GL_SHADER_STORAGE_BLOCK, storageName);
-
-            GL30.glBindBufferBase(ARBShaderStorageBufferObject.GL_SHADER_STORAGE_BUFFER, bindingPoint, buffer.bufferId);
-            ARBShaderStorageBufferObject.glShaderStorageBlockBinding(program.programId, sBlock, bindingPoint);
-        } else {
-            throw new UnsupportedOperationException("ARB_shader_storage_buffer_object is not supported!");
-        }
-    }
-
-    @Override
-    public void programSetUniformBlock(GL4XProgram program, String uniformName, GL4XBuffer buffer, int bindingPoint) {
-        final int uBlock = GL31.glGetUniformBlockIndex(program.programId, uniformName);
-
-        GL30.glBindBufferBase(GL31.GL_UNIFORM_BUFFER, bindingPoint, buffer.bufferId);
-        GL31.glUniformBlockBinding(program.programId, uBlock, bindingPoint);
     }
 
     @Override
@@ -987,36 +918,10 @@ final class GL4XDriver implements Driver<
     }
 
     @Override
-    public void textureAllocatePage(GL4XTexture texture, int level, int xOffset, int yOffset, int zOffset, int width, int height, int depth) {
-        if (GL.getCapabilities().GL_ARB_sparse_texture) {
-            ARBSparseTexture.glTexPageCommitmentARB(
-                    texture.textureId, level,
-                    xOffset, yOffset, zOffset,
-                    width, height, depth,
-                    true);
-        } else {
-            throw new UnsupportedOperationException("ARB_sparse_texture is not supported!");
-        }
-    }
-
-    @Override
     public void textureBind(GL4XTexture texture, int unit) {
         GL13.glActiveTexture(GL13.GL_TEXTURE0 + unit);
         GL11.glBindTexture(texture.target, texture.textureId);
-    }
-
-    @Override
-    public void textureDeallocatePage(GL4XTexture texture, int level, int xOffset, int yOffset, int zOffset, int width, int height, int depth) {
-        if (GL.getCapabilities().GL_ARB_sparse_texture) {
-            ARBSparseTexture.glTexPageCommitmentARB(
-                    texture.textureId, level,
-                    xOffset, yOffset, zOffset,
-                    width, height, depth,
-                    false);
-        } else {
-            throw new UnsupportedOperationException("ARB_sparse_texture is not supported!");
-        }
-    }
+    }    
 
     @Override
     public void textureDelete(GL4XTexture texture) {
@@ -1059,33 +964,6 @@ final class GL4XDriver implements Driver<
     @Override
     public int textureGetMaxSize() {
         return GL11.glGetInteger(GL11.GL_MAX_TEXTURE_SIZE);
-    }
-
-    @Override
-    public int textureGetPageDepth(GL4XTexture texture) {
-        if (GL.getCapabilities().GL_ARB_internalformat_query) {
-            return ARBInternalformatQuery.glGetInternalformati(texture.target, texture.internalFormat, ARBSparseTexture.GL_VIRTUAL_PAGE_SIZE_Z_ARB);
-        } else {
-            throw new UnsupportedOperationException("ARB_internalformat_query is not supported!");
-        }
-    }
-
-    @Override
-    public int textureGetPageHeight(GL4XTexture texture) {
-        if (GL.getCapabilities().GL_ARB_internalformat_query) {
-            return ARBInternalformatQuery.glGetInternalformati(texture.target, texture.internalFormat, ARBSparseTexture.GL_VIRTUAL_PAGE_SIZE_Y_ARB);
-        } else {
-            throw new UnsupportedOperationException("ARB_internalformat_query is not supported!");
-        }
-    }
-
-    @Override
-    public int textureGetPageWidth(GL4XTexture texture) {
-        if (GL.getCapabilities().GL_ARB_internalformat_query) {
-            return ARBInternalformatQuery.glGetInternalformati(texture.target, texture.internalFormat, ARBSparseTexture.GL_VIRTUAL_PAGE_SIZE_X_ARB);
-        } else {
-            throw new UnsupportedOperationException("ARB_internalformat_query is not supported!");
-        }
     }
 
     @Override
@@ -1261,5 +1139,71 @@ final class GL4XDriver implements Driver<
     @Override
     public void viewportApply(int x, int y, int width, int height) {
         GL11.glViewport(x, y, width, height);
+    }
+
+    @Override
+    public void textureGetData(GL4XTexture texture, int level, int format, int type, GL4XBuffer out, long offset, int size) {
+        final int currentTex;
+        switch (texture.textureId) {
+            case GL11.GL_TEXTURE_1D:
+                currentTex = GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_1D);
+                GL11.glBindTexture(GL11.GL_TEXTURE_1D, texture.textureId);
+                GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, out.bufferId);
+                GL11.glGetTexImage(GL11.GL_TEXTURE_1D, level, format, type, 0L);
+                GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, 0);
+                GL11.glBindTexture(GL11.GL_TEXTURE_1D, currentTex);
+                break;
+            case GL11.GL_TEXTURE_2D:
+                currentTex = GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_2D);
+                GL11.glBindTexture(GL11.GL_TEXTURE_2D, texture.textureId);
+                GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, out.bufferId);
+                GL11.glGetTexImage(GL11.GL_TEXTURE_2D, level, format, type, 0L);
+                GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, 0);
+                GL11.glBindTexture(GL11.GL_TEXTURE_2D, currentTex);
+                break;
+            case GL12.GL_TEXTURE_3D:
+                currentTex = GL11.glGetInteger(GL12.GL_TEXTURE_BINDING_3D);
+                GL11.glBindTexture(GL12.GL_TEXTURE_3D, texture.textureId);
+                GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER,out.bufferId);
+                GL11.glGetTexImage(GL12.GL_TEXTURE_3D, level, format, type, 0L);
+                GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, 0);
+                GL11.glBindTexture(GL12.GL_TEXTURE_3D,  currentTex);
+                break;
+            default:
+                throw new UnsupportedOperationException("Unsupported texture target: " + texture.target);
+        }
+    }
+
+    @Override
+    public void textureSetData(GL4XTexture texture, int level, int xOffset, int yOffset, int zOffset, int width, int height, int depth, int format, int type, GL4XBuffer buffer, long offset) {
+        final int currentTex;
+        switch(texture.textureId) {
+            case GL11.GL_TEXTURE_1D:
+                currentTex = GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_1D);
+                GL11.glBindTexture(GL11.GL_TEXTURE_1D, texture.textureId);
+                GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, buffer.bufferId);
+                GL11.glTexSubImage1D(GL11.GL_TEXTURE_1D, level, xOffset, width, format, type, 0L);
+                GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, 0);
+                GL11.glBindTexture(GL11.GL_TEXTURE_1D, currentTex);
+                break;
+            case GL11.GL_TEXTURE_2D:
+                currentTex = GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_2D);
+                GL11.glBindTexture(GL11.GL_TEXTURE_2D, texture.textureId);
+                GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, buffer.bufferId);
+                GL11.glTexSubImage2D(GL11.GL_TEXTURE_2D, level, xOffset, yOffset, width, height, format, type, 0L);
+                GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, 0);
+                GL11.glBindTexture(GL11.GL_TEXTURE_2D, currentTex);
+                break;
+            case GL12.GL_TEXTURE_3D:
+                currentTex = GL11.glGetInteger(GL12.GL_TEXTURE_BINDING_3D);
+                GL11.glBindTexture(GL12.GL_TEXTURE_3D, texture.textureId);
+                GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, buffer.bufferId);
+                GL12.glTexSubImage3D(GL12.GL_TEXTURE_3D, level, xOffset, yOffset, zOffset, width, height, depth, format, type, 0L);
+                GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, 0);
+                GL11.glBindTexture(GL12.GL_TEXTURE_3D, currentTex);
+                break;
+            default:
+                throw new UnsupportedOperationException("Unsupported texture target: " + texture.target);
+        }
     }
 }

@@ -5,7 +5,6 @@
  */
 package com.longlinkislong.gloop.glimpl.gl45;
 
-import com.longlinkislong.gloop.glimpl.GLSPIBaseObject;
 import com.longlinkislong.gloop.glimpl.GLState;
 import com.longlinkislong.gloop.glspi.Driver;
 import com.longlinkislong.gloop.glspi.Shader;
@@ -18,7 +17,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import org.lwjgl.opengl.ARBBindlessTexture;
-import org.lwjgl.opengl.ARBSparseTexture;
 import org.lwjgl.opengl.EXTTextureFilterAnisotropic;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL11;
@@ -43,7 +41,7 @@ import org.slf4j.LoggerFactory;
  * @author zmichaels
  */
 final class GL45Driver implements Driver<
-        GL45Buffer, GL45Framebuffer, GL45Renderbuffer, GL45Texture, GL45Shader, GL45Program, GL45Sampler, GL45VertexArray, GL45DrawQuery> {
+        GL45Buffer, GL45Framebuffer, GL45Renderbuffer, GL45Texture, GL45Shader, GL45Program, GL45Sampler, GL45VertexArray> {
 
     private final static boolean RECORD_CALLS = Boolean.getBoolean("com.longlinkislong.gloop.record_calls");
     private final List<String> callHistory = RECORD_CALLS ? new ArrayList<>(1024) : Collections.emptyList();
@@ -140,16 +138,6 @@ final class GL45Driver implements Driver<
     public void transformFeedbackEnd() {
         GL30.glEndTransformFeedback();
         GL11.glDisable(GL30.GL_RASTERIZER_DISCARD);
-    }
-
-    @Override
-    public List<String> getCallHistory() {
-        return Collections.unmodifiableList(new ArrayList<>(this.callHistory));
-    }
-
-    @Override
-    public void clearCallHistory() {
-        this.callHistory.clear();
     }
 
     @Override
@@ -263,36 +251,6 @@ final class GL45Driver implements Driver<
     public void depthTestEnable(int depthTest) {
         GL11.glEnable(GL11.GL_DEPTH_TEST);
         GL11.glDepthFunc(depthTest);
-    }
-
-    @Override
-    public void drawQueryBeginConditionalRender(GL45DrawQuery query, int mode) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    @Override
-    public GL45DrawQuery drawQueryCreate() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    @Override
-    public void drawQueryDelete(GL45DrawQuery query) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    @Override
-    public void drawQueryDisable(int condition) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    @Override
-    public void drawQueryEnable(int condition, GL45DrawQuery query) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    @Override
-    public void drawQueryEndConditionRender() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
     @Override
@@ -492,29 +450,8 @@ final class GL45Driver implements Driver<
     }
 
     @Override
-    public void programSetFeedbackBuffer(GL45Program program, int varyingLoc, GL45Buffer buffer) {
-        GL30.glBindBufferBase(GL30.GL_TRANSFORM_FEEDBACK_BUFFER, varyingLoc, buffer.bufferId);
-    }
-
-    @Override
     public void programSetFeedbackVaryings(GL45Program program, String[] varyings) {
         GL30.glTransformFeedbackVaryings(program.programId, varyings, GL30.GL_SEPARATE_ATTRIBS);
-    }
-
-    @Override
-    public void programSetStorage(GL45Program program, String storageName, GL45Buffer buffer, int bindingPoint) {
-        final int sBlock = GL43.glGetProgramResourceLocation(program.programId, GL43.GL_SHADER_STORAGE_BLOCK, storageName);
-
-        GL30.glBindBufferBase(GL43.GL_SHADER_STORAGE_BUFFER, bindingPoint, buffer.bufferId);
-        GL43.glShaderStorageBlockBinding(program.programId, sBlock, bindingPoint);
-    }
-
-    @Override
-    public void programSetUniformBlock(GL45Program program, String uniformName, GL45Buffer buffer, int bindingPoint) {
-        final int uBlock = GL31.glGetUniformBlockIndex(program.programId, uniformName);
-
-        GL30.glBindBufferBase(GL31.GL_UNIFORM_BUFFER, bindingPoint, buffer.bufferId);
-        GL31.glUniformBlockBinding(program.programId, uBlock, bindingPoint);
     }
 
     @Override
@@ -734,38 +671,12 @@ final class GL45Driver implements Driver<
 
         return texture;
     }
-
-    @Override
-    public void textureAllocatePage(GL45Texture texture, int level, int xOffset, int yOffset, int zOffset, int width, int height, int depth) {
-        if (GL.getCapabilities().GL_ARB_sparse_texture) {
-            ARBSparseTexture.glTexPageCommitmentARB(
-                    texture.textureId, level,
-                    xOffset, yOffset, zOffset,
-                    width, height, depth,
-                    true);
-        } else {
-            throw new UnsupportedOperationException("ARB_sparse_texture is not supported!");
-        }
-    }
-
+    
     @Override
     public void textureBind(GL45Texture texture, int unit) {
         GL45.glBindTextureUnit(unit, texture.textureId);
     }
-
-    @Override
-    public void textureDeallocatePage(GL45Texture texture, int level, int xOffset, int yOffset, int zOffset, int width, int height, int depth) {
-        if (GL.getCapabilities().GL_ARB_sparse_texture) {
-            ARBSparseTexture.glTexPageCommitmentARB(
-                    texture.textureId, level,
-                    xOffset, yOffset, zOffset,
-                    width, height, depth,
-                    false);
-        } else {
-            throw new UnsupportedOperationException("ARB_sparse_texture is not supported!");
-        }
-    }
-
+   
     @Override
     public long textureMap(GL45Texture texture) {
         if (texture.pHandle != -1) {
@@ -829,21 +740,6 @@ final class GL45Driver implements Driver<
     @Override
     public int textureGetMaxSize() {
         return GL11.glGetInteger(GL11.GL_MAX_TEXTURE_SIZE);
-    }
-
-    @Override
-    public int textureGetPageDepth(GL45Texture texture) {
-        return GL42.glGetInternalformati(texture.target, texture.internalFormat, ARBSparseTexture.GL_VIRTUAL_PAGE_SIZE_Z_ARB);
-    }
-
-    @Override
-    public int textureGetPageHeight(GL45Texture texture) {
-        return GL42.glGetInternalformati(texture.target, texture.internalFormat, ARBSparseTexture.GL_VIRTUAL_PAGE_SIZE_Y_ARB);
-    }
-
-    @Override
-    public int textureGetPageWidth(GL45Texture texture) {
-        return GL42.glGetInternalformati(texture.target, texture.internalFormat, ARBSparseTexture.GL_VIRTUAL_PAGE_SIZE_X_ARB);
     }
 
     @Override
@@ -1035,5 +931,35 @@ final class GL45Driver implements Driver<
     @Override
     public void viewportApply(int x, int y, int width, int height) {
         GL11.glViewport(x, y, width, height);
+    }
+
+    @Override
+    public void textureGetData(GL45Texture texture, int level, int format, int type, GL45Buffer out, long offset, int size) {
+        GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, out.bufferId);
+        GL45.glGetTextureImage(texture.textureId, level, format, type, size, offset);
+        GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, 0);
+    }
+
+    @Override
+    public void textureSetData(GL45Texture texture, int level, int xOffset, int yOffset, int zOffset, int width, int height, int depth, int format, int type, GL45Buffer buffer, long offset) {
+        switch (texture.target) {
+            case GL11.GL_TEXTURE_1D:
+                GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, buffer.bufferId);
+                GL45.glTextureSubImage1D(texture.textureId, level, xOffset, width, format, type, 0L);
+                GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, 0);
+                break;
+            case GL11.GL_TEXTURE_2D:
+                GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, buffer.bufferId);
+                GL45.glTextureSubImage2D(texture.textureId, level, xOffset, yOffset, width, height, format, type, 0L);
+                GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, 0);
+                break;
+            case GL12.GL_TEXTURE_3D:
+                GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, buffer.bufferId);
+                GL45.glTextureSubImage3D(texture.textureId, level, xOffset, yOffset, zOffset, width, height, depth, format, type, 0L);
+                GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, 0);
+                break;
+            default:
+                throw new UnsupportedOperationException("Unsupported texture target: " + texture.target);
+        }
     }
 }
