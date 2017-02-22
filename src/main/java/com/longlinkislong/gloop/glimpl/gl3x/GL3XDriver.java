@@ -1924,7 +1924,7 @@ final class GL3XDriver implements Driver<
             EXTDirectStateAccess.glGetTextureImageEXT(texture.textureId, texture.target, level, format, type, 0L);
             GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, 0);
         } else if (EXCLUSIVE_CONTEXT) {
-            switch (texture.textureId) {
+            switch (texture.target) {
                 case GL11.GL_TEXTURE_1D:
                     GL11.glBindTexture(GL11.GL_TEXTURE_1D, texture.textureId);
                     GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, out.bufferId);
@@ -1949,7 +1949,7 @@ final class GL3XDriver implements Driver<
         } else {
             final int currentTex;
 
-            switch (texture.textureId) {
+            switch (texture.target) {
                 case GL11.GL_TEXTURE_1D:
                     currentTex = GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_1D);
                     GL11.glBindTexture(GL11.GL_TEXTURE_1D, texture.textureId);
@@ -1985,7 +1985,7 @@ final class GL3XDriver implements Driver<
         final GLCapabilities caps = GL.getCapabilities();
 
         if (caps.GL_ARB_direct_state_access && ARB_DSA) {
-            switch (texture.textureId) {
+            switch (texture.target) {
                 case GL11.GL_TEXTURE_1D:
                     GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, buffer.bufferId);
                     ARBDirectStateAccess.glTextureSubImage1D(texture.textureId, level, xOffset, width, format, type, 0L);
@@ -2006,7 +2006,7 @@ final class GL3XDriver implements Driver<
                     throw new UnsupportedOperationException("Unsupported texture target: " + texture.target);
             }
         } else if (caps.GL_EXT_direct_state_access && EXT_DSA) {
-            switch (texture.textureId) {
+            switch (texture.target) {
                 case GL11.GL_TEXTURE_1D:
                     GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, buffer.bufferId);
                     EXTDirectStateAccess.glTextureSubImage1DEXT(texture.textureId, texture.target, level, xOffset, width, format, type, 0L);
@@ -2027,7 +2027,7 @@ final class GL3XDriver implements Driver<
                     throw new UnsupportedOperationException("Unsupported texture target: " + texture.target);
             }
         } else if (EXCLUSIVE_CONTEXT) {
-            switch (texture.textureId) {
+            switch (texture.target) {
                 case GL11.GL_TEXTURE_1D:
                     GL11.glBindTexture(GL11.GL_TEXTURE_1D, texture.textureId);
                     GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, buffer.bufferId);
@@ -2051,7 +2051,7 @@ final class GL3XDriver implements Driver<
             }
         } else {
             final int currentTex;
-            switch (texture.textureId) {
+            switch (texture.target) {
                 case GL11.GL_TEXTURE_1D:
                     currentTex = GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_1D);
                     GL11.glBindTexture(GL11.GL_TEXTURE_1D, texture.textureId);
