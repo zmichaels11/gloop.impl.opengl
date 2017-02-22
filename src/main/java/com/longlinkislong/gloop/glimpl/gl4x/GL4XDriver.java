@@ -53,6 +53,20 @@ final class GL4XDriver implements Driver<
     private static final boolean EXT_DSA = Boolean.getBoolean("com.longlinkislong.gloop.glimpl.enable.GL_EXT_direct_state_access");
     private static final Logger LOGGER = LoggerFactory.getLogger(GL4XDriver.class);
 
+    
+    static {
+        if (EXCLUSIVE_CONTEXT) {
+            LOGGER.info("Using exclusive OpenGL context!");
+        }
+        
+        if (!ARB_DSA) {
+            LOGGER.info("Disabling GL_ARB_direct_state_access!");
+        }
+        
+        if (EXT_DSA) {
+            LOGGER.info("Enabling GL_EXT_direct_state_access!");
+        }
+    }
     @Override
     public void bufferBindAtomic(GL4XBuffer bt, int index) {
         final GLCapabilities caps = GL.getCapabilities();
