@@ -5,7 +5,6 @@
  */
 package com.longlinkislong.gloop.glimpl.gl4x;
 
-import com.longlinkislong.gloop.glimpl.GLState;
 import com.longlinkislong.gloop.glspi.Driver;
 import com.longlinkislong.gloop.glspi.Shader;
 import com.longlinkislong.gloop.glspi.Tweaks;
@@ -13,9 +12,6 @@ import java.nio.ByteBuffer;
 import java.nio.DoubleBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 import org.lwjgl.opengl.ARBBindlessTexture;
 import org.lwjgl.opengl.ARBBufferStorage;
 import org.lwjgl.opengl.ARBComputeShader;
@@ -51,7 +47,7 @@ import org.slf4j.LoggerFactory;
 final class GL4XDriver implements Driver<
         GL4XBuffer, GL4XFramebuffer, GL4XRenderbuffer, GL4XTexture, GL4XShader, GL4XProgram, GL4XSampler, GL4XVertexArray> {
 
-    private static final boolean EXCLUSIVE_CONTEXT = Boolean.getBoolean("com.longlinkislong.gloop.glimpl.enable.soft_direct_state_access");
+    private static final boolean EXCLUSIVE_CONTEXT = Boolean.getBoolean("com.longlinkislong.gloop.glimpl.exclusive_context");
     private static final boolean ARB_DSA = !Boolean.getBoolean("com.longlinkislong.gloop.glimpl.disable.GL_ARB_direct_state_access");
     private static final Logger LOGGER = LoggerFactory.getLogger(GL4XDriver.class);
 
