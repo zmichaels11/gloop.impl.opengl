@@ -41,13 +41,10 @@ import org.slf4j.LoggerFactory;
  * @author zmichaels
  */
 final class GL45Driver implements Driver<
-        GL45Buffer, GL45Framebuffer, GL45Renderbuffer, GL45Texture, GL45Shader, GL45Program, GL45Sampler, GL45VertexArray> {
+        GL45Buffer, GL45Framebuffer, GL45Renderbuffer, GL45Texture, GL45Shader, GL45Program, GL45Sampler, GL45VertexArray> {    
 
-    private final static boolean RECORD_CALLS = Boolean.getBoolean("com.longlinkislong.gloop.record_calls");
-    private final List<String> callHistory = RECORD_CALLS ? new ArrayList<>(1024) : Collections.emptyList();
-
+    private static final boolean EXCLUSIVE_CONTEXT = Boolean.getBoolean("com.longlinkislong.gloop.glimpl.exclusive_context");
     private static final Logger LOGGER = LoggerFactory.getLogger("GL45Driver");
-    private GLState state = new GLState(new Tweaks());
 
     @Override
     public void bufferBindAtomic(GL45Buffer bt, int index) {
@@ -146,8 +143,7 @@ final class GL45Driver implements Driver<
     }
 
     @Override
-    public void applyTweaks(final Tweaks tweaks) {
-        this.state = new GLState(tweaks);
+    public void applyTweaks(final Tweaks tweaks) {        
     }
 
     @Override
@@ -314,28 +310,34 @@ final class GL45Driver implements Driver<
 
     @Override
     public void framebufferGetPixels(GL45Framebuffer framebuffer, int x, int y, int width, int height, int format, int type, GL45Buffer dstBuffer) {
-        state.framebufferPush(GL30.GL_FRAMEBUFFER, framebuffer.framebufferId);
-        state.bufferPush(GL21.GL_PIXEL_PACK_BUFFER, dstBuffer.bufferId);
-
-        GL11.glReadPixels(
-                x, y, width, height,
-                format, type,
-                0L);
-
-        state.bufferPop(GL21.GL_PIXEL_PACK_BUFFER);
-        state.framebufferPop(GL30.GL_FRAMEBUFFER);
+        if (EXCLUSIVE_CONTEXT) {            
+            GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, framebuffer.framebufferId);
+            GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, dstBuffer.bufferId);
+            GL11.glReadPixels(x, y, width, height, format, type, 0L);
+            GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, 0);
+        } else {
+            final int currentFb = GL11.glGetInteger(GL30.GL_FRAMEBUFFER_BINDING);
+            
+            GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, framebuffer.framebufferId);
+            GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, dstBuffer.bufferId);
+            GL11.glReadPixels(x, y, width, height, format, type, 0L);
+            GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, 0);
+            GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, currentFb);
+        }
     }
 
     @Override
     public void framebufferGetPixels(GL45Framebuffer framebuffer, int x, int y, int width, int height, int format, int type, ByteBuffer dstBuffer) {
-        state.framebufferPush(GL30.GL_FRAMEBUFFER, framebuffer.framebufferId);
-
-        GL11.glReadPixels(
-                x, y, width, height,
-                format, type,
-                dstBuffer);
-
-        state.framebufferPop(GL30.GL_FRAMEBUFFER);
+        if (EXCLUSIVE_CONTEXT) {
+            GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, framebuffer.framebufferId);
+            GL11.glReadPixels(x, y, width, height, format, type, dstBuffer);            
+        } else {
+            final int currentFb = GL11.glGetInteger(GL30.GL_FRAMEBUFFER_BINDING);
+            
+            GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, framebuffer.framebufferId);
+            GL11.glReadPixels(x, y, width, height, format, type, dstBuffer);
+            GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, currentFb);
+        }
     }
 
     @Override
@@ -409,22 +411,21 @@ final class GL45Driver implements Driver<
 
     @Override
     public void programDispatchCompute(GL45Program program, int numX, int numY, int numZ) {
-        state.programPush(program.programId);
-
-        GL43.glDispatchCompute(numX, numY, numZ);
-
-        state.programPop();
+        if (EXCLUSIVE_CONTEXT) {
+            GL20.glUseProgram(program.programId);
+            GL43.glDispatchCompute(numX, numY, numZ);
+        } else {
+            final int currentProg = GL11.glGetInteger(GL20.GL_CURRENT_PROGRAM);
+            
+            GL20.glUseProgram(program.programId);
+            GL43.glDispatchCompute(numX, numY, numZ);
+            GL20.glUseProgram(currentProg);
+        }
     }
 
     @Override
     public int programGetUniformLocation(GL45Program program, String name) {
-        state.programPush(program.programId);
-
-        final int res = GL20.glGetUniformLocation(program.programId, name);
-
-        state.programPop();
-
-        return res;
+        return GL20.glGetUniformLocation(program.programId, name);
     }
 
     @Override
@@ -871,61 +872,94 @@ final class GL45Driver implements Driver<
 
     @Override
     public void vertexArrayDrawArrays(GL45VertexArray vao, int drawMode, int start, int count) {
-        state.vertexArrayPush(vao.vertexArrayId);
-
-        GL11.glDrawArrays(drawMode, start, count);
-
-        state.vertexArrayPop();
+        if (EXCLUSIVE_CONTEXT) {
+            GL30.glBindVertexArray(vao.vertexArrayId);
+            GL11.glDrawArrays(drawMode, start, count);
+        } else {
+            final int currentVao = GL11.glGetInteger(GL30.GL_VERTEX_ARRAY_BINDING);
+            
+            GL30.glBindVertexArray(vao.vertexArrayId);
+            GL11.glDrawArrays(drawMode, start, count);
+            GL30.glBindVertexArray(currentVao);
+        }
     }
 
     @Override
     public void vertexArrayDrawArraysIndirect(GL45VertexArray vao, GL45Buffer cmdBuffer, int drawMode, long offset) {
-        state.vertexArrayPush(vao.vertexArrayId);
-        state.bufferPush(GL40.GL_DRAW_INDIRECT_BUFFER, cmdBuffer.bufferId);
-
-        GL40.glDrawArraysIndirect(drawMode, offset);
-
-        state.bufferPop(GL40.GL_DRAW_INDIRECT_BUFFER);
-        state.vertexArrayPop();
+        if (EXCLUSIVE_CONTEXT) {
+            GL30.glBindVertexArray(vao.vertexArrayId);
+            GL15.glBindBuffer(GL40.GL_DRAW_INDIRECT_BUFFER, cmdBuffer.bufferId);
+            GL40.glDrawArraysIndirect(drawMode, offset);
+            GL15.glBindBuffer(GL40.GL_DRAW_INDIRECT_BUFFER, 0);
+        } else {
+            final int currentVao = GL11.glGetInteger(GL30.GL_VERTEX_ARRAY_BINDING);
+            
+            GL30.glBindVertexArray(vao.vertexArrayId);
+            GL15.glBindBuffer(GL40.GL_DRAW_INDIRECT_BUFFER, cmdBuffer.bufferId);
+            GL40.glDrawArraysIndirect(drawMode, offset);
+            GL15.glBindBuffer(GL40.GL_DRAW_INDIRECT_BUFFER, 0);
+            GL30.glBindVertexArray(currentVao);
+        }
     }
 
     @Override
     public void vertexArrayDrawArraysInstanced(GL45VertexArray vao, int drawMode, int first, int count, int instanceCount) {
-        state.vertexArrayPush(vao.vertexArrayId);
-
-        GL31.glDrawArraysInstanced(drawMode, first, count, instanceCount);
-
-        state.vertexArrayPop();
+        if (EXCLUSIVE_CONTEXT) {
+            GL30.glBindVertexArray(vao.vertexArrayId);
+            GL31.glDrawArraysInstanced(drawMode, first, count, instanceCount);
+        } else {
+            final int currentVao = GL11.glGetInteger(GL30.GL_VERTEX_ARRAY_BINDING);
+            
+            GL30.glBindVertexArray(vao.vertexArrayId);
+            GL31.glDrawArraysInstanced(drawMode, first, count, instanceCount);
+            GL30.glBindVertexArray(currentVao);
+        }
     }
 
     @Override
     public void vertexArrayDrawElements(GL45VertexArray vao, int drawMode, int count, int type, long offset) {
-        state.vertexArrayPush(vao.vertexArrayId);
-
-        GL11.glDrawElements(drawMode, count, type, offset);
-
-        state.vertexArrayPop();
+        if (EXCLUSIVE_CONTEXT) {
+            GL30.glBindVertexArray(vao.vertexArrayId);
+            GL11.glDrawElements(drawMode, count, type, offset);
+        } else {
+            final int currentVao = GL11.glGetInteger(GL30.GL_VERTEX_ARRAY_BINDING);
+            
+            GL30.glBindVertexArray(vao.vertexArrayId);
+            GL11.glDrawElements(drawMode, count, type, offset);
+            GL30.glBindVertexArray(currentVao);
+        }
     }
 
     @Override
     public void vertexArrayDrawElementsIndirect(GL45VertexArray vao, GL45Buffer cmdBuffer, int drawMode, int indexType, long offset) {
-        state.vertexArrayPush(vao.vertexArrayId);
-        state.bufferPush(GL40.GL_DRAW_INDIRECT_BUFFER, cmdBuffer.bufferId);
-
-        GL40.glDrawElementsIndirect(drawMode, indexType, offset);
-
-        state.bufferPop(GL40.GL_DRAW_INDIRECT_BUFFER);
-        state.vertexArrayPop();
-
+        if (EXCLUSIVE_CONTEXT) {
+            GL30.glBindVertexArray(vao.vertexArrayId);
+            GL15.glBindBuffer(GL40.GL_DRAW_INDIRECT_BUFFER, cmdBuffer.bufferId);
+            GL40.glDrawElementsIndirect(drawMode, indexType, offset);
+            GL15.glBindBuffer(GL40.GL_DRAW_INDIRECT_BUFFER, 0);
+        } else {
+            final int currentVao = GL11.glGetInteger(GL30.GL_VERTEX_ARRAY_BINDING);
+            
+            GL30.glBindVertexArray(vao.vertexArrayId);
+            GL15.glBindBuffer(GL40.GL_DRAW_INDIRECT_BUFFER, cmdBuffer.bufferId);
+            GL40.glDrawElementsIndirect(drawMode, indexType, offset);
+            GL15.glBindBuffer(GL40.GL_DRAW_INDIRECT_BUFFER, 0);
+            GL30.glBindVertexArray(currentVao);
+        }
     }
 
     @Override
     public void vertexArrayDrawElementsInstanced(GL45VertexArray vao, int drawMode, int count, int type, long offset, int instanceCount) {
-        state.vertexArrayPush(vao.vertexArrayId);
-
-        GL31.glDrawElementsInstanced(drawMode, count, type, offset, instanceCount);
-
-        state.vertexArrayPop();
+        if (EXCLUSIVE_CONTEXT) {
+            GL30.glBindVertexArray(vao.vertexArrayId);
+            GL31.glDrawElementsInstanced(drawMode, count, type, offset, instanceCount);
+        } else {
+            final int currentVao = GL11.glGetInteger(GL30.GL_VERTEX_ARRAY_BINDING);
+            
+            GL30.glBindVertexArray(vao.vertexArrayId);
+            GL31.glDrawElementsInstanced(drawMode, count, type, offset, instanceCount);
+            GL30.glBindVertexArray(currentVao);
+        }
     }
 
     @Override
