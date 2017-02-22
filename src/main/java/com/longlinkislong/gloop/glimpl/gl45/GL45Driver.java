@@ -5,7 +5,6 @@
  */
 package com.longlinkislong.gloop.glimpl.gl45;
 
-import com.longlinkislong.gloop.glimpl.GLState;
 import com.longlinkislong.gloop.glspi.Driver;
 import com.longlinkislong.gloop.glspi.Shader;
 import com.longlinkislong.gloop.glspi.Tweaks;
@@ -13,9 +12,6 @@ import java.nio.ByteBuffer;
 import java.nio.DoubleBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 import org.lwjgl.opengl.ARBBindlessTexture;
 import org.lwjgl.opengl.EXTTextureFilterAnisotropic;
 import org.lwjgl.opengl.GL;

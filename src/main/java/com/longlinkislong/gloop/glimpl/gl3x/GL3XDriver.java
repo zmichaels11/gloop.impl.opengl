@@ -5,7 +5,6 @@
  */
 package com.longlinkislong.gloop.glimpl.gl3x;
 
-import com.longlinkislong.gloop.glimpl.GLState;
 import com.longlinkislong.gloop.glspi.Driver;
 import com.longlinkislong.gloop.glspi.Shader;
 import com.longlinkislong.gloop.glspi.Tweaks;
@@ -13,14 +12,15 @@ import java.nio.ByteBuffer;
 import java.nio.DoubleBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
-import org.lwjgl.opengl.ARBCopyBuffer;
+import org.lwjgl.opengl.ARBBufferStorage;
+import org.lwjgl.opengl.ARBDirectStateAccess;
 import org.lwjgl.opengl.ARBDrawIndirect;
 import org.lwjgl.opengl.ARBGPUShaderFP64;
 import org.lwjgl.opengl.ARBInvalidateSubdata;
 import org.lwjgl.opengl.ARBSamplerObjects;
 import org.lwjgl.opengl.ARBSeparateShaderObjects;
 import org.lwjgl.opengl.ARBTextureStorage;
-import org.lwjgl.opengl.ARBVertexAttrib64Bit;
+import org.lwjgl.opengl.EXTDirectStateAccess;
 import org.lwjgl.opengl.EXTTextureFilterAnisotropic;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL11;
@@ -34,6 +34,7 @@ import org.lwjgl.opengl.GL30;
 import org.lwjgl.opengl.GL31;
 import org.lwjgl.opengl.GL33;
 import org.lwjgl.opengl.GLCapabilities;
+import org.lwjgl.system.MemoryUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,8 +45,11 @@ import org.slf4j.LoggerFactory;
 final class GL3XDriver implements Driver<
         GL3XBuffer, GL3XFramebuffer, GL3XRenderbuffer, GL3XTexture, GL3XShader, GL3XProgram, GL3XSampler, GL3XVertexArray> {
 
+    private static final boolean EXCLUSIVE_CONTEXT = Boolean.getBoolean("com.longlinkislong.gloop.glimpl.exclusive_context");
+    private static final boolean ARB_DSA = !Boolean.getBoolean("com.longlinkislong.gloop.glimpl.disable.GL_ARB_direct_state_access");
+    private static final boolean EXT_DSA = Boolean.getBoolean("com.longlinkislong.gloop.glimpl.enable.GL_EXT_direct_state_access");
+
     private static final Logger LOGGER = LoggerFactory.getLogger(GL3XDriver.class);
-    private GLState state = new GLState(new Tweaks());
 
     @Override
     public void bufferBindAtomic(GL3XBuffer bt, int i) {
@@ -147,7 +151,6 @@ final class GL3XDriver implements Driver<
 
     @Override
     public void applyTweaks(final Tweaks tweak) {
-        this.state = new GLState(tweak);
     }
 
     @Override
@@ -164,44 +167,90 @@ final class GL3XDriver implements Driver<
 
     @Override
     public void bufferAllocate(GL3XBuffer buffer, long size, int usage) {
-        state.bufferPush(GL15.GL_ARRAY_BUFFER, buffer.bufferId);
+        final GLCapabilities caps = GL.getCapabilities();
 
-        GL15.glBufferData(GL15.GL_ARRAY_BUFFER, size, usage);
-        buffer.size = size;
-        buffer.usage = usage;
+        if (caps.GL_ARB_direct_state_access && ARB_DSA) {
+            ARBDirectStateAccess.glNamedBufferData(buffer.bufferId, size, usage);
+        } else if (caps.GL_EXT_direct_state_access && EXT_DSA) {
+            EXTDirectStateAccess.glNamedBufferDataEXT(buffer.bufferId, size, usage);
+        } else if (EXCLUSIVE_CONTEXT) {
+            GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, buffer.bufferId);
+            GL15.glBufferData(GL15.GL_ARRAY_BUFFER, size, usage);
+        } else {
+            final int currentBuf = GL11.glGetInteger(GL15.GL_ARRAY_BUFFER_BINDING);
 
-        state.bufferPop(GL15.GL_ARRAY_BUFFER);
+            GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, buffer.bufferId);
+            GL15.glBufferData(GL15.GL_ARRAY_BUFFER, size, usage);
+            GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, currentBuf);
+        }
     }
 
     @Override
     public void bufferAllocateImmutable(GL3XBuffer buffer, long size, int bitflags) {
-        this.bufferAllocate(buffer, size, GL15.GL_DYNAMIC_DRAW);
+        final GLCapabilities caps = GL.getCapabilities();
+
+        if (caps.GL_ARB_buffer_storage) {
+            if (caps.GL_ARB_direct_state_access && ARB_DSA) {
+                ARBDirectStateAccess.glNamedBufferStorage(buffer.bufferId, size, bitflags);
+            } else if (caps.GL_EXT_direct_state_access && EXT_DSA) {
+                ARBBufferStorage.glNamedBufferStorageEXT(buffer.bufferId, size, bitflags);
+            } else if (EXCLUSIVE_CONTEXT) {
+                GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, buffer.bufferId);
+                ARBBufferStorage.glBufferStorage(GL15.GL_ARRAY_BUFFER, size, bitflags);
+            } else {
+                final int currentBuf = GL11.glGetInteger(GL15.GL_ARRAY_BUFFER_BINDING);
+
+                GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, buffer.bufferId);
+                ARBBufferStorage.glBufferStorage(GL15.GL_ARRAY_BUFFER, size, bitflags);
+                GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, currentBuf);
+            }
+        } else {
+            this.bufferAllocate(buffer, size, GL15.GL_DYNAMIC_DRAW);
+        }
     }
 
     @Override
     public void bufferCopyData(GL3XBuffer srcBuffer, long srcOffset, GL3XBuffer dstBuffer, long dstOffset, long size) {
-        if (GL.getCapabilities().GL_ARB_copy_buffer) {
-            GL15.glBindBuffer(ARBCopyBuffer.GL_COPY_READ_BUFFER, srcBuffer.bufferId);
-            GL15.glBindBuffer(ARBCopyBuffer.GL_COPY_WRITE_BUFFER, dstBuffer.bufferId);
+        final GLCapabilities caps = GL.getCapabilities();
 
-            ARBCopyBuffer.glCopyBufferSubData(ARBCopyBuffer.GL_COPY_READ_BUFFER, ARBCopyBuffer.GL_COPY_WRITE_BUFFER, srcOffset, dstOffset, size);
-        } else {
-            final ByteBuffer src = this.bufferMapData(srcBuffer, srcOffset, size, GL30.GL_MAP_READ_BIT);
-            final ByteBuffer dst = this.bufferMapData(dstBuffer, dstOffset, size, GL30.GL_MAP_WRITE_BIT);
-
-            for (int i = 0; i < size; i++) {
-                dst.put(i, src.get(i));
+        if (caps.GL_ARB_copy_buffer) {
+            if (caps.GL_ARB_direct_state_access && ARB_DSA) {
+                ARBDirectStateAccess.glCopyNamedBufferSubData(srcBuffer.bufferId, dstBuffer.bufferId, srcOffset, dstOffset, size);
+            } else {
+                GL15.glBindBuffer(GL31.GL_COPY_READ_BUFFER, srcBuffer.bufferId);
+                GL15.glBindBuffer(GL31.GL_COPY_WRITE_BUFFER, dstBuffer.bufferId);
+                GL31.glCopyBufferSubData(GL31.GL_COPY_READ_BUFFER, GL31.GL_COPY_WRITE_BUFFER, srcOffset, dstOffset, size);
             }
+        } else if (EXCLUSIVE_CONTEXT) {
+            final ByteBuffer src = this.bufferMapData(srcBuffer, srcOffset, size, GL30.GL_MAP_READ_BIT);
 
-            this.bufferUnmapData(dstBuffer);
+            GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, dstBuffer.bufferId);
+            GL15.glBufferSubData(GL15.GL_ARRAY_BUFFER, dstOffset, src);
+
+            this.bufferUnmapData(srcBuffer);
+        } else {
+            final int currentBuf = GL11.glGetInteger(GL15.GL_ARRAY_BUFFER_BINDING);
+            final ByteBuffer src = this.bufferMapData(srcBuffer, srcOffset, size, GL30.GL_MAP_READ_BIT);
+
+            GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, dstBuffer.bufferId);
+            GL15.glBufferSubData(GL15.GL_ARRAY_BUFFER, dstOffset, src);
+            GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, currentBuf);
+
             this.bufferUnmapData(srcBuffer);
         }
     }
 
     @Override
     public GL3XBuffer bufferCreate() {
+        final GLCapabilities caps = GL.getCapabilities();
         final GL3XBuffer buffer = new GL3XBuffer();
-        buffer.bufferId = GL15.glGenBuffers();
+
+        if (caps.GL_ARB_direct_state_access && ARB_DSA) {
+            buffer.bufferId = ARBDirectStateAccess.glCreateBuffers();
+        } else {
+            buffer.bufferId = GL15.glGenBuffers();
+        }
+
         return buffer;
     }
 
@@ -213,29 +262,52 @@ final class GL3XDriver implements Driver<
 
     @Override
     public void bufferGetData(GL3XBuffer buffer, long offset, ByteBuffer out) {
-        state.bufferPush(GL15.GL_ARRAY_BUFFER, buffer.bufferId);
+        final GLCapabilities caps = GL.getCapabilities();
 
-        GL15.glGetBufferSubData(GL15.GL_ARRAY_BUFFER, offset, out);
+        if (caps.GL_ARB_direct_state_access && ARB_DSA) {
+            ARBDirectStateAccess.glGetNamedBufferSubData(buffer.bufferId, offset, out);
+        } else if (caps.GL_EXT_direct_state_access && EXT_DSA) {
+            EXTDirectStateAccess.glGetNamedBufferSubDataEXT(buffer.bufferId, offset, out);
+        } else if (EXCLUSIVE_CONTEXT) {
+            GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, buffer.bufferId);
+            GL15.glGetBufferSubData(GL15.GL_ARRAY_BUFFER, offset, out);
+        } else {
+            final int currentBuf = GL11.glGetInteger(GL15.GL_ARRAY_BUFFER_BINDING);
 
-        state.bufferPop(GL15.GL_ARRAY_BUFFER);
+            GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, buffer.bufferId);
+            GL15.glGetBufferSubData(GL15.GL_ARRAY_BUFFER, offset, out);
+            GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, currentBuf);
+        }
     }
 
     @Override
     public int bufferGetParameterI(GL3XBuffer buffer, int paramId) {
-        state.bufferPush(GL15.GL_ARRAY_BUFFER, buffer.bufferId);
+        final GLCapabilities caps = GL.getCapabilities();
 
-        final int res = GL15.glGetBufferParameteri(GL15.GL_ARRAY_BUFFER, buffer.bufferId);
+        if (caps.GL_ARB_direct_state_access && ARB_DSA) {
+            return ARBDirectStateAccess.glGetNamedBufferParameteri(buffer.bufferId, paramId);
+        } else if (caps.GL_EXT_direct_state_access && EXT_DSA) {
+            return EXTDirectStateAccess.glGetNamedBufferParameteriEXT(buffer.bufferId, paramId);
+        } else if (EXCLUSIVE_CONTEXT) {
+            GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, buffer.bufferId);
 
-        state.bufferPop(GL15.GL_ARRAY_BUFFER);
-        return res;
+            return GL15.glGetBufferParameteri(GL15.GL_ARRAY_BUFFER, paramId);
+        } else {
+            final int currentBuf = GL11.glGetInteger(GL15.GL_ARRAY_BUFFER_BINDING);
+            final int res;
+
+            GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, buffer.bufferId);
+            res = GL15.glGetBufferParameteri(GL15.GL_ARRAY_BUFFER, paramId);
+            GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, currentBuf);
+
+            return res;
+        }
     }
 
     @Override
     public void bufferInvalidateData(GL3XBuffer buffer) {
         if (GL.getCapabilities().GL_ARB_invalidate_subdata) {
             ARBInvalidateSubdata.glInvalidateBufferData(buffer.bufferId);
-        } else {
-            bufferAllocate(buffer, buffer.size, buffer.usage); // effectively the same
         }
     }
 
@@ -243,33 +315,69 @@ final class GL3XDriver implements Driver<
     public void bufferInvalidateRange(GL3XBuffer buffer, long offset, long length) {
         if (GL.getCapabilities().GL_ARB_invalidate_subdata) {
             ARBInvalidateSubdata.glInvalidateBufferSubData(buffer.bufferId, offset, length);
-        } else {
-            bufferAllocate(buffer, buffer.size, buffer.usage);
         }
     }
 
     @Override
     public ByteBuffer bufferMapData(GL3XBuffer buffer, long offset, long length, int accessFlags) {
-        state.bufferPush(GL15.GL_ARRAY_BUFFER, buffer.bufferId);
+        final GLCapabilities caps = GL.getCapabilities();
 
-        buffer.mapBuffer = GL30.glMapBufferRange(GL15.GL_ARRAY_BUFFER, offset, length, accessFlags, buffer.mapBuffer);
+        if (caps.GL_ARB_direct_state_access && ARB_DSA) {
+            buffer.mapBuffer = ARBDirectStateAccess.glMapNamedBufferRange(buffer.bufferId, offset, length, accessFlags, buffer.mapBuffer);
+        } else if (caps.GL_EXT_direct_state_access && EXT_DSA) {
+            buffer.mapBuffer = EXTDirectStateAccess.glMapNamedBufferRangeEXT(buffer.bufferId, offset, length, accessFlags, buffer.mapBuffer);
+        } else if (EXCLUSIVE_CONTEXT) {
+            GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, buffer.bufferId);
+            buffer.mapBuffer = GL30.glMapBufferRange(GL15.GL_ARRAY_BUFFER, offset, length, accessFlags, buffer.mapBuffer);
+        } else {
+            final int currentBuf = GL11.glGetInteger(GL15.GL_ARRAY_BUFFER_BINDING);
 
-        state.bufferPop(GL15.GL_ARRAY_BUFFER);
+            GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, buffer.bufferId);
+            buffer.mapBuffer = GL30.glMapBufferRange(GL15.GL_ARRAY_BUFFER, offset, length, accessFlags, buffer.mapBuffer);
+            GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, currentBuf);
+        }
+
         return buffer.mapBuffer;
     }
 
     @Override
     public void bufferSetData(GL3XBuffer buffer, ByteBuffer data, int usage) {
-        state.bufferPush(GL15.GL_ARRAY_BUFFER, buffer.bufferId);
-        GL15.glBufferData(GL15.GL_ARRAY_BUFFER, data, usage);
-        state.bufferPop(GL15.GL_ARRAY_BUFFER);
+        final GLCapabilities caps = GL.getCapabilities();
+
+        if (caps.GL_ARB_direct_state_access && ARB_DSA) {
+            ARBDirectStateAccess.glNamedBufferData(buffer.bufferId, data, usage);
+        } else if (caps.GL_EXT_direct_state_access && EXT_DSA) {
+            EXTDirectStateAccess.glNamedBufferDataEXT(buffer.bufferId, data, usage);
+        } else if (EXCLUSIVE_CONTEXT) {
+            GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, buffer.bufferId);
+            GL15.glBufferData(GL15.GL_ARRAY_BUFFER, data, usage);
+        } else {
+            final int currentBuf = GL11.glGetInteger(GL15.GL_ARRAY_BUFFER_BINDING);
+
+            GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, buffer.bufferId);
+            GL15.glBufferData(GL15.GL_ARRAY_BUFFER, data, usage);
+            GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, currentBuf);
+        }
     }
 
     @Override
     public void bufferUnmapData(GL3XBuffer buffer) {
-        state.bufferPush(GL15.GL_ARRAY_BUFFER, buffer.bufferId);
-        GL15.glUnmapBuffer(GL15.GL_ARRAY_BUFFER);
-        state.bufferPop(GL15.GL_ARRAY_BUFFER);
+        final GLCapabilities caps = GL.getCapabilities();
+
+        if (caps.GL_ARB_direct_state_access && ARB_DSA) {
+            ARBDirectStateAccess.glUnmapNamedBuffer(buffer.bufferId);
+        } else if (caps.GL_EXT_direct_state_access && EXT_DSA) {
+            EXTDirectStateAccess.glUnmapNamedBufferEXT(buffer.bufferId);
+        } else if (EXCLUSIVE_CONTEXT) {
+            GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, buffer.bufferId);
+            GL15.glUnmapBuffer(GL15.GL_ARRAY_BUFFER);
+        } else {
+            final int currentBuf = GL11.glGetInteger(GL15.GL_ARRAY_BUFFER_BINDING);
+
+            GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, buffer.bufferId);
+            GL15.glUnmapBuffer(GL15.GL_ARRAY_BUFFER);
+            GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, currentBuf);
+        }
     }
 
     @Override
@@ -292,29 +400,74 @@ final class GL3XDriver implements Driver<
 
     @Override
     public void framebufferAddAttachment(GL3XFramebuffer framebuffer, int attachmentId, GL3XTexture texId, int mipmapLevel) {
-        state.framebufferPush(GL30.GL_FRAMEBUFFER, framebuffer.framebufferId);
+        final GLCapabilities caps = GL.getCapabilities();
 
-        switch (texId.target) {
-            case GL11.GL_TEXTURE_1D:
-                GL30.glFramebufferTexture1D(GL30.GL_FRAMEBUFFER, attachmentId, GL11.GL_TEXTURE_1D, texId.textureId, mipmapLevel);
-                break;
-            case GL11.GL_TEXTURE_2D:
-                GL30.glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, attachmentId, GL11.GL_TEXTURE_2D, texId.textureId, mipmapLevel);
-                break;
-            default:
-                throw new UnsupportedOperationException("Unsupported texture target!");
+        if (caps.GL_ARB_direct_state_access && ARB_DSA) {
+            ARBDirectStateAccess.glNamedFramebufferTexture(framebuffer.framebufferId, attachmentId, texId.textureId, mipmapLevel);
+        } else if (caps.GL_EXT_direct_state_access && EXT_DSA) {
+            switch (texId.target) {
+                case GL11.GL_TEXTURE_1D:
+                    EXTDirectStateAccess.glNamedFramebufferTexture1DEXT(framebuffer.framebufferId, attachmentId, GL11.GL_TEXTURE_1D, texId.textureId, mipmapLevel);
+                    break;
+                case GL11.GL_TEXTURE_2D:
+                    EXTDirectStateAccess.glNamedFramebufferTexture2DEXT(framebuffer.framebufferId, attachmentId, GL11.GL_TEXTURE_2D, texId.textureId, mipmapLevel);
+                    break;
+                default:
+                    throw new UnsupportedOperationException("Unsupported texture target: " + texId.target);
+            }
+        } else if (EXCLUSIVE_CONTEXT) {
+            switch (texId.target) {
+                case GL11.GL_TEXTURE_1D:
+                    GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, framebuffer.framebufferId);
+                    GL30.glFramebufferTexture1D(GL30.GL_FRAMEBUFFER, attachmentId, GL11.GL_TEXTURE_1D, texId.textureId, mipmapLevel);
+                    break;
+                case GL11.GL_TEXTURE_2D:
+                    GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, framebuffer.framebufferId);
+                    GL30.glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, attachmentId, GL11.GL_TEXTURE_2D, texId.textureId, mipmapLevel);
+                    break;
+                default:
+                    throw new UnsupportedOperationException("Unsupported texture target: " + texId.target);
+            }
+        } else {
+            final int currentFb;
+
+            switch (texId.target) {
+                case GL11.GL_TEXTURE_1D:
+                    currentFb = GL11.glGetInteger(GL30.GL_FRAMEBUFFER_BINDING);
+                    GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, framebuffer.framebufferId);
+                    GL30.glFramebufferTexture1D(GL30.GL_FRAMEBUFFER, attachmentId, GL11.GL_TEXTURE_1D, texId.textureId, mipmapLevel);
+                    GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, currentFb);
+                    break;
+                case GL11.GL_TEXTURE_2D:
+                    currentFb = GL11.glGetInteger(GL30.GL_FRAMEBUFFER_BINDING);
+                    GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, framebuffer.framebufferId);
+                    GL30.glFramebufferTexture2D(GL30.GL_FRAMEBUFFER, attachmentId, GL11.GL_TEXTURE_2D, texId.textureId, mipmapLevel);
+                    GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, currentFb);
+                    break;
+                default:
+                    throw new UnsupportedOperationException("Unsupported texture target: " + texId.target);
+            }
         }
-
-        state.framebufferPop(GL30.GL_FRAMEBUFFER);
     }
 
     @Override
     public void framebufferAddRenderbuffer(GL3XFramebuffer framebuffer, int attachmentId, GL3XRenderbuffer renderbuffer) {
-        state.framebufferPush(GL30.GL_FRAMEBUFFER, framebuffer.framebufferId);
+        final GLCapabilities caps = GL.getCapabilities();
 
-        GL30.glFramebufferRenderbuffer(GL30.GL_FRAMEBUFFER, attachmentId, GL30.GL_RENDERBUFFER, renderbuffer.renderbufferId);
+        if (caps.GL_ARB_direct_state_access && ARB_DSA) {
+            ARBDirectStateAccess.glNamedFramebufferRenderbuffer(framebuffer.framebufferId, attachmentId, GL30.GL_RENDERBUFFER, renderbuffer.renderbufferId);
+        } else if (caps.GL_EXT_direct_state_access && EXT_DSA) {
+            EXTDirectStateAccess.glNamedFramebufferRenderbufferEXT(framebuffer.framebufferId, attachmentId, GL30.GL_RENDERBUFFER, renderbuffer.renderbufferId);
+        } else if (EXCLUSIVE_CONTEXT) {
+            GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, framebuffer.framebufferId);
+            GL30.glFramebufferRenderbuffer(GL30.GL_FRAMEBUFFER, attachmentId, GL30.GL_RENDERBUFFER, renderbuffer.renderbufferId);
+        } else {
+            final int currentFb = GL11.glGetInteger(GL30.GL_FRAMEBUFFER_BINDING);
 
-        state.framebufferPop(GL30.GL_FRAMEBUFFER);
+            GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, framebuffer.framebufferId);
+            GL30.glFramebufferRenderbuffer(GL30.GL_FRAMEBUFFER, attachmentId, GL30.GL_RENDERBUFFER, renderbuffer.renderbufferId);
+            GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, currentFb);
+        }
     }
 
     @Override
@@ -328,19 +481,29 @@ final class GL3XDriver implements Driver<
 
     @Override
     public void framebufferBlit(GL3XFramebuffer srcFb, int srcX0, int srcY0, int srcX1, int srcY1, GL3XFramebuffer dstFb, int dstX0, int dstY0, int dstX1, int dstY1, int bitfield, int filter) {
-        state.framebufferPush(GL30.GL_READ_FRAMEBUFFER, srcFb.framebufferId);
-        state.framebufferPush(GL30.GL_DRAW_FRAMEBUFFER, dstFb.framebufferId);
+        final GLCapabilities caps = GL.getCapabilities();
 
-        GL30.glBlitFramebuffer(srcX0, srcY0, srcX1, srcY1, dstX0, dstY0, dstX1, dstY1, bitfield, filter);
+        if (caps.GL_ARB_direct_state_access && ARB_DSA) {
+            ARBDirectStateAccess.glBlitNamedFramebuffer(srcFb.framebufferId, dstFb.framebufferId, srcX0, srcY0, srcX1, srcY1, dstX0, dstY0, dstX1, dstY1, bitfield, filter);
+        } else {
+            GL30.glBindFramebuffer(GL30.GL_READ_FRAMEBUFFER, srcFb.framebufferId);
+            GL30.glBindFramebuffer(GL30.GL_DRAW_FRAMEBUFFER, dstFb.framebufferId);
 
-        state.framebufferPop(GL30.GL_DRAW_FRAMEBUFFER);
-        state.framebufferPop(GL30.GL_READ_FRAMEBUFFER);
+            GL30.glBlitFramebuffer(srcX0, srcY0, srcX1, srcY1, dstX0, dstY0, dstX1, dstY1, bitfield, filter);
+        }
     }
 
     @Override
     public GL3XFramebuffer framebufferCreate() {
+        final GLCapabilities caps = GL.getCapabilities();
         final GL3XFramebuffer fb = new GL3XFramebuffer();
-        fb.framebufferId = GL30.glGenFramebuffers();
+
+        if (caps.GL_ARB_direct_state_access && ARB_DSA) {
+            fb.framebufferId = ARBDirectStateAccess.glCreateFramebuffers();
+        } else {
+            fb.framebufferId = GL30.glGenFramebuffers();
+        }
+
         return fb;
     }
 
@@ -359,38 +522,58 @@ final class GL3XDriver implements Driver<
 
     @Override
     public void framebufferGetPixels(GL3XFramebuffer framebuffer, int x, int y, int width, int height, int format, int type, GL3XBuffer dstBuffer) {
-        state.framebufferPush(GL30.GL_FRAMEBUFFER, framebuffer.framebufferId);
-        state.bufferPush(GL21.GL_PIXEL_PACK_BUFFER, dstBuffer.bufferId);
+        if (EXCLUSIVE_CONTEXT) {
+            GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, framebuffer.framebufferId);
+            GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, dstBuffer.bufferId);
+            GL11.glReadPixels(x, y, width, height, format, type, 0L);
+            GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, 0);
+        } else {
+            final int currentFb = GL11.glGetInteger(GL30.GL_FRAMEBUFFER_BINDING);
 
-        GL11.glReadPixels(
-                x, y, width, height,
-                format, type,
-                0L);
-
-        state.bufferPop(GL21.GL_PIXEL_PACK_BUFFER);
-        state.framebufferPop(GL30.GL_FRAMEBUFFER);
+            GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, framebuffer.framebufferId);
+            GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, dstBuffer.bufferId);
+            GL11.glReadPixels(x, y, width, height, format, type, 0L);
+            GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, 0);
+            GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, currentFb);
+        }
     }
 
     @Override
     public void framebufferGetPixels(GL3XFramebuffer framebuffer, int x, int y, int width, int height, int format, int type, ByteBuffer dstBuffer) {
-        state.framebufferPush(GL30.GL_FRAMEBUFFER, framebuffer.framebufferId);
+        if (EXCLUSIVE_CONTEXT) {
+            GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, framebuffer.framebufferId);
+            GL11.glReadPixels(x, y, width, height, format, type, dstBuffer);
+        } else {
+            final int currentFb = GL11.glGetInteger(GL30.GL_FRAMEBUFFER_BINDING);
 
-        GL11.glReadPixels(
-                x, y, width, height,
-                format, type,
-                dstBuffer);
-
-        state.framebufferPop(GL30.GL_FRAMEBUFFER);
+            GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, framebuffer.framebufferId);
+            GL11.glReadPixels(x, y, width, height, format, type, dstBuffer);
+            GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, currentFb);
+        }
     }
 
     @Override
     public boolean framebufferIsComplete(GL3XFramebuffer framebuffer) {
-        state.framebufferPush(GL30.GL_FRAMEBUFFER, framebuffer.framebufferId);
+        final GLCapabilities caps = GL.getCapabilities();
 
-        final int complete = GL30.glCheckFramebufferStatus(GL30.GL_FRAMEBUFFER);
+        if (caps.GL_ARB_direct_state_access && ARB_DSA) {
+            return ARBDirectStateAccess.glCheckNamedFramebufferStatus(framebuffer.framebufferId, GL30.GL_FRAMEBUFFER) == GL30.GL_FRAMEBUFFER_COMPLETE;
+        } else if (caps.GL_EXT_direct_state_access && EXT_DSA) {
+            return EXTDirectStateAccess.glCheckNamedFramebufferStatusEXT(framebuffer.framebufferId, GL30.GL_FRAMEBUFFER) == GL30.GL_FRAMEBUFFER_COMPLETE;
+        } else if (EXCLUSIVE_CONTEXT) {
+            GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, framebuffer.framebufferId);
 
-        state.framebufferPop(GL30.GL_FRAMEBUFFER);
-        return complete == GL30.GL_FRAMEBUFFER_COMPLETE;
+            return GL30.glCheckFramebufferStatus(GL30.GL_FRAMEBUFFER) == GL30.GL_FRAMEBUFFER_COMPLETE;
+        } else {
+            final int currentFb = GL11.glGetInteger(GL30.GL_FRAMEBUFFER_BINDING);
+            final int res;
+
+            GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, framebuffer.framebufferId);
+            res = GL30.glCheckFramebufferStatus(GL30.GL_FRAMEBUFFER);
+            GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, currentFb);
+
+            return res == GL30.GL_FRAMEBUFFER_COMPLETE;
+        }
     }
 
     @Override
@@ -437,12 +620,7 @@ final class GL3XDriver implements Driver<
 
     @Override
     public int programGetUniformLocation(GL3XProgram program, String name) {
-        state.programPush(program.programId);
-
-        final int res = GL20.glGetUniformLocation(program.programId, name);
-
-        state.programPop();
-        return res;
+        return GL20.glGetUniformLocation(program.programId, name);
     }
 
     @Override
@@ -472,54 +650,136 @@ final class GL3XDriver implements Driver<
     public void programSetUniformD(GL3XProgram program, int uLoc, double[] value) {
         final GLCapabilities cap = GL.getCapabilities();
 
-        if (!(cap.GL_ARB_gpu_shader_fp64 && cap.GL_ARB_gpu_shader_int64)) {
-            throw new UnsupportedOperationException("64bit uniforms are not supported!");
-        }
-
         if (cap.GL_ARB_separate_shader_objects) {
-            switch (value.length) {
-                case 1:
-                    ARBSeparateShaderObjects.glProgramUniform1d(program.programId, uLoc, value[0]);
-                    break;
-                case 2:
-                    ARBSeparateShaderObjects.glProgramUniform2d(program.programId, uLoc, value[0], value[1]);
-                    break;
-                case 3:
-                    ARBSeparateShaderObjects.glProgramUniform3d(program.programId, uLoc, value[0], value[1], value[2]);
-                    break;
-                case 4:
-                    ARBSeparateShaderObjects.glProgramUniform4d(program.programId, uLoc, value[0], value[1], value[2], value[3]);
-                    break;
-                default:
-                    throw new UnsupportedOperationException("Unsupported vector size: " + value.length);
+            if (cap.GL_ARB_gpu_shader_fp64) {
+                switch (value.length) {
+                    case 1:
+                        ARBSeparateShaderObjects.glProgramUniform1d(program.programId, uLoc, value[0]);
+                        break;
+                    case 2:
+                        ARBSeparateShaderObjects.glProgramUniform2d(program.programId, uLoc, value[0], value[1]);
+                        break;
+                    case 3:
+                        ARBSeparateShaderObjects.glProgramUniform3d(program.programId, uLoc, value[0], value[1], value[2]);
+                        break;
+                    case 4:
+                        ARBSeparateShaderObjects.glProgramUniform4d(program.programId, uLoc, value[0], value[1], value[2], value[3]);
+                        break;
+                    default:
+                        throw new UnsupportedOperationException("Unsupported vector size: " + value.length);
+                }
+            } else {
+                switch (value.length) {
+                    case 1:
+                        ARBSeparateShaderObjects.glProgramUniform1f(program.programId, uLoc, (float) value[0]);
+                        break;
+                    case 2:
+                        ARBSeparateShaderObjects.glProgramUniform2f(program.programId, uLoc, (float) value[0], (float) value[1]);
+                        break;
+                    case 3:
+                        ARBSeparateShaderObjects.glProgramUniform3f(program.programId, uLoc, (float) value[0], (float) value[1], (float) value[2]);
+                        break;
+                    case 4:
+                        ARBSeparateShaderObjects.glProgramUniform4f(program.programId, uLoc, (float) value[0], (float) value[1], (float) value[2], (float) value[3]);
+                        break;
+                    default:
+                        throw new UnsupportedOperationException("Unsupported vector size: " + value.length);
+                }
+            }
+        } else if (EXCLUSIVE_CONTEXT) {
+            if (cap.GL_ARB_gpu_shader_fp64) {
+                GL20.glUseProgram(program.programId);
+
+                switch (value.length) {
+                    case 1:
+                        ARBGPUShaderFP64.glUniform1d(uLoc, value[0]);
+                        break;
+                    case 2:
+                        ARBGPUShaderFP64.glUniform2d(uLoc, value[0], value[1]);
+                        break;
+                    case 3:
+                        ARBGPUShaderFP64.glUniform3d(uLoc, value[0], value[1], value[2]);
+                        break;
+                    case 4:
+                        ARBGPUShaderFP64.glUniform4d(uLoc, value[0], value[1], value[2], value[3]);
+                        break;
+                    default:
+                        throw new UnsupportedOperationException("Unsupported vector size: " + value.length);
+                }
+            } else {
+                GL20.glUseProgram(program.programId);
+
+                switch (value.length) {
+                    case 1:
+                        GL20.glUniform1f(uLoc, (float) value[0]);
+                        break;
+                    case 2:
+                        GL20.glUniform2f(uLoc, (float) value[0], (float) value[1]);
+                        break;
+                    case 3:
+                        GL20.glUniform3f(uLoc, (float) value[0], (float) value[1], (float) value[2]);
+                        break;
+                    case 4:
+                        GL20.glUniform4f(uLoc, (float) value[0], (float) value[1], (float) value[2], (float) value[3]);
+                        break;
+                    default:
+                        throw new UnsupportedOperationException("Unsupported vector size: " + value.length);
+                }
             }
         } else {
-            state.programPush(program.programId);
+            if (cap.GL_ARB_gpu_shader_fp64) {
+                final int currentProg = GL11.glGetInteger(GL20.GL_CURRENT_PROGRAM);
 
-            switch (value.length) {
-                case 1:
-                    ARBGPUShaderFP64.glUniform1d(uLoc, value[0]);
-                    break;
-                case 2:
-                    ARBGPUShaderFP64.glUniform2d(uLoc, value[0], value[1]);
-                    break;
-                case 3:
-                    ARBGPUShaderFP64.glUniform3d(uLoc, value[0], value[1], value[2]);
-                    break;
-                case 4:
-                    ARBGPUShaderFP64.glUniform4d(uLoc, value[0], value[1], value[2], value[3]);
-                    break;
-                default:
-                    throw new UnsupportedOperationException("Unsupported vector size: " + value.length);
+                GL20.glUseProgram(program.programId);
+
+                switch (value.length) {
+                    case 1:
+                        ARBGPUShaderFP64.glUniform1d(uLoc, value[0]);
+                        break;
+                    case 2:
+                        ARBGPUShaderFP64.glUniform2d(uLoc, value[0], value[1]);
+                        break;
+                    case 3:
+                        ARBGPUShaderFP64.glUniform3d(uLoc, value[0], value[1], value[2]);
+                        break;
+                    case 4:
+                        ARBGPUShaderFP64.glUniform4d(uLoc, value[0], value[1], value[2], value[3]);
+                        break;
+                    default:
+                        throw new UnsupportedOperationException("Unsupported vector size: " + value.length);
+                }
+
+                GL20.glUseProgram(currentProg);
+            } else {
+                final int currentProg = GL11.glGetInteger(GL20.GL_CURRENT_PROGRAM);
+
+                switch (value.length) {
+                    case 1:
+                        GL20.glUniform1f(uLoc, (float) value[0]);
+                        break;
+                    case 2:
+                        GL20.glUniform2f(uLoc, (float) value[0], (float) value[1]);
+                        break;
+                    case 3:
+                        GL20.glUniform3f(uLoc, (float) value[0], (float) value[1], (float) value[2]);
+                        break;
+                    case 4:
+                        GL20.glUniform4f(uLoc, (float) value[0], (float) value[1], (float) value[2], (float) value[3]);
+                        break;
+                    default:
+                        throw new UnsupportedOperationException("Unsupported vector size: " + value.length);
+                }
+
+                GL20.glUseProgram(currentProg);
             }
-
-            state.programPop();
         }
     }
 
     @Override
     public void programSetUniformF(GL3XProgram program, int uLoc, float[] value) {
-        if (GL.getCapabilities().GL_ARB_separate_shader_objects) {
+        final GLCapabilities caps = GL.getCapabilities();
+
+        if (caps.GL_ARB_separate_shader_objects) {
             switch (value.length) {
                 case 1:
                     ARBSeparateShaderObjects.glProgramUniform1f(program.programId, uLoc, value[0]);
@@ -534,8 +794,29 @@ final class GL3XDriver implements Driver<
                     ARBSeparateShaderObjects.glProgramUniform4f(program.programId, uLoc, value[0], value[1], value[2], value[3]);
                     break;
             }
+        } else if (EXCLUSIVE_CONTEXT) {
+            GL20.glUseProgram(program.programId);
+
+            switch (value.length) {
+                case 1:
+                    GL20.glUniform1f(uLoc, value[0]);
+                    break;
+                case 2:
+                    GL20.glUniform2f(uLoc, value[0], value[1]);
+                    break;
+                case 3:
+                    GL20.glUniform3f(uLoc, value[0], value[1], value[2]);
+                    break;
+                case 4:
+                    GL20.glUniform4f(uLoc, value[0], value[1], value[2], value[3]);
+                    break;
+                default:
+                    throw new UnsupportedOperationException("Unsupported vector size: " + value.length);
+            }
         } else {
-            state.programPush(program.programId);
+            final int currentProg = GL11.glGetInteger(GL20.GL_CURRENT_PROGRAM);
+
+            GL20.glUseProgram(program.programId);
 
             switch (value.length) {
                 case 1:
@@ -554,13 +835,15 @@ final class GL3XDriver implements Driver<
                     throw new UnsupportedOperationException("Unsupported vector size: " + value.length);
             }
 
-            state.programPop();
+            GL20.glUseProgram(currentProg);
         }
     }
 
     @Override
     public void programSetUniformI(GL3XProgram program, int uLoc, int[] value) {
-        if (GL.getCapabilities().GL_ARB_separate_shader_objects) {
+        final GLCapabilities caps = GL.getCapabilities();
+
+        if (caps.GL_ARB_separate_shader_objects) {
             switch (value.length) {
                 case 1:
                     ARBSeparateShaderObjects.glProgramUniform1i(program.programId, uLoc, value[0]);
@@ -577,8 +860,29 @@ final class GL3XDriver implements Driver<
                 default:
                     throw new UnsupportedOperationException("Unsupported uniform vector size: " + value.length);
             }
+        } else if (EXCLUSIVE_CONTEXT) {
+            GL20.glUseProgram(program.programId);
+
+            switch (value.length) {
+                case 1:
+                    GL20.glUniform1i(uLoc, value[0]);
+                    break;
+                case 2:
+                    GL20.glUniform2i(uLoc, value[0], value[1]);
+                    break;
+                case 3:
+                    GL20.glUniform3i(uLoc, value[0], value[1], value[2]);
+                    break;
+                case 4:
+                    GL20.glUniform4i(uLoc, value[0], value[1], value[2], value[3]);
+                    break;
+                default:
+                    throw new UnsupportedOperationException("Unsupported uniform vector size: " + value.length);
+            }
         } else {
-            state.programPush(program.programId);
+            final int currentProg = GL11.glGetInteger(GL20.GL_CURRENT_PROGRAM);
+
+            GL20.glUseProgram(program.programId);
 
             switch (value.length) {
                 case 1:
@@ -597,7 +901,7 @@ final class GL3XDriver implements Driver<
                     throw new UnsupportedOperationException("Unsupported uniform vector size: " + value.length);
             }
 
-            state.programPop();
+            GL20.glUseProgram(currentProg);
         }
     }
 
@@ -605,48 +909,128 @@ final class GL3XDriver implements Driver<
     public void programSetUniformMatD(GL3XProgram program, int uLoc, DoubleBuffer mat) {
         final GLCapabilities cap = GL.getCapabilities();
 
-        if (!(cap.GL_ARB_gpu_shader_fp64 && cap.GL_ARB_gpu_shader_int64)) {
-            throw new UnsupportedOperationException("64bit uniforms are not supported!");
-        }
-
         if (cap.GL_ARB_separate_shader_objects) {
-            switch (mat.remaining()) {
-                case 4:
-                    ARBSeparateShaderObjects.glProgramUniformMatrix2dv(program.programId, uLoc, false, mat);
-                    break;
-                case 9:
-                    ARBSeparateShaderObjects.glProgramUniformMatrix3dv(program.programId, uLoc, false, mat);
-                    break;
-                case 16:
-                    ARBSeparateShaderObjects.glProgramUniformMatrix4dv(program.programId, uLoc, false, mat);
-                    break;
-                default:
-                    throw new UnsupportedOperationException("Unsupported matrix size: " + mat.limit());
-            }
-        } else {
-            state.programPush(program.programId);
+            if (cap.GL_ARB_gpu_shader_fp64) {
+                switch (mat.remaining()) {
+                    case 4:
+                        ARBSeparateShaderObjects.glProgramUniformMatrix2dv(program.programId, uLoc, false, mat);
+                        break;
+                    case 9:
+                        ARBSeparateShaderObjects.glProgramUniformMatrix3dv(program.programId, uLoc, false, mat);
+                        break;
+                    case 16:
+                        ARBSeparateShaderObjects.glProgramUniformMatrix4dv(program.programId, uLoc, false, mat);
+                        break;
+                    default:
+                        throw new UnsupportedOperationException("Unsupported matrix size: " + mat.limit());
+                }
+            } else {
+                final int size = mat.remaining();
+                final FloatBuffer fmat = MemoryUtil.memAllocFloat(size);
 
-            switch (mat.remaining()) {
-                case 4:
-                    ARBGPUShaderFP64.glUniformMatrix2dv(uLoc, false, mat);
-                    break;
-                case 9:
-                    ARBGPUShaderFP64.glUniformMatrix3dv(uLoc, false, mat);
-                    break;
-                case 16:
-                    ARBGPUShaderFP64.glUniformMatrix4dv(uLoc, false, mat);
-                    break;
-                default:
-                    throw new UnsupportedOperationException("Unsupported matrix size: " + mat.limit());
-            }
+                for (int i = 0; i < size; i++) {
+                    fmat.put((float) mat.get());
+                }
 
-            state.programPop();
+                fmat.flip();
+
+                switch (size) {
+                    case 4:
+                        ARBSeparateShaderObjects.glProgramUniformMatrix2fv(program.programId, uLoc, false, fmat);
+                        MemoryUtil.memFree(fmat);
+                        break;
+                    case 9:
+                        ARBSeparateShaderObjects.glProgramUniformMatrix3fv(program.programId, uLoc, false, fmat);
+                        MemoryUtil.memFree(fmat);
+                        break;
+                    case 16:
+                        ARBSeparateShaderObjects.glProgramUniformMatrix4fv(program.programId, uLoc, false, fmat);
+                        MemoryUtil.memFree(fmat);
+                        break;
+                    default:
+                        MemoryUtil.memFree(fmat);
+                        throw new UnsupportedOperationException("Unsupported matrix size: " + mat.limit());
+                }
+            }
+        } else if (EXCLUSIVE_CONTEXT) {
+            if (cap.GL_ARB_gpu_shader_fp64) {
+                GL20.glUseProgram(program.programId);
+
+                switch (mat.remaining()) {
+                    case 4:
+                        ARBGPUShaderFP64.glUniformMatrix2dv(uLoc, false, mat);
+                        break;
+                    case 9:
+                        ARBGPUShaderFP64.glUniformMatrix3dv(uLoc, false, mat);
+                        break;
+                    case 16:
+                        ARBGPUShaderFP64.glUniformMatrix4dv(uLoc, false, mat);
+                        break;
+                    default:
+                        throw new UnsupportedOperationException("Unsupported matrix size: " + mat.limit());
+                }
+            } else {
+                final int size = mat.remaining();
+                final FloatBuffer fmat = MemoryUtil.memAllocFloat(size);
+
+                for (int i = 0; i < size; i++) {
+                    fmat.put((float) mat.get());
+                }
+
+                fmat.flip();
+
+                final int currentProg;
+                switch (mat.remaining()) {
+                    case 4:
+                        currentProg = GL11.glGetInteger(GL20.GL_CURRENT_PROGRAM);
+                        GL20.glUseProgram(program.programId);
+                        GL20.glUniformMatrix2fv(uLoc, false, fmat);
+                        GL20.glUseProgram(currentProg);
+                        MemoryUtil.memFree(fmat);
+                        break;
+                    case 9:
+                        currentProg = GL11.glGetInteger(GL20.GL_CURRENT_PROGRAM);
+                        GL20.glUseProgram(program.programId);
+                        GL20.glUniformMatrix3fv(uLoc, false, fmat);
+                        GL20.glUseProgram(currentProg);
+                        MemoryUtil.memFree(fmat);
+                        break;
+                    case 16:
+                        currentProg = GL11.glGetInteger(GL20.GL_CURRENT_PROGRAM);
+                        GL20.glUseProgram(program.programId);
+                        GL20.glUniformMatrix4fv(uLoc, false, fmat);
+                        GL20.glUseProgram(currentProg);
+                        MemoryUtil.memFree(fmat);
+                        break;
+                    default:
+                        MemoryUtil.memFree(fmat);
+                        throw new UnsupportedOperationException("Unsupported matrix size: " + mat.limit());
+                }
+            }
         }
     }
 
     @Override
     public void programSetUniformMatF(GL3XProgram program, int uLoc, FloatBuffer mat) {
-        if (GL.getCapabilities().GL_ARB_separate_shader_objects) {
+        final GLCapabilities caps = GL.getCapabilities();
+
+        if (caps.GL_ARB_separate_shader_objects) {
+            switch (mat.remaining()) {
+                case 4:
+                    ARBSeparateShaderObjects.glProgramUniformMatrix2fv(program.programId, uLoc, false, mat);
+                    break;
+                case 9:
+                    ARBSeparateShaderObjects.glProgramUniformMatrix3fv(program.programId, uLoc, false, mat);
+                    break;
+                case 16:
+                    ARBSeparateShaderObjects.glProgramUniformMatrix4fv(program.programId, uLoc, false, mat);
+                    break;
+                default:
+                    throw new UnsupportedOperationException("Unsupported matrix size: " + mat.limit());
+            }
+        } else if (EXCLUSIVE_CONTEXT) {
+            GL20.glUseProgram(program.programId);
+
             switch (mat.remaining()) {
                 case 4:
                     ARBSeparateShaderObjects.glProgramUniformMatrix2fv(program.programId, uLoc, false, mat);
@@ -661,23 +1045,25 @@ final class GL3XDriver implements Driver<
                     throw new UnsupportedOperationException("Unsupported matrix size: " + mat.limit());
             }
         } else {
-            state.programPush(program.programId);
+            final int currentProg = GL11.glGetInteger(GL20.GL_CURRENT_PROGRAM);
+
+            GL20.glUseProgram(program.programId);
 
             switch (mat.remaining()) {
                 case 4:
-                    GL20.glUniformMatrix2fv(uLoc, false, mat);
+                    ARBSeparateShaderObjects.glProgramUniformMatrix2fv(program.programId, uLoc, false, mat);
                     break;
                 case 9:
-                    GL20.glUniformMatrix3fv(uLoc, false, mat);
+                    ARBSeparateShaderObjects.glProgramUniformMatrix3fv(program.programId, uLoc, false, mat);
                     break;
                 case 16:
-                    GL20.glUniformMatrix4fv(uLoc, false, mat);
+                    ARBSeparateShaderObjects.glProgramUniformMatrix4fv(program.programId, uLoc, false, mat);
                     break;
                 default:
                     throw new UnsupportedOperationException("Unsupported matrix size: " + mat.limit());
             }
 
-            state.programPop();
+            GL20.glUseProgram(currentProg);
         }
     }
 
@@ -688,12 +1074,19 @@ final class GL3XDriver implements Driver<
 
     @Override
     public GL3XRenderbuffer renderbufferCreate(int internalFormat, int width, int height) {
+        final GLCapabilities caps = GL.getCapabilities();
         final GL3XRenderbuffer renderbuffer = new GL3XRenderbuffer();
 
-        renderbuffer.renderbufferId = GL30.glGenRenderbuffers();
+        if (caps.GL_ARB_direct_state_access && ARB_DSA) {
+            renderbuffer.renderbufferId = ARBDirectStateAccess.glCreateRenderbuffers();
 
-        GL30.glBindRenderbuffer(GL30.GL_RENDERBUFFER, renderbuffer.renderbufferId);
-        GL30.glRenderbufferStorage(GL30.GL_RENDERBUFFER, internalFormat, width, height);
+            ARBDirectStateAccess.glNamedRenderbufferStorage(GL30.GL_RENDERBUFFER, internalFormat, width, height);
+        } else {
+            renderbuffer.renderbufferId = GL30.glGenRenderbuffers();
+
+            GL30.glBindRenderbuffer(GL30.GL_RENDERBUFFER, renderbuffer.renderbufferId);
+            GL30.glRenderbufferStorage(GL30.GL_RENDERBUFFER, internalFormat, width, height);
+        }
 
         return renderbuffer;
     }
@@ -807,70 +1200,204 @@ final class GL3XDriver implements Driver<
             throw new IllegalArgumentException("Invalid dimensions!");
         }
 
+        final GLCapabilities caps = GL.getCapabilities();
         final GL3XTexture texture = new GL3XTexture();
 
-        texture.textureId = GL11.glGenTextures();
-        texture.target = target;
-        texture.internalFormat = internalFormat;
+        if (caps.GL_ARB_direct_state_access && ARB_DSA && caps.GL_ARB_texture_storage) {
+            texture.textureId = ARBDirectStateAccess.glCreateTextures(target);
+            texture.target = target;
+            texture.internalFormat = internalFormat;
 
-        state.texturePush(texture.target, texture.textureId);
+            ARBDirectStateAccess.glTextureParameteri(texture.textureId, GL12.GL_TEXTURE_BASE_LEVEL, 0);
+            ARBDirectStateAccess.glTextureParameteri(texture.textureId, GL12.GL_TEXTURE_MAX_LEVEL, mipmaps - 1);
 
-        switch (target) {
-            case GL11.GL_TEXTURE_1D:
-                GL11.glTexParameteri(GL11.GL_TEXTURE_1D, GL12.GL_TEXTURE_BASE_LEVEL, 0);
-                GL11.glTexParameteri(GL11.GL_TEXTURE_1D, GL12.GL_TEXTURE_MAX_LEVEL, mipmaps);
+            switch (target) {
+                case GL11.GL_TEXTURE_1D:
+                    ARBDirectStateAccess.glTextureStorage1D(texture.textureId, mipmaps, internalFormat, width);
+                    break;
+                case GL11.GL_TEXTURE_2D:
+                    ARBDirectStateAccess.glTextureStorage2D(texture.textureId, mipmaps, internalFormat, width, height);
+                    break;
+                case GL12.GL_TEXTURE_3D:
+                    ARBDirectStateAccess.glTextureStorage3D(texture.textureId, mipmaps, internalFormat, width, height, depth);
+                    break;
+                default:
+                    throw new UnsupportedOperationException("Unsupported texture target: " + target);
+            }
+        } else if (caps.GL_EXT_direct_state_access && EXT_DSA && caps.GL_ARB_texture_storage) {
+            texture.textureId = GL11.glGenTextures();
+            texture.target = target;
+            texture.internalFormat = internalFormat;
 
-                if (GL.getCapabilities().GL_ARB_texture_storage) {
-                    ARBTextureStorage.glTexStorage1D(GL11.GL_TEXTURE_1D, mipmaps, internalFormat, width);
-                } else {
-                    for (int i = 0; i < mipmaps; i++) {
-                        GL11.glTexImage1D(GL11.GL_TEXTURE_1D, i, internalFormat, width, 0, guessFormat(internalFormat), dataType, 0);
-                        width = Math.max(1, (width / 2));
-                    }
+            EXTDirectStateAccess.glTextureParameteriEXT(texture.textureId, texture.target, GL12.GL_TEXTURE_BASE_LEVEL, 0);
+            EXTDirectStateAccess.glTextureParameteriEXT(texture.textureId, texture.target, GL12.GL_TEXTURE_MAX_LEVEL, mipmaps - 1);
+
+            switch (target) {
+                case GL11.GL_TEXTURE_1D:
+                    ARBTextureStorage.glTextureStorage1DEXT(texture.textureId, GL11.GL_TEXTURE_1D, depth, internalFormat, width);
+                    break;
+                case GL11.GL_TEXTURE_2D:
+                    ARBTextureStorage.glTextureStorage2DEXT(texture.textureId, GL11.GL_TEXTURE_2D, depth, internalFormat, width, height);
+                    break;
+                case GL12.GL_TEXTURE_3D:
+                    ARBTextureStorage.glTextureStorage3DEXT(texture.textureId, GL12.GL_TEXTURE_3D, depth, internalFormat, width, height, depth);
+                    break;
+                default:
+                    throw new UnsupportedOperationException("Unsupported texture target: " + target);
+            }
+        } else if (EXCLUSIVE_CONTEXT) {
+            texture.textureId = GL11.glGenTextures();
+            texture.target = target;
+            texture.internalFormat = internalFormat;
+
+            GL11.glBindTexture(target, texture.textureId);
+            GL11.glTexParameteri(target, GL12.GL_TEXTURE_BASE_LEVEL, 0);
+            GL11.glTexParameteri(target, GL12.GL_TEXTURE_MAX_LEVEL, mipmaps - 1);
+
+            if (caps.GL_ARB_texture_storage) {
+                switch (target) {
+                    case GL11.GL_TEXTURE_1D:
+                        ARBTextureStorage.glTexStorage1D(GL11.GL_TEXTURE_1D, mipmaps, internalFormat, width);
+                        break;
+                    case GL11.GL_TEXTURE_2D:
+                        ARBTextureStorage.glTexStorage2D(GL11.GL_TEXTURE_2D, mipmaps, internalFormat, width, height);
+                        break;
+                    case GL12.GL_TEXTURE_3D:
+                        ARBTextureStorage.glTexStorage3D(GL12.GL_TEXTURE_3D, mipmaps, internalFormat, width, height, depth);
+                        break;
+                    default:
+                        throw new UnsupportedOperationException("Unsupported texture target: " + target);
                 }
-                break;
-            case GL11.GL_TEXTURE_2D:
-                GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL12.GL_TEXTURE_BASE_LEVEL, 0);
-                GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL12.GL_TEXTURE_MAX_LEVEL, mipmaps);
+            } else {
+                final int format = guessFormat(internalFormat);
 
-                if (GL.getCapabilities().GL_ARB_texture_storage) {
-                    ARBTextureStorage.glTexStorage2D(GL11.GL_TEXTURE_2D, mipmaps, internalFormat, width, height);
-                } else {
-                    for (int i = 0; i < mipmaps; i++) {
-                        GL11.glTexImage2D(GL11.GL_TEXTURE_2D, i, internalFormat, width, height, 0, guessFormat(internalFormat), dataType, 0);
-                        width = Math.max(1, (width / 2));
-                        height = Math.max(1, (height / 2));
-                    }
+                switch (target) {
+                    case GL11.GL_TEXTURE_1D:
+                        for (int i = 0; i < mipmaps; i++) {
+                            GL11.glTexImage1D(GL11.GL_TEXTURE_1D, i, internalFormat, width, 0, format, dataType, 0);
+                            width = Math.max(1, width / 2);
+                        }
+                        break;
+                    case GL11.GL_TEXTURE_2D:
+                        for (int i = 0; i < mipmaps; i++) {
+                            GL11.glTexImage2D(GL11.GL_TEXTURE_2D, i, internalFormat, width, height, 0, format, dataType, 0);
+                            width = Math.max(1, width / 2);
+                            height = Math.max(1, height / 2);
+                        }
+                        break;
+                    case GL12.GL_TEXTURE_3D:
+                        for (int i = 0; i < mipmaps; i++) {
+                            GL12.glTexImage3D(GL12.GL_TEXTURE_3D, i, internalFormat, width, height, depth, 0, format, dataType, 0);
+                            width = Math.max(1, width / 2);
+                            height = Math.max(1, height / 2);
+                            depth = Math.max(1, depth / 2);
+                        }
+                        break;
+                    default:
+                        throw new UnsupportedOperationException("Unsupported texture target: " + target);
                 }
-                break;
-            case GL12.GL_TEXTURE_3D:
-                GL11.glTexParameteri(GL12.GL_TEXTURE_3D, GL12.GL_TEXTURE_BASE_LEVEL, 0);
-                GL11.glTexParameteri(GL12.GL_TEXTURE_3D, GL12.GL_TEXTURE_MAX_LEVEL, mipmaps);
+            }
+        } else {
+            texture.textureId = GL11.glGenTextures();
+            texture.target = target;
+            texture.internalFormat = internalFormat;
 
-                if (GL.getCapabilities().GL_ARB_texture_storage) {
-                    ARBTextureStorage.glTexStorage3D(GL12.GL_TEXTURE_3D, mipmaps, internalFormat, width, height, depth);
-                } else {
-                    for (int i = 0; i < mipmaps; i++) {
-                        GL12.glTexImage3D(GL12.GL_TEXTURE_3D, i, internalFormat, width, height, depth, 0, guessFormat(internalFormat), dataType, 0);
-                        width = Math.max(1, (width / 2));
-                        height = Math.max(1, (height / 2));
-                        depth = Math.max(1, (depth / 2));
-                    }
+            final int currentTex;
+
+            if (caps.GL_ARB_texture_storage) {
+                switch (target) {
+                    case GL11.GL_TEXTURE_1D:
+                        currentTex = GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_1D);
+                        GL11.glBindTexture(GL11.GL_TEXTURE_1D, texture.textureId);
+                        GL11.glTexParameteri(GL11.GL_TEXTURE_1D, GL12.GL_TEXTURE_BASE_LEVEL, 0);
+                        GL11.glTexParameteri(GL11.GL_TEXTURE_1D, GL12.GL_TEXTURE_MAX_LEVEL, mipmaps - 1);
+                        ARBTextureStorage.glTexStorage1D(GL11.GL_TEXTURE_1D, mipmaps, internalFormat, width);
+                        GL11.glBindTexture(GL11.GL_TEXTURE_1D, currentTex);
+                        break;
+                    case GL11.GL_TEXTURE_2D:
+                        currentTex = GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_2D);
+                        GL11.glBindTexture(GL11.GL_TEXTURE_2D, texture.textureId);
+                        GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL12.GL_TEXTURE_BASE_LEVEL, 0);
+                        GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL12.GL_TEXTURE_MAX_LEVEL, mipmaps - 1);
+                        ARBTextureStorage.glTexStorage2D(GL11.GL_TEXTURE_2D, mipmaps, internalFormat, width, height);
+                        GL11.glBindTexture(GL11.GL_TEXTURE_2D, currentTex);
+                        break;
+                    case GL12.GL_TEXTURE_3D:
+                        currentTex = GL11.glGetInteger(GL12.GL_TEXTURE_BINDING_3D);
+                        GL11.glBindTexture(GL12.GL_TEXTURE_3D, texture.textureId);
+                        GL11.glTexParameteri(GL12.GL_TEXTURE_3D, GL12.GL_TEXTURE_BASE_LEVEL, 0);
+                        GL11.glTexParameteri(GL12.GL_TEXTURE_3D, GL12.GL_TEXTURE_MAX_LEVEL, mipmaps - 1);
+                        ARBTextureStorage.glTexStorage3D(GL12.GL_TEXTURE_3D, mipmaps, internalFormat, width, height, depth);
+                        GL11.glBindTexture(GL12.GL_TEXTURE_3D, currentTex);
+                        break;
+                    default:
+                        throw new UnsupportedOperationException("Unsupported texture target: " + target);
                 }
-                break;
-            default:
-                throw new UnsupportedOperationException("Unsupported texture target: " + target);
+            } else {
+                final int format = guessFormat(internalFormat);
+
+                switch (target) {
+                    case GL11.GL_TEXTURE_1D:
+                        currentTex = GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_1D);
+                        GL11.glBindTexture(GL11.GL_TEXTURE_1D, texture.textureId);
+                        GL11.glTexParameteri(GL11.GL_TEXTURE_1D, GL12.GL_TEXTURE_BASE_LEVEL, 0);
+                        GL11.glTexParameteri(GL11.GL_TEXTURE_1D, GL12.GL_TEXTURE_MAX_LEVEL, mipmaps - 1);
+
+                        for (int i = 0; i < mipmaps; i++) {
+                            GL11.glTexImage1D(target, i, internalFormat, width, 0, format, dataType, 0);
+                            width = Math.max(1, width / 2);
+                        }
+
+                        GL11.glBindTexture(GL11.GL_TEXTURE_1D, currentTex);
+                        break;
+                    case GL11.GL_TEXTURE_2D:
+                        currentTex = GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_2D);
+                        GL11.glBindTexture(GL11.GL_TEXTURE_2D, texture.textureId);
+                        GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL12.GL_TEXTURE_BASE_LEVEL, 0);
+                        GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL12.GL_TEXTURE_MAX_LEVEL, mipmaps - 1);
+
+                        for (int i = 0; i < mipmaps; i++) {
+                            GL11.glTexImage2D(target, i, internalFormat, width, height, 0, format, dataType, 0);
+                            width = Math.max(1, width / 2);
+                            height = Math.max(1, height / 2);
+                        }
+
+                        GL11.glBindTexture(GL11.GL_TEXTURE_2D, currentTex);
+                        break;
+                    case GL12.GL_TEXTURE_3D:
+                        currentTex = GL11.glGetInteger(GL12.GL_TEXTURE_BINDING_3D);
+                        GL11.glBindTexture(GL12.GL_TEXTURE_3D, texture.textureId);
+                        GL11.glTexParameteri(GL12.GL_TEXTURE_3D, GL12.GL_TEXTURE_BASE_LEVEL, 0);
+                        GL11.glTexParameteri(GL12.GL_TEXTURE_3D, GL12.GL_TEXTURE_MAX_LEVEL, mipmaps - 1);
+
+                        for (int i = 0; i < mipmaps; i++) {
+                            GL12.glTexImage3D(target, i, internalFormat, width, height, depth, 0, format, dataType, 0);
+                            width = Math.max(1, width / 2);
+                            height = Math.max(1, height / 2);
+                            depth = Math.max(1, depth / 2);
+                        }
+
+                        GL11.glBindTexture(GL12.GL_TEXTURE_3D, currentTex);
+                        break;
+                    default:
+                        throw new UnsupportedOperationException("Unsupported texture target: " + target);
+                }
+            }
         }
-
-        state.texturePop(texture.target);
 
         return texture;
     }
 
     @Override
     public void textureBind(GL3XTexture texture, int unit) {
-        GL13.glActiveTexture(GL13.GL_TEXTURE0 + unit);
-        GL11.glBindTexture(texture.target, texture.textureId);
+        final GLCapabilities caps = GL.getCapabilities();
+
+        if (caps.GL_ARB_direct_state_access && ARB_DSA) {
+            ARBDirectStateAccess.glBindTextureUnit(unit, texture.textureId);
+        } else {
+            GL13.glActiveTexture(GL13.GL_TEXTURE0 + unit);
+            GL11.glBindTexture(texture.target, texture.textureId);
+        }
     }
 
     @Override
@@ -881,16 +1408,80 @@ final class GL3XDriver implements Driver<
 
     @Override
     public void textureGenerateMipmap(GL3XTexture texture) {
-        state.texturePush(texture.target, texture.textureId);
-        GL30.glGenerateMipmap(texture.target);
-        state.texturePop(texture.target);
+        final GLCapabilities caps = GL.getCapabilities();
+
+        if (caps.GL_ARB_direct_state_access && ARB_DSA) {
+            ARBDirectStateAccess.glGenerateTextureMipmap(texture.textureId);
+        } else if (caps.GL_EXT_direct_state_access && EXT_DSA) {
+            EXTDirectStateAccess.glGenerateTextureMipmapEXT(texture.textureId, texture.target);
+        } else if (EXCLUSIVE_CONTEXT) {
+            GL11.glBindTexture(texture.target, texture.textureId);
+            GL30.glGenerateMipmap(texture.target);
+        } else {
+            final int currentTex;
+
+            switch (texture.target) {
+                case GL11.GL_TEXTURE_1D:
+                    currentTex = GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_1D);
+                    GL11.glBindTexture(GL11.GL_TEXTURE_1D, texture.textureId);
+                    GL30.glGenerateMipmap(GL11.GL_TEXTURE_1D);
+                    GL11.glBindTexture(GL11.GL_TEXTURE_1D, currentTex);
+                    break;
+                case GL11.GL_TEXTURE_2D:
+                    currentTex = GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_2D);
+                    GL11.glBindTexture(GL11.GL_TEXTURE_2D, texture.textureId);
+                    GL30.glGenerateMipmap(GL11.GL_TEXTURE_2D);
+                    GL11.glBindTexture(GL11.GL_TEXTURE_2D, currentTex);
+                    break;
+                case GL12.GL_TEXTURE_3D:
+                    currentTex = GL11.glGetInteger(GL12.GL_TEXTURE_BINDING_3D);
+                    GL11.glBindTexture(GL12.GL_TEXTURE_3D, texture.textureId);
+                    GL30.glGenerateMipmap(GL12.GL_TEXTURE_3D);
+                    GL11.glBindTexture(GL12.GL_TEXTURE_3D, currentTex);
+                    break;
+                default:
+                    throw new UnsupportedOperationException("Unsupported texture target: " + texture.target);
+            }
+        }
     }
 
     @Override
     public void textureGetData(GL3XTexture texture, int level, int format, int type, ByteBuffer out) {
-        state.texturePush(texture.target, texture.textureId);
-        GL11.glGetTexImage(texture.target, level, format, type, out);
-        state.texturePop(texture.target);
+        final GLCapabilities caps = GL.getCapabilities();
+
+        if (caps.GL_ARB_direct_state_access && ARB_DSA) {
+            ARBDirectStateAccess.glGetTextureImage(texture.textureId, level, format, type, out);
+        } else if (caps.GL_EXT_direct_state_access && EXT_DSA) {
+            EXTDirectStateAccess.glGetTextureImageEXT(texture.textureId, texture.target, level, format, type, out);
+        } else if (EXCLUSIVE_CONTEXT) {
+            GL11.glBindTexture(texture.target, texture.textureId);
+            GL11.glGetTexImage(texture.target, level, format, type, out);
+        } else {
+            final int currentTex;
+
+            switch (texture.target) {
+                case GL11.GL_TEXTURE_1D:
+                    currentTex = GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_1D);
+                    GL11.glBindTexture(GL11.GL_TEXTURE_1D, texture.textureId);
+                    GL11.glGetTexImage(GL11.GL_TEXTURE_1D, level, format, type, out);
+                    GL11.glBindTexture(GL11.GL_TEXTURE_1D, currentTex);
+                    break;
+                case GL11.GL_TEXTURE_2D:
+                    currentTex = GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_2D);
+                    GL11.glBindTexture(GL11.GL_TEXTURE_2D, texture.textureId);
+                    GL11.glGetTexImage(GL11.GL_TEXTURE_2D, level, format, type, out);
+                    GL11.glBindTexture(GL11.GL_TEXTURE_2D, currentTex);
+                    break;
+                case GL12.GL_TEXTURE_3D:
+                    currentTex = GL11.glGetInteger(GL12.GL_TEXTURE_BINDING_3D);
+                    GL11.glBindTexture(GL12.GL_TEXTURE_3D, texture.textureId);
+                    GL11.glGetTexImage(GL12.GL_TEXTURE_3D, level, format, type, out);
+                    GL11.glBindTexture(GL12.GL_TEXTURE_3D, currentTex);
+                    break;
+                default:
+                    throw new UnsupportedOperationException("Unsupported texture target: " + texture.target);
+            }
+        }
     }
 
     @Override
@@ -921,8 +1512,6 @@ final class GL3XDriver implements Driver<
     public void textureInvalidateData(GL3XTexture texture, int level) {
         if (GL.getCapabilities().GL_ARB_invalidate_subdata) {
             ARBInvalidateSubdata.glInvalidateTexImage(texture.target, level);
-        } else {
-            LOGGER.trace("ARB_invalidate_subdata is not supported... Ignoring call to glInvalidateTexImage.");
         }
     }
 
@@ -930,8 +1519,6 @@ final class GL3XDriver implements Driver<
     public void textureInvalidateRange(GL3XTexture texture, int level, int xOffset, int yOffset, int zOffset, int width, int height, int depth) {
         if (GL.getCapabilities().GL_ARB_invalidate_subdata) {
             ARBInvalidateSubdata.glInvalidateTexSubImage(texture.textureId, level, xOffset, yOffset, zOffset, width, height, depth);
-        } else {
-            LOGGER.trace("ARB_invalidate_subdata is not supported... Ignoring call to glInvalidateTexSubImage.");
         }
     }
 
@@ -942,38 +1529,156 @@ final class GL3XDriver implements Driver<
 
     @Override
     public void textureSetData(GL3XTexture texture, int level, int xOffset, int yOffset, int zOffset, int width, int height, int depth, int format, int type, ByteBuffer data) {
-        state.texturePush(texture.target, texture.textureId);
+        final GLCapabilities caps = GL.getCapabilities();
 
-        switch (texture.target) {
-            case GL11.GL_TEXTURE_1D:
-                GL11.glTexSubImage1D(GL11.GL_TEXTURE_1D, level, xOffset, width, format, type, data);
-                break;
-            case GL11.GL_TEXTURE_2D:
-                GL11.glTexSubImage2D(GL11.GL_TEXTURE_2D, level, xOffset, yOffset, width, height, format, type, data);
-                break;
-            case GL12.GL_TEXTURE_3D:
-                GL12.glTexSubImage3D(GL12.GL_TEXTURE_3D, level, xOffset, yOffset, zOffset, width, height, depth, format, type, data);
-                break;
-            default:
-                throw new UnsupportedOperationException("Unsupported texture target: " + texture.target);
-
+        if (caps.GL_ARB_direct_state_access && ARB_DSA) {
+            switch (texture.target) {
+                case GL11.GL_TEXTURE_1D:
+                    ARBDirectStateAccess.glTextureSubImage1D(texture.textureId, level, xOffset, width, format, type, data);
+                    break;
+                case GL11.GL_TEXTURE_2D:
+                    ARBDirectStateAccess.glTextureSubImage2D(texture.textureId, level, xOffset, yOffset, width, height, format, type, data);
+                    break;
+                case GL12.GL_TEXTURE_3D:
+                    ARBDirectStateAccess.glTextureSubImage3D(texture.textureId, level, xOffset, yOffset, zOffset, width, height, depth, format, type, data);
+                    break;
+                default:
+                    throw new UnsupportedOperationException("Unsupported texture target: " + texture.target);
+            }
+        } else if (caps.GL_EXT_direct_state_access && EXT_DSA) {
+            switch (texture.target) {
+                case GL11.GL_TEXTURE_1D:
+                    EXTDirectStateAccess.glTextureSubImage1DEXT(texture.textureId, GL11.GL_TEXTURE_1D, level, xOffset, width, format, type, data);
+                    break;
+                case GL11.GL_TEXTURE_2D:
+                    EXTDirectStateAccess.glTextureSubImage2DEXT(texture.textureId, GL11.GL_TEXTURE_2D, level, xOffset, yOffset, width, height, format, type, data);
+                    break;
+                case GL12.GL_TEXTURE_3D:
+                    EXTDirectStateAccess.glTextureSubImage3DEXT(texture.textureId, GL12.GL_TEXTURE_3D, level, xOffset, yOffset, zOffset, width, height, depth, format, type, data);
+                    break;
+                default:
+                    throw new UnsupportedOperationException("Unsupported texture target: " + texture.target);
+            }
+        } else if (EXCLUSIVE_CONTEXT) {
+            switch (texture.target) {
+                case GL11.GL_TEXTURE_1D:
+                    GL11.glBindTexture(GL11.GL_TEXTURE_1D, texture.textureId);
+                    GL11.glTexSubImage1D(GL11.GL_TEXTURE_1D, level, xOffset, width, format, type, data);
+                    break;
+                case GL11.GL_TEXTURE_2D:
+                    GL11.glBindTexture(GL11.GL_TEXTURE_2D, texture.textureId);
+                    GL11.glTexSubImage2D(GL11.GL_TEXTURE_2D, level, xOffset, yOffset, width, height, format, type, data);
+                    break;
+                case GL12.GL_TEXTURE_3D:
+                    GL11.glBindTexture(GL12.GL_TEXTURE_3D, texture.textureId);
+                    GL12.glTexSubImage3D(GL12.GL_TEXTURE_3D, level, xOffset, yOffset, zOffset, width, height, depth, format, type, data);
+                    break;
+                default:
+                    throw new UnsupportedOperationException("Unsupported texture target: " + texture.target);
+            }
+        } else {
+            final int currentTex;
+            switch (texture.target) {
+                case GL11.GL_TEXTURE_1D:
+                    currentTex = GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_1D);
+                    GL11.glBindTexture(GL11.GL_TEXTURE_1D, texture.textureId);
+                    GL11.glTexSubImage1D(GL11.GL_TEXTURE_1D, level, xOffset, width, format, type, data);
+                    GL11.glBindTexture(GL11.GL_TEXTURE_1D, currentTex);
+                    break;
+                case GL11.GL_TEXTURE_2D:
+                    currentTex = GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_2D);
+                    GL11.glBindTexture(GL11.GL_TEXTURE_2D, texture.textureId);
+                    GL11.glTexSubImage2D(GL11.GL_TEXTURE_2D, level, xOffset, yOffset, width, height, format, type, data);
+                    GL11.glBindTexture(GL11.GL_TEXTURE_2D, currentTex);
+                    break;
+                case GL12.GL_TEXTURE_3D:
+                    currentTex = GL11.glGetInteger(GL12.GL_TEXTURE_BINDING_3D);
+                    GL11.glBindTexture(GL12.GL_TEXTURE_3D, texture.textureId);
+                    GL12.glTexSubImage3D(GL12.GL_TEXTURE_3D, level, xOffset, yOffset, zOffset, width, height, depth, format, type, data);
+                    GL11.glBindTexture(GL12.GL_TEXTURE_3D, currentTex);
+                    break;
+                default:
+                    throw new UnsupportedOperationException("Unsupported texture target: " + texture.target);
+            }
         }
-
-        state.texturePop(texture.target);
     }
 
     @Override
     public void textureSetParameter(GL3XTexture texture, int param, int value) {
-        state.texturePush(texture.target, texture.textureId);
-        GL11.glTexParameteri(texture.target, param, value);
-        state.texturePop(texture.target);
+        final GLCapabilities caps = GL.getCapabilities();
+
+        if (caps.GL_ARB_direct_state_access && ARB_DSA) {
+            ARBDirectStateAccess.glTextureParameteri(texture.textureId, param, value);
+        } else if (caps.GL_EXT_direct_state_access && EXT_DSA) {
+            EXTDirectStateAccess.glTextureParameteriEXT(texture.textureId, texture.target, param, value);
+        } else if (EXCLUSIVE_CONTEXT) {
+            GL11.glBindTexture(texture.target, texture.textureId);
+            GL11.glTexParameteri(texture.target, param, value);
+        } else {
+            final int currentTex;
+
+            switch (texture.target) {
+                case GL11.GL_TEXTURE_1D:
+                    currentTex = GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_1D);
+                    GL11.glBindTexture(GL11.GL_TEXTURE_1D, texture.textureId);
+                    GL11.glTexParameteri(GL11.GL_TEXTURE_1D, param, value);
+                    GL11.glBindTexture(GL11.GL_TEXTURE_1D, currentTex);
+                    break;
+                case GL11.GL_TEXTURE_2D:
+                    currentTex = GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_2D);
+                    GL11.glBindTexture(GL11.GL_TEXTURE_2D, texture.textureId);
+                    GL11.glTexParameteri(GL11.GL_TEXTURE_2D, param, value);
+                    GL11.glBindTexture(GL11.GL_TEXTURE_2D, currentTex);
+                    break;
+                case GL12.GL_TEXTURE_3D:
+                    currentTex = GL11.glGetInteger(GL12.GL_TEXTURE_BINDING_3D);
+                    GL11.glBindTexture(GL12.GL_TEXTURE_3D, texture.textureId);
+                    GL11.glTexParameteri(GL12.GL_TEXTURE_3D, param, value);
+                    GL11.glBindTexture(GL12.GL_TEXTURE_3D, currentTex);
+                    break;
+                default:
+                    throw new UnsupportedOperationException("Unsupported texture target: " + texture.target);
+            }
+        }
     }
 
     @Override
     public void textureSetParameter(GL3XTexture texture, int param, float value) {
-        state.texturePush(texture.target, texture.textureId);
-        GL11.glTexParameterf(texture.target, param, value);
-        state.texturePop(texture.target);
+        final GLCapabilities caps = GL.getCapabilities();
+
+        if (caps.GL_ARB_direct_state_access && ARB_DSA) {
+            ARBDirectStateAccess.glTextureParameterf(texture.textureId, param, value);
+        } else if (caps.GL_EXT_direct_state_access && EXT_DSA) {
+            EXTDirectStateAccess.glTextureParameterfEXT(texture.textureId, texture.target, param, value);
+        } else if (EXCLUSIVE_CONTEXT) {
+            GL11.glBindTexture(texture.target, texture.textureId);
+            GL11.glTexParameterf(texture.target, param, value);
+        } else {
+            final int currentTex;
+
+            switch (texture.target) {
+                case GL11.GL_TEXTURE_1D:
+                    currentTex = GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_1D);
+                    GL11.glBindTexture(GL11.GL_TEXTURE_1D, texture.textureId);
+                    GL11.glTexParameterf(GL11.GL_TEXTURE_1D, param, value);
+                    GL11.glBindTexture(GL11.GL_TEXTURE_1D, currentTex);
+                    break;
+                case GL11.GL_TEXTURE_2D:
+                    currentTex = GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_2D);
+                    GL11.glBindTexture(GL11.GL_TEXTURE_2D, texture.textureId);
+                    GL11.glTexParameterf(GL11.GL_TEXTURE_2D, param, value);
+                    GL11.glBindTexture(GL11.GL_TEXTURE_2D, currentTex);
+                    break;
+                case GL12.GL_TEXTURE_3D:
+                    currentTex = GL11.glGetInteger(GL12.GL_TEXTURE_BINDING_3D);
+                    GL11.glBindTexture(GL12.GL_TEXTURE_3D, texture.textureId);
+                    GL11.glTexParameterf(GL12.GL_TEXTURE_3D, param, value);
+                    GL11.glBindTexture(GL12.GL_TEXTURE_3D, currentTex);
+                    break;
+                default:
+                    throw new UnsupportedOperationException("Unsupported texture target: " + texture.target);
+            }
+        }
     }
 
     @Override
@@ -995,41 +1700,65 @@ final class GL3XDriver implements Driver<
 
     @Override
     public void vertexArrayAttachBuffer(GL3XVertexArray vao, int index, GL3XBuffer buffer, int size, int type, int stride, long offset, int divisor) {
-        state.vertexArrayPush(vao.vertexArrayId);
+        final GLCapabilities caps = GL.getCapabilities();
 
-        GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, buffer.bufferId);
-        GL20.glEnableVertexAttribArray(index);
+        if (EXCLUSIVE_CONTEXT) {
+            GL30.glBindVertexArray(vao.vertexArrayId);
+            GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, buffer.bufferId);
+            GL20.glEnableVertexAttribArray(index);
 
-        if (type == GL11.GL_DOUBLE) {
-            if (GL.getCapabilities().GL_ARB_vertex_attrib_64bit) {
-                ARBVertexAttrib64Bit.glVertexAttribLPointer(index, size, type, stride, offset);
-            } else {
-                throw new UnsupportedOperationException("ARB_vertex_attrib_64bit is not supported!");
-            }
-        } else {
+            // FLOAT must go in VertexAttribPointer
             if (type == GL11.GL_FLOAT) {
                 GL20.glVertexAttribPointer(index, size, type, false, stride, offset);
             } else {
                 GL30.glVertexAttribIPointer(index, size, type, stride, offset);
             }
-        }
 
-        if (divisor > 0) {
-            if (GL.getCapabilities().OpenGL33) {
-                GL33.glVertexAttribDivisor(index, divisor);
-            } else {
-                throw new UnsupportedOperationException("OpenGL 3.3 is not supported!");
+            if (divisor > 0) {
+                if (caps.OpenGL33) {
+                    GL33.glVertexAttribDivisor(index, divisor);
+                } else {
+                    throw new UnsupportedOperationException("Attribute Divisors are not supported!");
+                }
             }
-        }
+        } else {
+            final int currentVao = GL11.glGetInteger(GL30.GL_VERTEX_ARRAY_BINDING);
 
-        state.vertexArrayPop();
+            GL30.glBindVertexArray(vao.vertexArrayId);
+            GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, buffer.bufferId);
+            GL20.glEnableVertexAttribArray(index);
+
+            // FLOAT must go in VertexAttribPointer
+            if (type == GL11.GL_FLOAT) {
+                GL20.glVertexAttribPointer(index, size, type, false, stride, offset);
+            } else {
+                GL30.glVertexAttribIPointer(index, size, type, stride, offset);
+            }
+
+            if (divisor > 0) {
+                if (caps.OpenGL33) {
+                    GL33.glVertexAttribDivisor(index, divisor);
+                } else {
+                    throw new UnsupportedOperationException("Attribute Divisors are not supported!");
+                }
+            }
+
+            GL30.glBindVertexArray(currentVao);
+        }
     }
 
     @Override
     public void vertexArrayAttachIndexBuffer(GL3XVertexArray vao, GL3XBuffer buffer) {
-        state.vertexArrayPush(vao.vertexArrayId);
-        GL15.glBindBuffer(GL15.GL_ELEMENT_ARRAY_BUFFER, buffer.bufferId);
-        state.vertexArrayPop();
+        if (EXCLUSIVE_CONTEXT) {
+            GL30.glBindVertexArray(vao.vertexArrayId);
+            GL15.glBindBuffer(GL15.GL_ELEMENT_ARRAY_BUFFER, buffer.bufferId);
+        } else {
+            final int currentVao = GL11.glGetInteger(GL30.GL_VERTEX_ARRAY_BINDING);
+
+            GL30.glBindVertexArray(vao.vertexArrayId);
+            GL15.glBindBuffer(GL15.GL_ELEMENT_ARRAY_BUFFER, buffer.bufferId);
+            GL30.glBindVertexArray(currentVao);
+        }
     }
 
     @Override
@@ -1047,34 +1776,55 @@ final class GL3XDriver implements Driver<
 
     @Override
     public void vertexArrayDrawArrays(GL3XVertexArray vao, int drawMode, int start, int count) {
-        state.vertexArrayPush(vao.vertexArrayId);
-        GL11.glDrawArrays(drawMode, start, count);
-        state.vertexArrayPop();
+        if (EXCLUSIVE_CONTEXT) {
+            GL30.glBindVertexArray(vao.vertexArrayId);
+            GL11.glDrawArrays(drawMode, count, count);
+        } else {
+            final int currentVao = GL11.glGetInteger(GL30.GL_VERTEX_ARRAY_BINDING);
+
+            GL30.glBindVertexArray(vao.vertexArrayId);
+            GL11.glDrawArrays(drawMode, count, count);
+            GL30.glBindVertexArray(currentVao);
+        }
     }
 
     @Override
     public void vertexArrayDrawArraysIndirect(GL3XVertexArray vao, GL3XBuffer cmdBuffer, int drawMode, long offset) {
-        if (GL.getCapabilities().GL_ARB_draw_indirect) {
-            state.vertexArrayPush(vao.vertexArrayId);
-            state.bufferPush(ARBDrawIndirect.GL_DRAW_INDIRECT_BUFFER, cmdBuffer.bufferId);
+        final GLCapabilities caps = GL.getCapabilities();
 
-            ARBDrawIndirect.glDrawArraysIndirect(drawMode, offset);
+        if (caps.GL_ARB_draw_indirect) {
+            if (EXCLUSIVE_CONTEXT) {
+                GL30.glBindVertexArray(vao.vertexArrayId);
+                GL15.glBindBuffer(ARBDrawIndirect.GL_DRAW_INDIRECT_BUFFER, cmdBuffer.bufferId);
+                ARBDrawIndirect.glDrawArraysIndirect(drawMode, offset);
+                GL15.glBindBuffer(ARBDrawIndirect.GL_DRAW_INDIRECT_BUFFER, 0);
+            } else {
+                final int currentVao = GL11.glGetInteger(GL30.GL_VERTEX_ARRAY_BINDING);
 
-            state.bufferPop(ARBDrawIndirect.GL_DRAW_INDIRECT_BUFFER);
-            state.vertexArrayPop();
-        } else {
-            throw new UnsupportedOperationException("ARB_draw_indirect is not supported!");
+                GL30.glBindVertexArray(vao.vertexArrayId);
+                GL15.glBindBuffer(ARBDrawIndirect.GL_DRAW_INDIRECT_BUFFER, cmdBuffer.bufferId);
+                ARBDrawIndirect.glDrawArraysIndirect(drawMode, offset);
+                GL15.glBindBuffer(ARBDrawIndirect.GL_DRAW_INDIRECT_BUFFER, 0);
+                GL30.glBindVertexArray(currentVao);
+            }
         }
     }
 
     @Override
     public void vertexArrayDrawArraysInstanced(GL3XVertexArray vao, int drawMode, int first, int count, int instanceCount) {
-        if (GL.getCapabilities().OpenGL31) {
-            state.vertexArrayPush(vao.vertexArrayId);
+        final GLCapabilities caps = GL.getCapabilities();
 
-            GL31.glDrawArraysInstanced(drawMode, first, count, instanceCount);
+        if (caps.OpenGL31) {
+            if (EXCLUSIVE_CONTEXT) {
+                GL30.glBindVertexArray(vao.vertexArrayId);
+                GL31.glDrawArraysInstanced(drawMode, first, count, instanceCount);
+            } else {
+                final int currentVao = GL11.glGetInteger(GL30.GL_VERTEX_ARRAY_BINDING);
 
-            state.vertexArrayPop();
+                GL30.glBindVertexArray(vao.vertexArrayId);
+                GL31.glDrawArraysInstanced(drawMode, first, count, instanceCount);
+                GL30.glBindVertexArray(currentVao);
+            }
         } else {
             throw new UnsupportedOperationException("OpenGL 3.1 is not supported!");
         }
@@ -1082,36 +1832,55 @@ final class GL3XDriver implements Driver<
 
     @Override
     public void vertexArrayDrawElements(GL3XVertexArray vao, int drawMode, int count, int type, long offset) {
-        state.vertexArrayPush(vao.vertexArrayId);
+        if (EXCLUSIVE_CONTEXT) {
+            GL30.glBindVertexArray(vao.vertexArrayId);
+            GL11.glDrawElements(drawMode, count, type, offset);
+        } else {
+            final int currentVao = GL11.glGetInteger(GL30.GL_VERTEX_ARRAY_BINDING);
 
-        GL11.glDrawElements(drawMode, count, type, offset);
-
-        state.vertexArrayPop();
+            GL30.glBindVertexArray(vao.vertexArrayId);
+            GL11.glDrawElements(drawMode, count, type, offset);
+            GL30.glBindVertexArray(currentVao);
+        }
     }
 
     @Override
     public void vertexArrayDrawElementsIndirect(GL3XVertexArray vao, GL3XBuffer cmdBuffer, int drawMode, int indexType, long offset) {
-        if (GL.getCapabilities().GL_ARB_draw_indirect) {
-            state.vertexArrayPush(vao.vertexArrayId);
-            state.bufferPush(ARBDrawIndirect.GL_DRAW_INDIRECT_BUFFER, cmdBuffer.bufferId);
+        final GLCapabilities caps = GL.getCapabilities();
 
-            ARBDrawIndirect.glDrawElementsIndirect(drawMode, indexType, offset);
+        if (caps.GL_ARB_draw_indirect) {
+            if (EXCLUSIVE_CONTEXT) {
+                GL30.glBindVertexArray(vao.vertexArrayId);
+                GL15.glBindBuffer(ARBDrawIndirect.GL_DRAW_INDIRECT_BUFFER, cmdBuffer.bufferId);
+                ARBDrawIndirect.glDrawElementsIndirect(drawMode, indexType, offset);
+                GL15.glBindBuffer(ARBDrawIndirect.GL_DRAW_INDIRECT_BUFFER, 0);
+            } else {
+                final int currentVao = GL11.glGetInteger(GL30.GL_VERTEX_ARRAY_BINDING);
 
-            state.bufferPop(ARBDrawIndirect.GL_DRAW_INDIRECT_BUFFER);
-            state.vertexArrayPop();
-        } else {
-            throw new UnsupportedOperationException("ARB_draw_indirect is not supported!");
+                GL30.glBindVertexArray(vao.vertexArrayId);
+                GL15.glBindBuffer(ARBDrawIndirect.GL_DRAW_INDIRECT_BUFFER, cmdBuffer.bufferId);
+                ARBDrawIndirect.glDrawElementsIndirect(drawMode, indexType, offset);
+                GL15.glBindBuffer(ARBDrawIndirect.GL_DRAW_INDIRECT_BUFFER, 0);
+                GL30.glBindVertexArray(currentVao);
+            }
         }
     }
 
     @Override
     public void vertexArrayDrawElementsInstanced(GL3XVertexArray vao, int drawMode, int count, int type, long offset, int instanceCount) {
-        if (GL.getCapabilities().OpenGL31) {
-            state.vertexArrayPush(vao.vertexArrayId);
+        final GLCapabilities caps = GL.getCapabilities();
 
-            GL31.glDrawElementsInstanced(drawMode, count, type, offset, instanceCount);
+        if (caps.OpenGL31) {
+            if (EXCLUSIVE_CONTEXT) {
+                GL30.glBindVertexArray(vao.vertexArrayId);
+                GL31.glDrawElementsInstanced(drawMode, count, type, offset, instanceCount);
+            } else {
+                final int currentVao = GL11.glGetInteger(GL30.GL_VERTEX_ARRAY_BINDING);
 
-            state.vertexArrayPop();
+                GL30.glBindVertexArray(vao.vertexArrayId);
+                GL31.glDrawElementsInstanced(drawMode, count, type, offset, instanceCount);
+                GL30.glBindVertexArray(currentVao);
+            }
         } else {
             throw new UnsupportedOperationException("OpenGL 3.1 is not supported!");
         }
@@ -1124,69 +1893,172 @@ final class GL3XDriver implements Driver<
 
     @Override
     public void textureGetData(GL3XTexture texture, int level, int format, int type, GL3XBuffer out, long offset, int size) {
-        final int currentTex;
-        
-        switch (texture.target) {
-            case GL11.GL_TEXTURE_1D:
-                currentTex = GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_1D);
-                GL11.glBindTexture(GL11.GL_TEXTURE_1D, texture.textureId);
-                GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, out.bufferId);
-                GL11.glGetTexImage(GL11.GL_TEXTURE_1D, level, format, type, 0L);
-                GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, 0);
-                GL11.glBindTexture(GL11.GL_TEXTURE_1D, currentTex);
-                break;
-            case GL11.GL_TEXTURE_2D:
-                currentTex = GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_2D);
-                GL11.glBindTexture(GL11.GL_TEXTURE_2D, texture.textureId);
-                GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, out.bufferId);
-                GL11.glGetTexImage(GL11.GL_TEXTURE_2D, level, format, type, 0L);
-                GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, 0);
-                GL11.glBindTexture(GL11.GL_TEXTURE_2D, currentTex);
-                break;
-            case GL12.GL_TEXTURE_3D:
-                currentTex = GL11.glGetInteger(GL12.GL_TEXTURE_BINDING_3D);
-                GL11.glBindTexture(GL12.GL_TEXTURE_3D, texture.textureId);
-                GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, out.bufferId);
-                GL11.glGetTexImage(GL12.GL_TEXTURE_3D, level, format, type, 0L);
-                GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, 0);
-                GL11.glBindTexture(GL12.GL_TEXTURE_3D, currentTex);
-                break;
-            default:
-                throw new UnsupportedOperationException("Unsupported texture target: " + texture.target);
+        final GLCapabilities caps = GL.getCapabilities();
+
+        if (caps.GL_ARB_direct_state_access && ARB_DSA) {
+            GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, out.bufferId);
+            ARBDirectStateAccess.glGetTextureImage(texture.textureId, level, format, type, size, offset);
+            GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, 0);
+        } else if (caps.GL_EXT_direct_state_access && EXT_DSA) {
+            GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, out.bufferId);
+            EXTDirectStateAccess.glGetTextureImageEXT(texture.textureId, texture.target, level, format, type, 0L);
+            GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, 0);
+        } else if (EXCLUSIVE_CONTEXT) {
+            switch (texture.textureId) {
+                case GL11.GL_TEXTURE_1D:
+                    GL11.glBindTexture(GL11.GL_TEXTURE_1D, texture.textureId);
+                    GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, out.bufferId);
+                    GL11.glGetTexImage(GL11.GL_TEXTURE_1D, level, format, type, 0L);
+                    GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, 0);
+                    break;
+                case GL11.GL_TEXTURE_2D:
+                    GL11.glBindTexture(GL11.GL_TEXTURE_2D, texture.textureId);
+                    GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, out.bufferId);
+                    GL11.glGetTexImage(GL11.GL_TEXTURE_2D, level, format, type, 0L);
+                    GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, 0);
+                    break;
+                case GL12.GL_TEXTURE_3D:
+                    GL11.glBindTexture(GL12.GL_TEXTURE_3D, texture.textureId);
+                    GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, out.bufferId);
+                    GL11.glGetTexImage(GL12.GL_TEXTURE_3D, level, format, type, 0L);
+                    GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, 0);
+                    break;
+                default:
+                    throw new UnsupportedOperationException("Unsupported texture target: " + texture.target);
+            }
+        } else {
+            final int currentTex;
+
+            switch (texture.textureId) {
+                case GL11.GL_TEXTURE_1D:
+                    currentTex = GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_1D);
+                    GL11.glBindTexture(GL11.GL_TEXTURE_1D, texture.textureId);
+                    GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, out.bufferId);
+                    GL11.glGetTexImage(GL11.GL_TEXTURE_1D, level, format, type, 0L);
+                    GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, 0);
+                    GL11.glBindTexture(GL11.GL_TEXTURE_1D, currentTex);
+                    break;
+                case GL11.GL_TEXTURE_2D:
+                    currentTex = GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_2D);
+                    GL11.glBindTexture(GL11.GL_TEXTURE_2D, texture.textureId);
+                    GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, out.bufferId);
+                    GL11.glGetTexImage(GL11.GL_TEXTURE_2D, level, format, type, 0L);
+                    GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, 0);
+                    GL11.glBindTexture(GL11.GL_TEXTURE_2D, currentTex);
+                    break;
+                case GL12.GL_TEXTURE_3D:
+                    currentTex = GL11.glGetInteger(GL12.GL_TEXTURE_BINDING_3D);
+                    GL11.glBindTexture(GL12.GL_TEXTURE_3D, texture.textureId);
+                    GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, out.bufferId);
+                    GL11.glGetTexImage(GL12.GL_TEXTURE_3D, level, format, type, 0L);
+                    GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, 0);
+                    GL11.glBindTexture(GL12.GL_TEXTURE_3D, currentTex);
+                    break;
+                default:
+                    throw new UnsupportedOperationException("Unsupported texture target: " + texture.target);
+            }
         }
     }
 
     @Override
     public void textureSetData(GL3XTexture texture, int level, int xOffset, int yOffset, int zOffset, int width, int height, int depth, int format, int type, GL3XBuffer buffer, long offset) {
-        final int currentTex;
-        
-        switch (texture.target) {
-            case GL11.GL_TEXTURE_1D:
-                currentTex = GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_1D);
-                GL11.glBindTexture(GL11.GL_TEXTURE_1D, texture.textureId);
-                GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, buffer.bufferId);
-                GL11.glTexSubImage1D(GL11.GL_TEXTURE_1D, level, xOffset, width, format, type, 0L);
-                GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, 0);
-                GL11.glBindTexture(GL11.GL_TEXTURE_1D, currentTex);
-                break;
-            case GL11.GL_TEXTURE_2D:
-                currentTex = GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_2D);
-                GL11.glBindTexture(GL11.GL_TEXTURE_2D, texture.textureId);
-                GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, buffer.bufferId);
-                GL11.glTexSubImage2D(GL11.GL_TEXTURE_2D, level, xOffset, yOffset, width, height, format, type, 0L);
-                GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, 0);
-                GL11.glBindTexture(GL11.GL_TEXTURE_2D, currentTex);
-                break;
-            case GL12.GL_TEXTURE_3D:
-                currentTex = GL11.glGetInteger(GL12.GL_TEXTURE_BINDING_3D);
-                GL11.glBindTexture(GL12.GL_TEXTURE_3D, texture.textureId);
-                GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, buffer.bufferId);
-                GL12.glTexSubImage3D(GL12.GL_TEXTURE_3D, level, xOffset, yOffset, zOffset, width, height, depth, format, type, 0L);
-                GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, 0);
-                GL11.glBindTexture(GL12.GL_TEXTURE_3D, currentTex);
-                break;
-            default:
-                throw new UnsupportedOperationException("Unsupported texture target: " + texture.target);
+        final GLCapabilities caps = GL.getCapabilities();
+
+        if (caps.GL_ARB_direct_state_access && ARB_DSA) {
+            switch (texture.textureId) {
+                case GL11.GL_TEXTURE_1D:
+                    GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, buffer.bufferId);
+                    ARBDirectStateAccess.glTextureSubImage1D(texture.textureId, level, xOffset, width, format, type, 0L);
+                    GL11.glTexSubImage1D(GL11.GL_TEXTURE_1D, level, xOffset, width, format, type, 0L);
+                    GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, 0);
+                    break;
+                case GL11.GL_TEXTURE_2D:
+                    GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, buffer.bufferId);
+                    ARBDirectStateAccess.glTextureSubImage2D(texture.textureId, level, xOffset, yOffset, width, height, format, type, 0L);
+                    GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, 0);
+                    break;
+                case GL12.GL_TEXTURE_3D:
+                    GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, buffer.bufferId);
+                    ARBDirectStateAccess.glTextureSubImage3D(type, level, xOffset, yOffset, zOffset, width, height, depth, format, type, 0L);
+                    GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, 0);
+                    break;
+                default:
+                    throw new UnsupportedOperationException("Unsupported texture target: " + texture.target);
+            }
+        } else if (caps.GL_EXT_direct_state_access && EXT_DSA) {
+            switch (texture.textureId) {
+                case GL11.GL_TEXTURE_1D:
+                    GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, buffer.bufferId);
+                    EXTDirectStateAccess.glTextureSubImage1DEXT(texture.textureId, texture.target, level, xOffset, width, format, type, 0L);
+                    GL11.glTexSubImage1D(GL11.GL_TEXTURE_1D, level, xOffset, width, format, type, 0L);
+                    GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, 0);
+                    break;
+                case GL11.GL_TEXTURE_2D:
+                    GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, buffer.bufferId);
+                    EXTDirectStateAccess.glTextureImage2DEXT(texture.textureId, texture.target, level, format, width, height, format, format, type, 0L);
+                    GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, 0);
+                    break;
+                case GL12.GL_TEXTURE_3D:
+                    GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, buffer.bufferId);
+                    EXTDirectStateAccess.glTextureSubImage3DEXT(texture.textureId, texture.target, level, xOffset, yOffset, zOffset, width, height, depth, format, type, 0L);
+                    GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, 0);
+                    break;
+                default:
+                    throw new UnsupportedOperationException("Unsupported texture target: " + texture.target);
+            }
+        } else if (EXCLUSIVE_CONTEXT) {
+            switch (texture.textureId) {
+                case GL11.GL_TEXTURE_1D:
+                    GL11.glBindTexture(GL11.GL_TEXTURE_1D, texture.textureId);
+                    GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, buffer.bufferId);
+                    GL11.glTexSubImage1D(GL11.GL_TEXTURE_1D, level, xOffset, width, format, type, 0L);
+                    GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, 0);
+                    break;
+                case GL11.GL_TEXTURE_2D:
+                    GL11.glBindTexture(GL11.GL_TEXTURE_2D, texture.textureId);
+                    GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, buffer.bufferId);
+                    GL11.glTexSubImage2D(GL11.GL_TEXTURE_2D, level, xOffset, yOffset, width, height, format, type, 0L);
+                    GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, 0);
+                    break;
+                case GL12.GL_TEXTURE_3D:
+                    GL11.glBindTexture(GL12.GL_TEXTURE_3D, texture.textureId);
+                    GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, buffer.bufferId);
+                    GL12.glTexSubImage3D(GL12.GL_TEXTURE_3D, level, xOffset, yOffset, zOffset, width, height, depth, format, type, 0L);
+                    GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, 0);
+                    break;
+                default:
+                    throw new UnsupportedOperationException("Unsupported texture target: " + texture.target);
+            }
+        } else {
+            final int currentTex;
+            switch (texture.textureId) {
+                case GL11.GL_TEXTURE_1D:
+                    currentTex = GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_1D);
+                    GL11.glBindTexture(GL11.GL_TEXTURE_1D, texture.textureId);
+                    GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, buffer.bufferId);
+                    GL11.glTexSubImage1D(GL11.GL_TEXTURE_1D, level, xOffset, width, format, type, 0L);
+                    GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, 0);
+                    GL11.glBindTexture(GL11.GL_TEXTURE_1D, currentTex);
+                    break;
+                case GL11.GL_TEXTURE_2D:
+                    currentTex = GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_2D);
+                    GL11.glBindTexture(GL11.GL_TEXTURE_2D, texture.textureId);
+                    GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, buffer.bufferId);
+                    GL11.glTexSubImage2D(GL11.GL_TEXTURE_2D, level, xOffset, yOffset, width, height, format, type, 0L);
+                    GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, 0);
+                    GL11.glBindTexture(GL11.GL_TEXTURE_2D, currentTex);
+                    break;
+                case GL12.GL_TEXTURE_3D:
+                    currentTex = GL11.glGetInteger(GL12.GL_TEXTURE_BINDING_3D);
+                    GL11.glBindTexture(GL12.GL_TEXTURE_3D, texture.textureId);
+                    GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, buffer.bufferId);
+                    GL12.glTexSubImage3D(GL12.GL_TEXTURE_3D, level, xOffset, yOffset, zOffset, width, height, depth, format, type, 0L);
+                    GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, 0);
+                    GL11.glBindTexture(GL12.GL_TEXTURE_3D, currentTex);
+                    break;
+                default:
+                    throw new UnsupportedOperationException("Unsupported texture target: " + texture.target);
+            }
         }
     }
 }

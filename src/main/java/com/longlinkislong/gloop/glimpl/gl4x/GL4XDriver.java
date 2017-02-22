@@ -53,20 +53,20 @@ final class GL4XDriver implements Driver<
     private static final boolean EXT_DSA = Boolean.getBoolean("com.longlinkislong.gloop.glimpl.enable.GL_EXT_direct_state_access");
     private static final Logger LOGGER = LoggerFactory.getLogger(GL4XDriver.class);
 
-    
     static {
         if (EXCLUSIVE_CONTEXT) {
             LOGGER.info("Using exclusive OpenGL context!");
         }
-        
+
         if (!ARB_DSA) {
             LOGGER.info("Disabling GL_ARB_direct_state_access!");
         }
-        
+
         if (EXT_DSA) {
             LOGGER.info("Enabling GL_EXT_direct_state_access!");
         }
     }
+
     @Override
     public void bufferBindAtomic(GL4XBuffer bt, int index) {
         final GLCapabilities caps = GL.getCapabilities();
@@ -513,7 +513,7 @@ final class GL4XDriver implements Driver<
         final GLCapabilities caps = GL.getCapabilities();
 
         if (caps.GL_ARB_direct_state_access && ARB_DSA) {
-            ARBDirectStateAccess.glBlitNamedFramebuffer(srcFb.framebufferId, dstFb.framebufferId, srcX0, srcY0, srcX1, srcY1, dstX0, dstY0, dstX1, dstY1, bitfield, filter);            
+            ARBDirectStateAccess.glBlitNamedFramebuffer(srcFb.framebufferId, dstFb.framebufferId, srcX0, srcY0, srcX1, srcY1, dstX0, dstY0, dstX1, dstY1, bitfield, filter);
         } else {
             GL30.glBindFramebuffer(GL30.GL_READ_FRAMEBUFFER, srcFb.framebufferId);
             GL30.glBindFramebuffer(GL30.GL_DRAW_FRAMEBUFFER, dstFb.framebufferId);
@@ -524,9 +524,14 @@ final class GL4XDriver implements Driver<
 
     @Override
     public GL4XFramebuffer framebufferCreate() {
+        final GLCapabilities caps = GL.getCapabilities();
         final GL4XFramebuffer fb = new GL4XFramebuffer();
 
-        fb.framebufferId = GL30.glGenFramebuffers();
+        if (caps.GL_ARB_direct_state_access && ARB_DSA) {
+            fb.framebufferId = ARBDirectStateAccess.glCreateFramebuffers();
+        } else {
+            fb.framebufferId = GL30.glGenFramebuffers();
+        }
 
         return fb;
     }
@@ -580,7 +585,7 @@ final class GL4XDriver implements Driver<
     public boolean framebufferIsComplete(GL4XFramebuffer framebuffer) {
         final GLCapabilities caps = GL.getCapabilities();
 
-        if (caps.GL_ARB_direct_state_access && ARB_DSA) {            
+        if (caps.GL_ARB_direct_state_access && ARB_DSA) {
             return ARBDirectStateAccess.glCheckNamedFramebufferStatus(framebuffer.framebufferId, GL30.GL_FRAMEBUFFER) == GL30.GL_FRAMEBUFFER_COMPLETE;
         } else if (caps.GL_EXT_direct_state_access && EXT_DSA) {
             return EXTDirectStateAccess.glCheckNamedFramebufferStatusEXT(framebuffer.framebufferId, GL30.GL_FRAMEBUFFER) == GL30.GL_FRAMEBUFFER_COMPLETE;
@@ -1137,19 +1142,19 @@ final class GL4XDriver implements Driver<
             texture.textureId = GL11.glGenTextures();
             texture.target = target;
             texture.internalFormat = internalFormat;
-            
+
             EXTDirectStateAccess.glTextureParameteriEXT(texture.textureId, texture.target, GL12.GL_TEXTURE_BASE_LEVEL, 0);
             EXTDirectStateAccess.glTextureParameteriEXT(texture.textureId, texture.target, GL12.GL_TEXTURE_MAX_LEVEL, mipmaps - 1);
-            
+
             switch (target) {
                 case GL11.GL_TEXTURE_1D:
-                    ARBTextureStorage.glTextureStorage1DEXT(texture.textureId, GL11.GL_TEXTURE_1D, depth, internalFormat, width);                    
+                    ARBTextureStorage.glTextureStorage1DEXT(texture.textureId, GL11.GL_TEXTURE_1D, depth, internalFormat, width);
                     break;
                 case GL11.GL_TEXTURE_2D:
-                    ARBTextureStorage.glTextureStorage2DEXT(texture.textureId, GL11.GL_TEXTURE_2D, depth, internalFormat, width, height);                    
+                    ARBTextureStorage.glTextureStorage2DEXT(texture.textureId, GL11.GL_TEXTURE_2D, depth, internalFormat, width, height);
                     break;
                 case GL12.GL_TEXTURE_3D:
-                    ARBTextureStorage.glTextureStorage3DEXT(texture.textureId, GL12.GL_TEXTURE_3D, depth, internalFormat, width, height, depth);                    
+                    ARBTextureStorage.glTextureStorage3DEXT(texture.textureId, GL12.GL_TEXTURE_3D, depth, internalFormat, width, height, depth);
                     break;
                 default:
                     throw new UnsupportedOperationException("Unsupported texture target: " + target);
@@ -1812,7 +1817,7 @@ final class GL4XDriver implements Driver<
             GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, 0);
         } else if (caps.GL_EXT_direct_state_access && EXT_DSA) {
             GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, out.bufferId);
-            EXTDirectStateAccess.glGetTextureImageEXT(texture.textureId, texture.target, level, format, type, 0L);            
+            EXTDirectStateAccess.glGetTextureImageEXT(texture.textureId, texture.target, level, format, type, 0L);
             GL15.glBindBuffer(GL21.GL_PIXEL_PACK_BUFFER, 0);
         } else if (EXCLUSIVE_CONTEXT) {
             switch (texture.textureId) {
@@ -1900,18 +1905,18 @@ final class GL4XDriver implements Driver<
             switch (texture.textureId) {
                 case GL11.GL_TEXTURE_1D:
                     GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, buffer.bufferId);
-                    EXTDirectStateAccess.glTextureSubImage1DEXT(texture.textureId, texture.target, level, xOffset, width, format, type, 0L);                    
+                    EXTDirectStateAccess.glTextureSubImage1DEXT(texture.textureId, texture.target, level, xOffset, width, format, type, 0L);
                     GL11.glTexSubImage1D(GL11.GL_TEXTURE_1D, level, xOffset, width, format, type, 0L);
                     GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, 0);
                     break;
                 case GL11.GL_TEXTURE_2D:
                     GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, buffer.bufferId);
-                    EXTDirectStateAccess.glTextureImage2DEXT(texture.textureId, texture.target, level, format, width, height, format, format, type, 0L);                    
+                    EXTDirectStateAccess.glTextureImage2DEXT(texture.textureId, texture.target, level, format, width, height, format, format, type, 0L);
                     GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, 0);
                     break;
                 case GL12.GL_TEXTURE_3D:
                     GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, buffer.bufferId);
-                    EXTDirectStateAccess.glTextureSubImage3DEXT(texture.textureId, texture.target, level, xOffset, yOffset, zOffset, width, height, depth, format, type, 0L);                    
+                    EXTDirectStateAccess.glTextureSubImage3DEXT(texture.textureId, texture.target, level, xOffset, yOffset, zOffset, width, height, depth, format, type, 0L);
                     GL15.glBindBuffer(GL21.GL_PIXEL_UNPACK_BUFFER, 0);
                     break;
                 default:
