@@ -12,6 +12,7 @@ import java.nio.ByteBuffer;
 import java.nio.DoubleBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
+import org.lwjgl.opengl.ARBBindlessTexture;
 import org.lwjgl.opengl.ARBBufferStorage;
 import org.lwjgl.opengl.ARBDirectStateAccess;
 import org.lwjgl.opengl.ARBDrawIndirect;
@@ -1523,8 +1524,18 @@ final class GL3XDriver implements Driver<
     }
 
     @Override
-    public long textureMap(GL3XTexture tt) {
-        throw new UnsupportedOperationException("OpenGL 4.0 is not supported!");
+    public long textureMap(GL3XTexture texture) {
+        if (texture.pHandle != -1) {
+            return texture.pHandle;
+        }
+
+        if (GL.getCapabilities().GL_ARB_bindless_texture) {
+            texture.pHandle = ARBBindlessTexture.glGetTextureHandleARB(texture.textureId);
+            ARBBindlessTexture.glMakeTextureHandleResidentARB(texture.pHandle);
+            return texture.pHandle;
+        } else {
+            throw new UnsupportedOperationException("ARB_bindless_texture is not supported!");
+        }
     }
 
     @Override
@@ -1682,8 +1693,17 @@ final class GL3XDriver implements Driver<
     }
 
     @Override
-    public void textureUnmap(GL3XTexture tt) {
-        throw new UnsupportedOperationException("OpenGL 4.0 is not supported!");
+    public void textureUnmap(GL3XTexture texture) {
+        if (texture.pHandle == -1) {
+            return;
+        }
+
+        if (GL.getCapabilities().GL_ARB_bindless_texture) {
+            ARBBindlessTexture.glMakeTextureHandleNonResidentARB(texture.pHandle);
+            texture.pHandle = -1;
+        } else {
+            throw new UnsupportedOperationException("ARB_bindless_texture is not supported!");
+        }
     }
 
     @Override
