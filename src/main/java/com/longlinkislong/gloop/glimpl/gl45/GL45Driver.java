@@ -189,6 +189,16 @@ final class GL45Driver implements Driver<
     public void bufferGetData(GL45Buffer buffer, long offset, ByteBuffer out) {
         GL45.glGetNamedBufferSubData(buffer.bufferId, offset, out);
     }
+    
+    @Override
+    public void bufferGetData(GL45Buffer buffer, long offset, int[] out) {
+        GL45.glGetNamedBufferSubData(buffer.bufferId, offset, out);
+    }
+
+    @Override
+    public void bufferGetData(GL45Buffer buffer, long offset, float[] out) {
+        GL45.glGetNamedBufferSubData(buffer.bufferId, offset, out);
+    }
 
     @Override
     public int bufferGetMaxUniformBlockSize() {
@@ -218,8 +228,18 @@ final class GL45Driver implements Driver<
     }
 
     @Override
-    public void bufferSetData(GL45Buffer buffer, ByteBuffer data, int usage) {
-        GL45.glNamedBufferData(buffer.bufferId, data, usage);
+    public void bufferSetData(GL45Buffer buffer, long offset, ByteBuffer data) {
+        GL45.glNamedBufferSubData(buffer.bufferId, offset, data);
+    }
+    
+    @Override
+    public void bufferSetData(GL45Buffer buffer, long offset, int[] data) {
+        GL45.glNamedBufferSubData(buffer.bufferId, offset, data);
+    }
+    
+    @Override
+    public void bufferSetData(GL45Buffer buffer, long offset, float[] data) {
+        GL45.glNamedBufferSubData(buffer.bufferId, offset, data);
     }
 
     @Override
@@ -303,6 +323,34 @@ final class GL45Driver implements Driver<
         fb.framebufferId = 0;
         return fb;
     }
+    
+    @Override
+    public void framebufferGetPixels(GL45Framebuffer framebuffer, int x, int y, int width, int height, int format, int type, int[] dstBuffer) {
+        if (EXCLUSIVE_CONTEXT) {
+            GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, framebuffer.framebufferId);
+            GL11.glReadPixels(x, y, width, height, format, type, dstBuffer);            
+        } else {
+            final int currentFb = GL11.glGetInteger(GL30.GL_FRAMEBUFFER_BINDING);
+            
+            GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, framebuffer.framebufferId);
+            GL11.glReadPixels(x, y, width, height, format, type, dstBuffer);
+            GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, currentFb);
+        }
+    }
+
+    @Override
+    public void framebufferGetPixels(GL45Framebuffer framebuffer, int x, int y, int width, int height, int format, int type, float[] dstBuffer) {
+        if (EXCLUSIVE_CONTEXT) {
+            GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, framebuffer.framebufferId);
+            GL11.glReadPixels(x, y, width, height, format, type, dstBuffer);            
+        } else {
+            final int currentFb = GL11.glGetInteger(GL30.GL_FRAMEBUFFER_BINDING);
+            
+            GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, framebuffer.framebufferId);
+            GL11.glReadPixels(x, y, width, height, format, type, dstBuffer);
+            GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, currentFb);
+        }
+    }
 
     @Override
     public void framebufferGetPixels(GL45Framebuffer framebuffer, int x, int y, int width, int height, int format, int type, GL45Buffer dstBuffer) {
@@ -321,7 +369,7 @@ final class GL45Driver implements Driver<
             GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, currentFb);
         }
     }
-
+    
     @Override
     public void framebufferGetPixels(GL45Framebuffer framebuffer, int x, int y, int width, int height, int format, int type, ByteBuffer dstBuffer) {
         if (EXCLUSIVE_CONTEXT) {
@@ -508,6 +556,40 @@ final class GL45Driver implements Driver<
                 break;
             default:
                 throw new UnsupportedOperationException("Unsupported uniform vector size: " + value.length);
+        }
+    }
+    
+    @Override
+    public void programSetUniformMatD(GL45Program program, int uLoc, double[] mat) {
+        switch (mat.length) {
+            case 4:
+                GL41.glProgramUniformMatrix2dv(program.programId, uLoc, false, mat);
+                break;
+            case 9:
+                GL41.glProgramUniformMatrix3dv(program.programId, uLoc, false, mat);
+                break;
+            case 16:
+                GL41.glProgramUniformMatrix4dv(program.programId, uLoc, false, mat);
+                break;
+            default:
+                throw new UnsupportedOperationException("Unsupported matrix size: " + mat.length);
+        }
+    }
+
+    @Override
+    public void programSetUniformMatF(GL45Program program, int uLoc, float[] mat) {
+        switch (mat.length) {
+            case 4:
+                GL41.glProgramUniformMatrix2fv(program.programId, uLoc, false, mat);
+                break;
+            case 9:
+                GL41.glProgramUniformMatrix3fv(program.programId, uLoc, false, mat);
+                break;
+            case 16:
+                GL41.glProgramUniformMatrix4fv(program.programId, uLoc, false, mat);
+                break;
+            default:
+                throw new UnsupportedOperationException("Unsupported matrix size: " + mat.length);
         }
     }
 
@@ -714,6 +796,16 @@ final class GL45Driver implements Driver<
     public void textureGenerateMipmap(GL45Texture texture) {
         GL45.glGenerateTextureMipmap(texture.textureId);
     }
+    
+    @Override
+    public void textureGetData(GL45Texture texture, int level , int format, int type, int[] out) {
+        GL45.glGetTextureImage(texture.target, level, format, type, out);
+    }
+
+    @Override
+    public void textureGetData(GL45Texture texture, int level, int format, int type, float[] out) {
+        GL45.glGetTextureImage(texture.target, level, format, type, out);
+    }
 
     @Override
     public void textureGetData(GL45Texture texture, int level, int format, int type, ByteBuffer out) {
@@ -752,6 +844,40 @@ final class GL45Driver implements Driver<
     @Override
     public void textureInvalidateRange(GL45Texture texture, int level, int xOffset, int yOffset, int zOffset, int width, int height, int depth) {
         GL43.glInvalidateTexSubImage(texture.textureId, level, xOffset, yOffset, zOffset, width, height, depth);
+    }
+    
+    @Override
+    public void textureSetData(GL45Texture texture, int level, int xOffset, int yOffset, int zOffset, int width, int height, int depth, int format, int type, int[] data) {
+        switch (texture.target) {
+            case GL11.GL_TEXTURE_1D:
+                GL45.glTextureSubImage1D(texture.textureId, level, xOffset, width, format, type, data);
+                break;
+            case GL11.GL_TEXTURE_2D:
+                GL45.glTextureSubImage2D(texture.textureId, level, xOffset, yOffset, width, height, format, type, data);
+                break;
+            case GL12.GL_TEXTURE_3D:
+                GL45.glTextureSubImage3D(texture.textureId, level, xOffset, yOffset, zOffset, width, height, depth, format, type, data);
+                break;
+            default:
+                throw new UnsupportedOperationException("Unsupported texture type: " + texture.target);
+        }
+    }
+
+    @Override
+    public void textureSetData(GL45Texture texture, int level, int xOffset, int yOffset, int zOffset, int width, int height, int depth, int format, int type, float[] data) {
+        switch (texture.target) {
+            case GL11.GL_TEXTURE_1D:
+                GL45.glTextureSubImage1D(texture.textureId, level, xOffset, width, format, type, data);
+                break;
+            case GL11.GL_TEXTURE_2D:
+                GL45.glTextureSubImage2D(texture.textureId, level, xOffset, yOffset, width, height, format, type, data);
+                break;
+            case GL12.GL_TEXTURE_3D:
+                GL45.glTextureSubImage3D(texture.textureId, level, xOffset, yOffset, zOffset, width, height, depth, format, type, data);
+                break;
+            default:
+                throw new UnsupportedOperationException("Unsupported texture type: " + texture.target);
+        }
     }
 
     @Override
@@ -991,5 +1117,5 @@ final class GL45Driver implements Driver<
             default:
                 throw new UnsupportedOperationException("Unsupported texture target: " + texture.target);
         }
-    }
+    }                      
 }

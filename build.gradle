@@ -57,11 +57,18 @@ def getRelease(projectName) {
     }
 }
 
+def lwjgl = '3.1.1'
+
 dependencies {
     compile 'org.slf4j:slf4j-api:1.7.+'    
     compile "com.longlinkislong:gloop-spi:${getVersion('gloop-spi')}"
-    compile "org.lwjgl:lwjgl:3.0.0"
-    compile "org.lwjgl:lwjgl-platform:3.0.0:natives-windows"
-    compile "org.lwjgl:lwjgl-platform:3.0.0:natives-linux"
-    compile "org.lwjgl:lwjgl-platform:3.0.0:natives-osx"
+
+    compile "org.lwjgl:lwjgl:$lwjgl"
+    //compile "org.lwjgl:lwjgl-jemalloc:$lwjgl"
+    compile "org.lwjgl:lwjgl-opengl:$lwjgl"
+        
+    runtime "org.lwjgl:lwjgl:$lwjgl:natives-windows"
+    runtime "org.lwjgl:lwjgl-opengl:$lwjgl:natives-linux"
+    runtime "org.lwjgl:lwjgl-opengl:$lwjgl:natives-windows"
+    runtime "org.lwjgl:lwjgl-opengl:$lwjgl:natives-macos"
 }

@@ -15,12 +15,10 @@ import java.util.ArrayList;
 import org.lwjgl.opengl.ARBBufferStorage;
 import org.lwjgl.opengl.ARBCopyBuffer;
 import org.lwjgl.opengl.ARBFramebufferObject;
-import org.lwjgl.opengl.ARBInternalformatQuery;
 import org.lwjgl.opengl.ARBInvalidateSubdata;
 import org.lwjgl.opengl.ARBMapBufferRange;
 import org.lwjgl.opengl.ARBSamplerObjects;
 import org.lwjgl.opengl.ARBSeparateShaderObjects;
-import org.lwjgl.opengl.ARBSparseTexture;
 import org.lwjgl.opengl.ARBUniformBufferObject;
 import org.lwjgl.opengl.ARBVertexArrayObject;
 import org.lwjgl.opengl.EXTTextureFilterAnisotropic;
@@ -209,6 +207,24 @@ final class GL2XDriver implements Driver<
     }
 
     @Override
+    public void bufferGetData(GL2XBuffer buffer, long offset, int[] out) {
+        final int currentBuffer = GL11.glGetInteger(GL15.GL_ARRAY_BUFFER_BINDING);
+
+        GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, buffer.bufferId);
+        GL15.glGetBufferSubData(GL15.GL_ARRAY_BUFFER, offset, out);
+        GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, currentBuffer);
+    }
+
+    @Override
+    public void bufferGetData(GL2XBuffer buffer, long offset, float[] out) {
+        final int currentBuffer = GL11.glGetInteger(GL15.GL_ARRAY_BUFFER_BINDING);
+
+        GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, buffer.bufferId);
+        GL15.glGetBufferSubData(GL15.GL_ARRAY_BUFFER, offset, out);
+        GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, currentBuffer);
+    }
+
+    @Override
     public void bufferGetData(GL2XBuffer buffer, long offset, ByteBuffer out) {
         final int currentBuffer = GL11.glGetInteger(GL15.GL_ARRAY_BUFFER_BINDING);
 
@@ -247,13 +263,31 @@ final class GL2XDriver implements Driver<
         //TODO: fallback on mapBuffer
         return buffer.mapBuffer;
     }
-
+    
     @Override
-    public void bufferSetData(GL2XBuffer buffer, ByteBuffer data, int usage) {
+    public void bufferSetData(GL2XBuffer buffer, long offset, float[] data) {
         final int currentBuffer = GL11.glGetInteger(GL15.GL_ARRAY_BUFFER_BINDING);
 
         GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, buffer.bufferId);
-        GL15.glBufferData(GL15.GL_ARRAY_BUFFER, data, usage);
+        GL15.glBufferSubData(GL15.GL_ARRAY_BUFFER, offset, data);
+        GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, currentBuffer);
+    }
+
+    @Override
+    public void bufferSetData(GL2XBuffer buffer, long offset, int[] data) {
+        final int currentBuffer = GL11.glGetInteger(GL15.GL_ARRAY_BUFFER_BINDING);
+
+        GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, buffer.bufferId);
+        GL15.glBufferSubData(GL15.GL_ARRAY_BUFFER, offset, data);
+        GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, currentBuffer);
+    }
+
+    @Override
+    public void bufferSetData(GL2XBuffer buffer, long offset, ByteBuffer data) {
+        final int currentBuffer = GL11.glGetInteger(GL15.GL_ARRAY_BUFFER_BINDING);
+
+        GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, buffer.bufferId);
+        GL15.glBufferSubData(GL15.GL_ARRAY_BUFFER, offset, data);
         GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, currentBuffer);
     }
 
@@ -281,7 +315,7 @@ final class GL2XDriver implements Driver<
     public void depthTestEnable(int depthTest) {
         GL11.glEnable(GL11.GL_DEPTH_TEST);
         GL11.glDepthFunc(depthTest);
-    }    
+    }
 
     @Override
     public void framebufferAddAttachment(GL2XFramebuffer framebuffer, int attachmentId, GL2XTexture texId, int mipmapLevel) {
@@ -372,6 +406,34 @@ final class GL2XDriver implements Driver<
         ARBFramebufferObject.glBindFramebuffer(ARBFramebufferObject.GL_FRAMEBUFFER, currentFB);
     }
 
+    @Override
+    public void framebufferGetPixels(GL2XFramebuffer framebuffer, int x, int y, int width, int height, int format, int type, int[] dstBuffer) {
+        final int currentFB = GL11.glGetInteger(ARBFramebufferObject.GL_FRAMEBUFFER_BINDING);
+
+        ARBFramebufferObject.glBindFramebuffer(ARBFramebufferObject.GL_FRAMEBUFFER, framebuffer.framebufferId);
+
+        GL11.glReadPixels(
+                x, y, width, height,
+                format, type,
+                dstBuffer);
+
+        ARBFramebufferObject.glBindFramebuffer(ARBFramebufferObject.GL_FRAMEBUFFER, currentFB);
+    }
+
+    @Override
+    public void framebufferGetPixels(GL2XFramebuffer framebuffer, int x, int y, int width, int height, int format, int type, float[] dstBuffer) {
+        final int currentFB = GL11.glGetInteger(ARBFramebufferObject.GL_FRAMEBUFFER_BINDING);
+
+        ARBFramebufferObject.glBindFramebuffer(ARBFramebufferObject.GL_FRAMEBUFFER, framebuffer.framebufferId);
+
+        GL11.glReadPixels(
+                x, y, width, height,
+                format, type,
+                dstBuffer);
+
+        ARBFramebufferObject.glBindFramebuffer(ARBFramebufferObject.GL_FRAMEBUFFER, currentFB);
+    }
+    
     @Override
     public void framebufferGetPixels(GL2XFramebuffer framebuffer, int x, int y, int width, int height, int format, int type, ByteBuffer dstBuffer) {
         final int currentFB = GL11.glGetInteger(ARBFramebufferObject.GL_FRAMEBUFFER_BINDING);
@@ -466,7 +528,7 @@ final class GL2XDriver implements Driver<
     public void programSetAttribLocation(GL2XProgram program, int index, String name) {
         GL20.glBindAttribLocation(program.programId, index, name);
     }
-    
+
     @Override
     public void programSetFeedbackVaryings(GL2XProgram program, String[] varyings) {
         throw new UnsupportedOperationException("Feedback buffers is not supported!");
@@ -576,8 +638,54 @@ final class GL2XDriver implements Driver<
     @Override
     public void programSetUniformMatD(GL2XProgram program, int uLoc, DoubleBuffer mat) {
         throw new UnsupportedOperationException("64bit uniforms are not supported!");
+    }          
+
+    @Override
+    public void programSetUniformMatD(GL2XProgram program, int uLoc, double[] mat) {
+        throw new UnsupportedOperationException("64bit uniforms are not supported!");
     }
 
+    @Override
+    public void programSetUniformMatF(GL2XProgram program, int uLoc, float[] mat) {
+        if (GL.getCapabilities().GL_ARB_separate_shader_objects) {
+            switch (mat.length) {
+                case 4:
+                    ARBSeparateShaderObjects.glProgramUniformMatrix2fv(program.programId, uLoc, false, mat);
+                    break;
+                case 9:
+                    ARBSeparateShaderObjects.glProgramUniformMatrix3fv(program.programId, uLoc, false, mat);
+                    break;
+                case 16:
+                    ARBSeparateShaderObjects.glProgramUniformMatrix4fv(program.programId, uLoc, false, mat);
+                    break;
+                default:
+                    throw new UnsupportedOperationException("Unsupported matrix size: " + mat.length);
+            }
+        } else {
+            final int currentProgram = GL11.glGetInteger(GL20.GL_CURRENT_PROGRAM);
+
+            switch (mat.length) {
+                case 4:
+                    GL20.glUseProgram(program.programId);
+                    GL20.glUniformMatrix2fv(uLoc, false, mat);
+                    GL20.glUseProgram(currentProgram);
+                    break;
+                case 9:
+                    GL20.glUseProgram(program.programId);
+                    GL20.glUniformMatrix3fv(uLoc, false, mat);
+                    GL20.glUseProgram(currentProgram);
+                    break;
+                case 16:
+                    GL20.glUseProgram(program.programId);
+                    GL20.glUniformMatrix4fv(uLoc, false, mat);
+                    GL20.glUseProgram(currentProgram);
+                    break;
+                default:
+                    throw new UnsupportedOperationException("Unsupported matrix size: " + mat.length);
+            }
+        }
+    }
+    
     @Override
     public void programSetUniformMatF(GL2XProgram program, int uLoc, FloatBuffer mat) {
         if (GL.getCapabilities().GL_ARB_separate_shader_objects) {
@@ -775,7 +883,7 @@ final class GL2XDriver implements Driver<
 
         return texture;
     }
-    
+
     @Override
     public void textureBind(GL2XTexture texture, int unit) {
         GL13.glActiveTexture(GL13.GL_TEXTURE0 + unit);
@@ -810,6 +918,56 @@ final class GL2XDriver implements Driver<
 
         GL11.glBindTexture(texture.target, texture.textureId);
         ARBFramebufferObject.glGenerateMipmap(texture.target);
+        GL11.glBindTexture(texture.target, currentTexture);
+    }
+    
+    @Override
+    public void textureGetData(GL2XTexture texture, int level, int format, int type, int[] out) {
+        final int binding;
+
+        switch (texture.target) {
+            case GL11.GL_TEXTURE_1D:
+                binding = GL11.GL_TEXTURE_BINDING_1D;
+                break;
+            case GL11.GL_TEXTURE_2D:
+                binding = GL11.GL_TEXTURE_BINDING_2D;
+                break;
+            case GL12.GL_TEXTURE_3D:
+                binding = GL12.GL_TEXTURE_BINDING_3D;
+                break;
+            default:
+                throw new UnsupportedOperationException("Unsupported texture target: " + texture.target);
+        }
+
+        final int currentTexture = GL11.glGetInteger(binding);
+
+        GL11.glBindTexture(texture.target, texture.textureId);
+        GL11.glGetTexImage(texture.target, level, format, type, out);
+        GL11.glBindTexture(texture.target, currentTexture);
+    }
+
+    @Override
+    public void textureGetData(GL2XTexture texture, int level, int format, int type, float[] out) {
+        final int binding;
+
+        switch (texture.target) {
+            case GL11.GL_TEXTURE_1D:
+                binding = GL11.GL_TEXTURE_BINDING_1D;
+                break;
+            case GL11.GL_TEXTURE_2D:
+                binding = GL11.GL_TEXTURE_BINDING_2D;
+                break;
+            case GL12.GL_TEXTURE_3D:
+                binding = GL12.GL_TEXTURE_BINDING_3D;
+                break;
+            default:
+                throw new UnsupportedOperationException("Unsupported texture target: " + texture.target);
+        }
+
+        final int currentTexture = GL11.glGetInteger(binding);
+
+        GL11.glBindTexture(texture.target, texture.textureId);
+        GL11.glGetTexImage(texture.target, level, format, type, out);
         GL11.glBindTexture(texture.target, currentTexture);
     }
 
@@ -855,7 +1013,7 @@ final class GL2XDriver implements Driver<
     @Override
     public int textureGetMaxSize() {
         return GL11.glGetInteger(GL11.GL_MAX_TEXTURE_SIZE);
-    }    
+    }
 
     @Override
     public int textureGetPreferredFormat(int internalFormat) {
@@ -875,6 +1033,67 @@ final class GL2XDriver implements Driver<
     @Override
     public long textureMap(GL2XTexture tt) {
         throw new UnsupportedOperationException("ARB_bindless_texture requires OpenGL 4.0!");
+    }
+    
+    @Override
+    public void textureSetData(GL2XTexture texture, int level, int xOffset, int yOffset, int zOffset, int width, int height, int depth, int format, int type, int[] data) {
+        switch (texture.target) {
+            case GL11.GL_TEXTURE_1D: {
+                final int currentTexture = GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_1D);
+
+                GL11.glBindTexture(GL11.GL_TEXTURE_1D, texture.textureId);
+                GL11.glTexSubImage1D(GL11.GL_TEXTURE_1D, level, xOffset, width, format, type, data);
+                GL11.glBindTexture(GL11.GL_TEXTURE_1D, currentTexture);
+            }
+            break;
+            case GL11.GL_TEXTURE_2D: {
+                final int currentTexture = GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_2D);
+
+                GL11.glBindTexture(GL11.GL_TEXTURE_2D, texture.textureId);
+                GL11.glTexSubImage2D(GL11.GL_TEXTURE_2D, level, xOffset, yOffset, width, height, format, type, data);
+                GL11.glBindTexture(GL11.GL_TEXTURE_2D, currentTexture);
+            }
+            break;
+            case GL12.GL_TEXTURE_3D: {
+                final int currentTexture = GL11.glGetInteger(GL12.GL_TEXTURE_BINDING_3D);
+
+                GL11.glBindTexture(GL12.GL_TEXTURE_3D, texture.textureId);
+                GL12.glTexSubImage3D(GL12.GL_TEXTURE_3D, level, xOffset, yOffset, zOffset, width, height, depth, format, type, data);
+                GL11.glBindTexture(GL12.GL_TEXTURE_3D, currentTexture);
+            }
+            break;
+
+        }
+    }
+
+    @Override
+    public void textureSetData(GL2XTexture texture, int level, int xOffset, int yOffset, int zOffset, int width, int height, int depth, int format, int type, float[] data) {
+        switch (texture.target) {
+            case GL11.GL_TEXTURE_1D: {
+                final int currentTexture = GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_1D);
+
+                GL11.glBindTexture(GL11.GL_TEXTURE_1D, texture.textureId);
+                GL11.glTexSubImage1D(GL11.GL_TEXTURE_1D, level, xOffset, width, format, type, data);
+                GL11.glBindTexture(GL11.GL_TEXTURE_1D, currentTexture);
+            }
+            break;
+            case GL11.GL_TEXTURE_2D: {
+                final int currentTexture = GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_2D);
+
+                GL11.glBindTexture(GL11.GL_TEXTURE_2D, texture.textureId);
+                GL11.glTexSubImage2D(GL11.GL_TEXTURE_2D, level, xOffset, yOffset, width, height, format, type, data);
+                GL11.glBindTexture(GL11.GL_TEXTURE_2D, currentTexture);
+            }
+            break;
+            case GL12.GL_TEXTURE_3D: {
+                final int currentTexture = GL11.glGetInteger(GL12.GL_TEXTURE_BINDING_3D);
+
+                GL11.glBindTexture(GL12.GL_TEXTURE_3D, texture.textureId);
+                GL12.glTexSubImage3D(GL12.GL_TEXTURE_3D, level, xOffset, yOffset, zOffset, width, height, depth, format, type, data);
+                GL11.glBindTexture(GL12.GL_TEXTURE_3D, currentTexture);
+            }
+            break;
+        }
     }
 
     @Override
@@ -1056,7 +1275,7 @@ final class GL2XDriver implements Driver<
 
             vao.attribs.forEach(attrib -> GL20.glDisableVertexAttribArray(attrib.index));
         }
-    }   
+    }
 
     @Override
     public void vertexArrayDrawArraysIndirect(GL2XVertexArray vat, GL2XBuffer bt, int i, long l) {
@@ -1097,7 +1316,7 @@ final class GL2XDriver implements Driver<
     @Override
     public void vertexArrayDrawElementsInstanced(GL2XVertexArray vao, int drawMode, int count, int type, long offset, int instanceCount) {
         throw new UnsupportedOperationException("OpenGL 3.1 is not supported!");
-    }    
+    }
 
     @Override
     public void viewportApply(int x, int y, int width, int height) {
@@ -1107,8 +1326,8 @@ final class GL2XDriver implements Driver<
     @Override
     public void textureGetData(GL2XTexture texture, int level, int format, int type, GL2XBuffer out, long offset, int size) {
         final GLCapabilities caps = GL.getCapabilities();
-        
-        if (caps.OpenGL21 || caps.GL_ARB_pixel_buffer_object) {                        
+
+        if (caps.OpenGL21 || caps.GL_ARB_pixel_buffer_object) {
             final int currentTex;
             switch (texture.target) {
                 case GL11.GL_TEXTURE_1D:
@@ -1146,10 +1365,10 @@ final class GL2XDriver implements Driver<
     @Override
     public void textureSetData(GL2XTexture texture, int level, int xOffset, int yOffset, int zOffset, int width, int height, int depth, int format, int type, GL2XBuffer buffer, long offset) {
         final GLCapabilities caps = GL.getCapabilities();
-        
+
         if (caps.OpenGL21 || caps.GL_ARB_pixel_buffer_object) {
             final int currentTex;
-            
+
             switch (texture.target) {
                 case GL11.GL_TEXTURE_1D:
                     currentTex = GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_1D);
@@ -1181,5 +1400,5 @@ final class GL2XDriver implements Driver<
         } else {
             throw new UnsupportedOperationException("Pixel Buffer Objects are not supported!");
         }
-    }
+    }        
 }
