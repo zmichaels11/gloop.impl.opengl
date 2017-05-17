@@ -2329,12 +2329,12 @@ final class GL3XDriver implements Driver<
     public void vertexArrayDrawArrays(GL3XVertexArray vao, int drawMode, int start, int count) {
         if (EXCLUSIVE_CONTEXT) {
             GL30.glBindVertexArray(vao.vertexArrayId);
-            GL11.glDrawArrays(drawMode, count, count);
+            GL11.glDrawArrays(drawMode, start, count);
         } else {
             final int currentVao = GL11.glGetInteger(GL30.GL_VERTEX_ARRAY_BINDING);
 
             GL30.glBindVertexArray(vao.vertexArrayId);
-            GL11.glDrawArrays(drawMode, count, count);
+            GL11.glDrawArrays(drawMode, start, count);
             GL30.glBindVertexArray(currentVao);
         }
     }
