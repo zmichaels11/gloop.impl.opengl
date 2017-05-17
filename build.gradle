@@ -22,7 +22,6 @@ dependencies {
     compile "com.longlinkislong:gloop-spi:${getVersion('gloop-spi')}"
 
     compile "org.lwjgl:lwjgl:$lwjgl"
-    //compile "org.lwjgl:lwjgl-jemalloc:$lwjgl"
     compile "org.lwjgl:lwjgl-opengl:$lwjgl"
         
     runtime "org.lwjgl:lwjgl:$lwjgl:natives-windows"
